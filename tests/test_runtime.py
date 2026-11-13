@@ -50,6 +50,7 @@ class RuntimeTests(unittest.TestCase):
         run_path = project / "runs" / "r1.json"
         run_path.write_text(json.dumps({
             "run_id": "run-001", "split": "dev", "status": "VALID",
+            "task_id": "har-task",
             "experiment_fingerprint": FINGERPRINT,
         }), encoding="utf-8")
         digest = hashlib.sha256(run_path.read_bytes()).hexdigest()
@@ -111,6 +112,25 @@ class RuntimeTests(unittest.TestCase):
         r = self.service.call("check_duplicate_experiment", project_id="19",
                               spec={"task_id": "har-task"})
         self.assertEqual(r["status"], "INSUFFICIENT_FINGERPRINT")
+        self.assertEqual(r["matches"], [])
+
+    def test_declared_sealed_state_mapping_is_rejected(self):
+        manifest = json.loads(self.config.read_text(encoding="utf-8"))
+        manifest["projects"]["19"]["state"] = "B_SEALED_MATERIAL/STATE.json"
+        self.config.write_text(json.dumps(manifest), encoding="utf-8")
+        r = self.service.call("get_project_context", project_id="19")
+        self.assertEqual(r["status"], "ERROR")
+        self.assertEqual(r["error_code"], "PROTECTED_PROJECT_PATH")
+
+    def test_mismatched_run_split_is_not_duplicate(self):
+        run_path = self.project / "runs" / "r1.json"
+        obj = json.loads(run_path.read_text(encoding="utf-8"))
+        obj["split"] = "sealed"
+        run_path.write_text(json.dumps(obj), encoding="utf-8")
+        # The immutable event hash now differs, so this is not usable.
+        r = self.service.call("check_duplicate_experiment", project_id="19",
+                              spec=FINGERPRINT)
+        self.assertEqual(r["status"], "NOT_COMPARABLE")
         self.assertEqual(r["matches"], [])
 
     def test_project_identity_conflict_not_silently_accepted(self):

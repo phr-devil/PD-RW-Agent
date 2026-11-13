@@ -1,6 +1,7 @@
 """Conservative repeat check from declared metadata, without accessing SEALED."""
 from __future__ import annotations
 import json
+from pathlib import Path
 from .config import Settings, read_json, under_root
 from .evidence import indexed_runs
 from .schemas import AgentError
@@ -27,9 +28,17 @@ def check_duplicate_experiment(settings: Settings, project_id: str, spec: dict) 
                 or item["artifact_sha256_status"] != "MATCH"):
             continue
         try:
-            path = under_root(root, str(__import__("pathlib").Path(item["artifact"]).relative_to(root)))
+            path = under_root(root, str(Path(item["artifact"]).relative_to(root)))
             obj = read_json(path, limit=2 * 1024 * 1024)
         except (AgentError, ValueError):
+            continue
+        # A declared event can be stale or contradictory; never use a Run
+        # that contradicts its DEV/split/task/identity metadata.
+        if (obj.get("split") not in {"dev", "validation"}
+                or obj.get("split") != item["split_declared"]
+                or obj.get("run_id") != item["run_id"]
+                or obj.get("status") != item["status_declared"]
+                or obj.get("task_id") != item["task_id"]):
             continue
         # Only explicit stored fingerprint metadata can be compared; never guess.
         stored = obj.get("experiment_fingerprint")

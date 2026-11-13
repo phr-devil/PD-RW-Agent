@@ -25,6 +25,12 @@ def under_root(root: Path, value: str, *, must_exist: bool = False) -> Path:
     candidate = (root / value).resolve()
     if candidate != root and root not in candidate.parents:
         raise AgentError("PATH_OUTSIDE_PROJECT", "Mapped path is outside project root")
+    # A model/registry must not turn a known holdout subtree into a normal
+    # evidence lookup merely by selecting a file path explicitly.
+    protected = {"sealed", "holdout", "confirmation"}
+    if any(any(tag in part.casefold() for tag in protected)
+           for part in candidate.relative_to(root).parts):
+        raise AgentError("PROTECTED_PROJECT_PATH", "Protected data subtree is not accessible by this adapter")
     if must_exist and not candidate.is_file():
         raise AgentError("PROJECT_FILE_MISSING", "Mapped file does not exist")
     return candidate

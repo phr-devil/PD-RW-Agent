@@ -38,7 +38,8 @@ def indexed_runs(settings: Settings, project_id: str, task_id: str = "",
     root, _, _ = settings.project_paths(project_id)
     results = []
     for entry in reversed(_events(root)):
-        if entry.get("kind") != "run" or entry.get("split") == "sealed":
+        if (entry.get("kind") != "run"
+                or entry.get("split") not in {"dev", "validation"}):
             continue
         if task_id and entry.get("task_id") != task_id:
             continue
@@ -51,7 +52,8 @@ def indexed_runs(settings: Settings, project_id: str, task_id: str = "",
             path = under_root(root, artifact_ref)
         except AgentError:
             continue
-        if any(part.casefold() in {"sealed", "holdout", "confirmation"} for part in path.relative_to(root).parts):
+        if any(any(tag in part.casefold() for tag in ("sealed", "holdout", "confirmation"))
+               for part in path.relative_to(root).parts):
             continue
         exists = path.is_file()
         hash_status = "MISSING"

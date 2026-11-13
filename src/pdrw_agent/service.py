@@ -24,5 +24,5 @@ class ResearchService:
             if name not in tools:
                 return {"status": "ERROR", "error_code": "UNKNOWN_TOOL"}
             return tools[name](self.settings, **kwargs)
-        except (ValueError, OSError, UnicodeError) as exc:
+        except (ValueError, OSError, UnicodeError, TypeError) as exc:
             return failure(exc)
