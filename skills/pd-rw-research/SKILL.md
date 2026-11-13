@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.6.2
+version: 0.6.3
 author: phr-devil
 ---
 
@@ -37,7 +37,14 @@ negative-premise scope. For a registered DEV/VAL Run with real row-level
 artifacts, `audit_scientific_experiment(project_id, run_id)` checks hashed
 train/evaluation IDs, recomputed metrics, declared input scope and baseline
 comparability. Inspect only when the scientific decision needs these checks;
-a missing sidecar yields UNKNOWN, never an automatic STOP or scientific PASS. Never treat any of these as scientific verification,
+a missing sidecar yields UNKNOWN, never an automatic STOP or scientific PASS.
+For a properly hash-bound Run, the science audit also returns static Python
+feature-lineage risk candidates and exact content-fingerprint overlaps (when
+the required original manifest artifacts exist). Never claim full dynamic
+data-flow or leakage proof. Use `review_evidenced_lesson(project_id, run_id,
+proposal)` only when a Run-linked lesson context exists: it compares the
+recomputed DEV/VAL negative metric delta and declared premise scope, not
+the scientific truth of the negative hypothesis. No automatic STOP. Never treat any of these as scientific verification,
 original approval, permission to run, or a reason to auto-STOP. It is optional for a quick
 informational lookup: avoid redundant scans and treat `PARTIAL_RECOVERY` only
 as a diagnostic, not permission to run.

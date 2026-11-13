@@ -84,6 +84,14 @@ class MCPTests(unittest.TestCase):
                         "verify_run_evidence", {"project_id": "37", "run_id": "r1"})
                     science = await client.call_tool(
                         "audit_scientific_experiment", {"project_id": "37", "run_id": "r1"})
+                    evidenced = await client.call_tool(
+                        "review_evidenced_lesson", {
+                            "project_id": "37", "run_id": "r1",
+                            "proposal": {"premise_id": "p1", "scope": {
+                                "dataset_version": "D1", "evaluation_unit": "subject",
+                                "group_split": "LOSO", "label_definition": "labels-v1",
+                                "legal_inputs": "sensor", "metric": "MAE",
+                                "comparison_reference": "b1"}}})
                     scope = {
                         "dataset_version": "D1", "label_definition": "L1",
                         "evaluation_unit": "subject", "group_split": "LOSO",
@@ -96,7 +104,7 @@ class MCPTests(unittest.TestCase):
                             "lessons": [{"premise_id": "p1", "scope": scope,
                                         "validity": "VALID_NEGATIVE",
                                         "evidence_refs": ["r1"]}]})
-                    for response in (context, resume, rules, history, run, science, lessons):
+                    for response in (context, resume, rules, history, run, science, evidenced, lessons):
                         self.assertFalse(response.is_error)
                     self.assertIn("INCOMPLETE_CONTEXT", str(context.structured_content or context.content))
                     self.assertIn("BLOCKED_INCOMPLETE_CONTEXT", str(resume.structured_content or resume.content))
@@ -108,6 +116,8 @@ class MCPTests(unittest.TestCase):
                                   str(run.structured_content or run.content))
                     self.assertIn("AUDIT_PREREQUISITE_UNVERIFIED",
                                   str(science.structured_content or science.content))
+                    self.assertIn("LESSON_RUN_NOT_ATTESTABLE",
+                                  str(evidenced.structured_content or evidenced.content))
                     self.assertIn("EXACT_DECLARED_SCOPE_CANDIDATE",
                                   str(lessons.structured_content or lessons.content))
 
