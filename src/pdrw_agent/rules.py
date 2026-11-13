@@ -24,7 +24,7 @@ def get_applicable_rules(settings: Settings, topic: str = "") -> dict:
             rel = rel.split("#", 1)[0]
             try:
                 from .config import under_root
-                candidate = under_root(root, rel)
+                candidate = under_root(root, rel, protect_data=False)
             except AgentError:
                 continue
             if candidate.is_file() and candidate.suffix.lower() == ".md" and rel not in refs:

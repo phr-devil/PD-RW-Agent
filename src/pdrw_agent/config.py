@@ -19,7 +19,8 @@ def read_json(path: Path, limit: int = MAX_CONFIG_BYTES) -> dict:
         raise AgentError("INVALID_JSON", "JSON root must be an object")
     return obj
 
-def under_root(root: Path, value: str, *, must_exist: bool = False) -> Path:
+def under_root(root: Path, value: str, *, must_exist: bool = False,
+               protect_data: bool = True) -> Path:
     if not isinstance(value, str) or not value or Path(value).is_absolute():
         raise AgentError("INVALID_PROJECT_PATH", "Expected a relative project path")
     candidate = (root / value).resolve()
@@ -28,8 +29,8 @@ def under_root(root: Path, value: str, *, must_exist: bool = False) -> Path:
     # A model/registry must not turn a known holdout subtree into a normal
     # evidence lookup merely by selecting a file path explicitly.
     protected = {"sealed", "holdout", "confirmation"}
-    if any(any(tag in part.casefold() for tag in protected)
-           for part in candidate.relative_to(root).parts):
+    if protect_data and any(any(tag in part.casefold() for tag in protected)
+                            for part in candidate.relative_to(root).parts):
         raise AgentError("PROTECTED_PROJECT_PATH", "Protected data subtree is not accessible by this adapter")
     if must_exist and not candidate.is_file():
         raise AgentError("PROJECT_FILE_MISSING", "Mapped file does not exist")

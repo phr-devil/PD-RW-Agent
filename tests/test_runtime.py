@@ -26,8 +26,9 @@ class RuntimeTests(unittest.TestCase):
             "| Topic | Files |\n| --- | --- |\n"
             "| DEV 算法/实验/负结果 | [EXPERIMENT_LOOP.md](EXPERIMENT_LOOP.md) |\n"
             "| 正式写作 | [WRITING_GATE.md](WRITING_GATE.md) |\n"
+            "| 独立确认 | [CONFIRMATION.md](CONFIRMATION.md) |\n"
             "## 3. End\n", encoding="utf-8")
-        for n in ("WORKFLOW.md", "EXPERIMENT_LOOP.md", "WRITING_GATE.md"):
+        for n in ("WORKFLOW.md", "EXPERIMENT_LOOP.md", "WRITING_GATE.md", "CONFIRMATION.md"):
             (rules / n).write_text("# active\n", encoding="utf-8")
         (rules / "LESSONS").mkdir()
         (rules / "LESSONS" / "CASE_REGISTRY.md").write_text(
@@ -87,6 +88,12 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(result["status"], "ROUTE_FOUND")
         self.assertEqual(result["matches"][0]["rule_paths"], ["EXPERIMENT_LOOP.md"])
         self.assertFalse(result["authorization_verified"])
+
+    def test_confirmation_rule_is_navigable_but_never_authorized(self):
+        r = self.service.call("get_applicable_rules", topic="独立确认")
+        self.assertEqual(r["status"], "ROUTE_FOUND")
+        self.assertEqual(r["matches"][0]["rule_paths"], ["CONFIRMATION.md"])
+        self.assertFalse(r["authorization_verified"])
 
     def test_case_memory_is_scoped_as_secondary(self):
         r = self.service.call("search_research_memory", query="HAR")
