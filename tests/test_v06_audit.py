@@ -127,8 +127,11 @@ class V06AuditTests(unittest.TestCase):
             self.assertEqual(readonly.execute("SELECT COUNT(*) FROM sample").fetchone()[0], 0)
             with self.assertRaises(sqlite3.OperationalError):
                 readonly.execute("INSERT INTO sample VALUES (1)")
-        with sqlite3.connect(str(path)) as reopened:
+        reopened = sqlite3.connect(str(path))
+        try:
             self.assertEqual(reopened.execute("SELECT COUNT(*) FROM sample").fetchone()[0], 0)
+        finally:
+            reopened.close()
 
     def test_missing_index_distinct_from_no_runs(self):
         data = self.service.call("find_experiment_evidence", project_id="37")
