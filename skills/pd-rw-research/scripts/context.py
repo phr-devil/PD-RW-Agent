@@ -13,7 +13,12 @@ from pathlib import Path
 
 
 def emit(data, code=0):
-    print(json.dumps(data, ensure_ascii=False, indent=2))
+    # Some Windows redirected consoles use cp1252; keep JSON valid without
+    # requiring a global environment/terminal encoding change.
+    try:
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        print(json.dumps(data, ensure_ascii=True, indent=2))
     return code
 
 

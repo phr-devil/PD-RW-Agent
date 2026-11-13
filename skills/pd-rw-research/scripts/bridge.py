@@ -20,7 +20,12 @@ REQUIRED_RULES = ("AGENTS.md", "WORKFLOW.md")
 
 
 def emit(payload, code=0):
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    # Preserve readable Unicode when possible, fall back to ASCII-safe JSON
+    # on older Windows consoles and redirected terminal captures.
+    try:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        print(json.dumps(payload, ensure_ascii=True, indent=2))
     return code
 
 
