@@ -16,6 +16,7 @@ from .runtime.audit import audit_project_state
 from .runtime.history import reconstruct_project_history
 from .science.run_integrity import verify_run_evidence
 from .science.applicability import review_lesson_applicability
+from .science.validity import audit_scientific_experiment
 
 
 class ResearchService:
@@ -28,6 +29,7 @@ class ResearchService:
             "audit_project_state": audit_project_state,
             "reconstruct_project_history": reconstruct_project_history,
             "verify_run_evidence": verify_run_evidence,
+            "audit_scientific_experiment": audit_scientific_experiment,
             "review_lesson_applicability":
                 lambda _settings, **inputs: review_lesson_applicability(**inputs),
             "get_applicable_rules": get_applicable_rules,

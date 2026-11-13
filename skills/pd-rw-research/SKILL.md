@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.6.1
+version: 0.6.2
 author: phr-devil
 ---
 
@@ -33,7 +33,11 @@ completeness or rule drift affects the decision. When relevant, use
 `reconstruct_project_history(project_id)` to diagnose STATE/EVENTS conflicts,
 `verify_run_evidence(project_id, run_id)` to check original DEV/VAL Run bytes,
 and `review_lesson_applicability(proposal, lessons)` to compare declared
-negative-premise scope. Never treat any of these as scientific verification,
+negative-premise scope. For a registered DEV/VAL Run with real row-level
+artifacts, `audit_scientific_experiment(project_id, run_id)` checks hashed
+train/evaluation IDs, recomputed metrics, declared input scope and baseline
+comparability. Inspect only when the scientific decision needs these checks;
+a missing sidecar yields UNKNOWN, never an automatic STOP or scientific PASS. Never treat any of these as scientific verification,
 original approval, permission to run, or a reason to auto-STOP. It is optional for a quick
 informational lookup: avoid redundant scans and treat `PARTIAL_RECOVERY` only
 as a diagnostic, not permission to run.

@@ -1,5 +1,17 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.6.2 scientific evaluation checking engine
+
+- A Run-linked `science_audit` spec and DEV/VAL artifacts are hash-attested
+  via PD-RW before bounded row-level checking.
+- Exact train/eval sample/group overlap, evaluation-unit-specific numeric
+  scores, declared feature allowlist, and matched baseline rows/metrics.
+- Explicit FAIL vs UNKNOWN vs scoped PASS. Not a trained-code tracer,
+  near-duplicate detector, label truth auditor, metric fairness proof, or
+  automatic permission/claim authority. Full details:
+  [docs/V062_SCIENCE_VALIDITY.md](V062_SCIENCE_VALIDITY.md).
+- Synthetic and original-PD-RW-backed tests on Windows and Linux.
+
 ## v0.6.1 history/Run/lesson applicability increment
 
 - New read-only `reconstruct_project_history` checks the original

@@ -1,5 +1,12 @@
 # PD-RW-Agent
 
+> **v0.6.2 scientific-evaluation checks:** bounded, hash-bound DEV/VAL
+> train/evaluation sample and group overlap; real metric recomputation;
+> declared-input scope and matched baseline evaluation. The new tool is
+> `audit_scientific_experiment` via Python CLI/MCP. It detects specific
+> falsifiable faults without attesting truth, trained-code lineage, author
+> approval or official confirmation. [Contract](docs/V062_SCIENCE_VALIDITY.md).
+
 > **v0.6.1 research integrity increment:** read-only reconstruction of machine
 > STATE/EVENTS metadata, original-PD-RW-contract Run evidence checks, and
 > declared negative-lesson scope comparisons, exposed via CLI/MCP. None

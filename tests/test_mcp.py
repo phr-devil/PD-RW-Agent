@@ -30,6 +30,7 @@ class MCPTests(unittest.TestCase):
                     self.assertEqual(names, {
                         "get_project_context", "audit_project_state", "get_applicable_rules",
                         "reconstruct_project_history", "verify_run_evidence",
+                        "audit_scientific_experiment",
                         "review_lesson_applicability",
                         "search_research_memory", "find_experiment_evidence",
                         "check_duplicate_experiment",
