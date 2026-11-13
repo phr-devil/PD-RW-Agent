@@ -106,7 +106,7 @@ class V06AuditTests(unittest.TestCase):
 
     def test_markdown_project_id_collision_is_not_ignored(self):
         (self.project / "STATE.md").write_text(
-            "PROJECT_ID: different-project\\nACTIVE_TASK: demo\\n", encoding="utf-8")
+            "PROJECT_ID: different-project\nACTIVE_TASK: demo\n", encoding="utf-8")
         config = self.settings.project_map
         config.write_text(json.dumps({"schema_version": 1, "projects": {
             "37": {"root": str(self.project),
