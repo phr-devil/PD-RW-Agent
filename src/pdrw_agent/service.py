@@ -12,6 +12,7 @@ from .runtime.receipts import begin_operation, checkpoint_operation, execution_s
 from .runtime.recovery import get_resume_context
 from .runtime.registration import preview_experiment_record
 from .delivery import prepare_handoff
+from .runtime.audit import audit_project_state
 
 
 class ResearchService:
@@ -21,6 +22,7 @@ class ResearchService:
     def call(self, name: str, **kwargs) -> dict:
         handlers = {
             "get_project_context": get_project_context,
+            "audit_project_state": audit_project_state,
             "get_applicable_rules": get_applicable_rules,
             "search_research_memory": search_research_memory,
             "find_experiment_evidence": find_experiment_evidence,

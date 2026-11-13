@@ -30,6 +30,11 @@ def create_server(settings: Settings | None = None):
         return service.call("get_project_context", project_id=project_id)
 
     @mcp.tool()
+    def audit_project_state(project_id: str) -> dict[str, Any]:
+        """Audit registered state, evidence coverage and version drift (read-only)."""
+        return service.call("audit_project_state", project_id=project_id)
+
+    @mcp.tool()
     def get_applicable_rules(topic: str = "") -> dict[str, Any]:
         """Get current local PD-RW AGENTS.md routing hints, never grant authorization."""
         return service.call("get_applicable_rules", topic=topic)

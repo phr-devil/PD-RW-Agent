@@ -1,5 +1,12 @@
 # PD-RW-Agent
 
+> **v0.6.0 Python state/evidence increment:** The shared CLI/MCP service
+> now provides bounded, read-only `audit_project_state` diagnostics:
+> registered source availability, SHA-256 manifest coverage, historical
+> snapshot excerpts and local declared rule-version mismatch. This does not
+> verify scientific truth or original user authorization.
+> See [v0.6 contract](docs/V06_STATE_EVIDENCE.md).
+
 **Research agent integration for WorkBuddy, powered by the existing PD-RW workflow.**
 
 > **v0.5.3 routing adjustment:** For an explicitly registered and permitted project, an MCP-enabled WorkBuddy Skill now requests an actual bounded MCP project-context call before broad file reads; the server uses the same Python service as the CLI. This is an instruction-level routing change, **not** a guaranteed host enforcement mechanism. See [WorkBuddy MCP-first acceptance](docs/RUNTIME_AND_MCP.md#v053-workbuddy-mcp-first-routing-acceptance).

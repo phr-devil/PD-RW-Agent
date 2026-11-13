@@ -16,6 +16,8 @@ def main() -> int:
     sub = cli.add_subparsers(dest="command", required=True)
     p = sub.add_parser("context")
     p.add_argument("--project-id", required=True)
+    a = sub.add_parser("audit")
+    a.add_argument("--project-id", required=True)
     r = sub.add_parser("rules")
     r.add_argument("--topic", default="")
     m = sub.add_parser("memory")
@@ -61,6 +63,8 @@ def main() -> int:
         command = options.command
         if command == "context":
             out = service.call("get_project_context", project_id=options.project_id)
+        elif command == "audit":
+            out = service.call("audit_project_state", project_id=options.project_id)
         elif command == "rules":
             out = service.call("get_applicable_rules", topic=options.topic)
         elif command == "memory":

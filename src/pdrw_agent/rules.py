@@ -34,11 +34,32 @@ def get_applicable_rules(settings: Settings, topic: str = "") -> dict:
                          "rule_paths": refs[:8]})
     if not rows:
         raise AgentError("RULE_ROUTE_MISSING", "AGENTS.md contains no valid rule routes")
-    key = topic.strip().casefold()
+    if not isinstance(topic, str) or len(topic) > 500:
+        raise AgentError("RULE_QUERY_INVALID", "Topic must be a short text query")
+    key = " ".join(topic.strip().casefold().split())
     matches = ([r for r in rows if r["topic"].casefold() == key]
                or [r for r in rows if key in r["topic"].casefold()]) if key else rows
+    if key and not matches:
+        # Lexical hints only. Never silently invent policy on unmatched queries.
+        query_tokens = re.findall(r"[a-z][a-z0-9_-]+|[\u4e00-\u9fff]{2,}", key)
+        scored = []
+        for row in rows:
+            label = row["topic"].casefold()
+            parts = re.split(r"[/、，,\s()（）]+", label)
+            score = sum(1 for token in query_tokens if
+                        (token.isascii() and bool(re.search(
+                            r"(?<![a-z0-9])" + re.escape(token) + r"(?![a-z0-9])", label)))
+                        or (not token.isascii() and
+                            (token in label or any(len(part) >= 2 and part in token
+                                                   for part in parts))))
+            if score:
+                scored.append((score, row))
+        if scored:
+            highest = max(score for score, _ in scored)
+            matches = [row for score, row in scored if score == highest]
     return {"status": "ROUTE_FOUND" if len(matches) == 1 and key else "ROUTE_SELECTION_REQUIRED",
             "query": topic, "matches": matches[:12],
+            "available_topics": [r["topic"] for r in rows] if not matches else [],
             "rule_commit_local_only": rule_commit(root),
             "rule_freshness": "REMOTE_NOT_CHECKED",
             "source": "AGENTS.md#2",

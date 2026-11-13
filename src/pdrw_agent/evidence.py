@@ -84,7 +84,10 @@ def indexed_runs(settings: Settings, project_id: str, task_id: str = "",
 def find_experiment_evidence(settings: Settings, project_id: str,
                              task_id: str = "", run_id: str = "", limit: int = 6) -> dict:
     root, entries = indexed_runs(settings, project_id, task_id, run_id, limit)
-    return {"status": "INDEXED_RUNS_FOUND" if entries else "NO_INDEXED_DEV_RUN",
+    index_present = under_root(root, "EVENTS.jsonl").is_file()
+    return {"status": ("EVIDENCE_INDEX_MISSING" if not index_present else
+                       "INDEXED_RUNS_FOUND" if entries else "NO_INDEXED_DEV_RUN"),
+            "index_status": "PRESENT" if index_present else "MISSING",
             "project_id": project_id, "project_root": str(root),
             "matches": entries, "source": "Existing EVENTS.jsonl, not disk search",
             "run_validity_verified": False,

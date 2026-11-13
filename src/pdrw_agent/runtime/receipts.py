@@ -74,12 +74,16 @@ def _db_path(settings: Settings, project_id: str, *, create: bool) -> Path | Non
 
 
 @contextmanager
-def _open(path: Path):
-    connection = sqlite3.connect(str(path), timeout=10)
+def _open(path: Path, *, write: bool = True):
+    # Read-only status must not create a DB, journal or missing schema.
+    uri = path.resolve().as_uri() + "?mode=ro"
+    connection = sqlite3.connect(str(path) if write else uri,
+                                 timeout=10, uri=not write)
     connection.row_factory = sqlite3.Row
     try:
         connection.execute("PRAGMA busy_timeout=10000")
-        connection.execute("""
+        if write:
+            connection.execute("""
             CREATE TABLE IF NOT EXISTS operations (
               project_id TEXT NOT NULL, operation_id TEXT NOT NULL,
               task_id TEXT NOT NULL, action TEXT NOT NULL,
@@ -90,7 +94,10 @@ def _open(path: Path):
               PRIMARY KEY (project_id, operation_id)
             )
         """)
-        with connection:
+        if write:
+            with connection:
+                yield connection
+        else:
             yield connection
     finally:
         connection.close()
@@ -205,7 +212,7 @@ def execution_status(settings: Settings, project_id: str,
         return {"status": "NO_RECEIPTS", "operations": [],
                 "process_liveness_verified": False}
     count = max(1, min(10, limit))
-    with _open(path) as db:
+    with _open(path, write=False) as db:
         if operation_id:
             rows = db.execute("SELECT * FROM operations WHERE project_id=? AND operation_id=?",
                               (project_id, operation_id)).fetchall()

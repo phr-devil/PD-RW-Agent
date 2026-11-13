@@ -1,5 +1,19 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.6.0 state/evidence increment
+
+- Bounded read-only `audit_project_state` is shared by Python CLI and MCP.
+- Markdown `PROJECT_ID` identity checks and historical snapshot heading
+  support; rule navigation accepts longer unambiguous queries or lists
+  available topics instead of inventing a match.
+- Missing EVENTS is distinguishable from a present but empty Run index;
+  SQLite receipt-status queries use an actual read-only connection.
+- Synthetic regression tests target byte integrity, missing evidence, rule
+  versions and no project writes. WorkBuddy quality/Token benefit is not
+  yet measured.
+- Future increments: structured lesson retrieval, trace-backed durable
+  checkpoints, trusted executor host and end-to-end WorkBuddy tests.
+
 ## Current delivery: v0.3/v0.4 foundations
 
 - Shared installable Python package under `src/pdrw_agent/`.

@@ -18,7 +18,7 @@ class SkillContractTests(unittest.TestCase):
             self.assertRegex(front, rf"(?m)^{re.escape(key)}:")
         self.assertIn("name: pd-rw-research", front)
         self.assertLess(len(text.splitlines()), 160)
-        self.assertIn("version: 0.5.3", front)
+        self.assertIn("version: 0.6.0", front)
 
     def test_registered_project_requires_real_mcp_preflight_when_available(self):
         text = ENTRY.read_text(encoding="utf-8")
@@ -26,6 +26,7 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("actually call `get_project_context(project_id)` once", text)
         self.assertIn("compare", text.casefold())
         self.assertIn("MCP_NOT_USED", text)
+        self.assertIn("audit_project_state(project_id)", text)
         self.assertIn("independent proof of project identity", text)
         self.assertIn("independent permitted read-only evidence review", text)
         self.assertIn("actual MCP tool names and statuses", text)
