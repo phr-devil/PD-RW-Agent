@@ -68,8 +68,8 @@ def _db_path(settings: Settings, project_id: str, *, create: bool) -> Path | Non
                              "Choose an independent private runtime directory")
     if create:
         dest.mkdir(parents=True, exist_ok=True)
-    elif not dest.is_dir():
-        return None
+    # A configured but not-yet-created runtime directory is NO_RECEIPTS,
+    # not RECEIPTS_NOT_CONFIGURED. Read operations never create directories.
     return dest / "runtime.sqlite"
 
 
@@ -108,7 +108,7 @@ def begin_operation(settings: Settings, project_id: str, operation_id: str,
     _identifier(task_id, "task_id")
     if action not in ACTIONS:
         raise AgentError("INVALID_ACTION", "Only ordinary DEV actions may create operational receipts")
-    _assert_context(settings, project_id, task_id)
+    _assert_context(settings, project_id)
     path = _db_path(settings, project_id, create=True)
     with _open(path) as db:
         db.execute("BEGIN IMMEDIATE")
@@ -121,6 +121,7 @@ def begin_operation(settings: Settings, project_id: str, operation_id: str,
                         "receipt": _public(existing), "execution_authorized": False}
             return {"status": "ALREADY_RECEIPTED", "receipt": _public(existing),
                     "execution_authorized": False}
+        _assert_context(settings, project_id, task_id)
         now = _utc()
         db.execute("""INSERT INTO operations(project_id,operation_id,task_id,action,
                    phase,revision,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)""",
