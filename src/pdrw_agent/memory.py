@@ -26,16 +26,21 @@ def _case_row(line: str) -> dict | None:
     if not line.startswith("|"):
         return None
     cells = [c.strip() for c in line.strip().strip("|").split("|")]
-    if len(cells) != 4 or cells[0] in {"---", "CASE_ID / 号（非强制唯一编号）"}:
+    # Current PD-RW uses four columns; some previous/compact indexes use
+    # two. Preserve those searchable legacy records without inventing scope.
+    if len(cells) not in (2, 4) or cells[0].casefold() in {
+        "case_id", "case_id / 号（非强制唯一编号）", "---"}:
         return None
     match = CASE_ID.search(cells[0])
-    if not match:
+    raw_id = match.group(1) if match else cells[0]
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{1,79}", raw_id):
         return None
-    return {"case_id": match.group(1),
-            "summary": cells[1],
-            "declared_boundaries": cells[2],
-            "source_declarations": cells[3],
-            "declared_status_tags": list(dict.fromkeys(TAG.findall(cells[2])))[:10]}
+    boundaries = cells[2] if len(cells) == 4 else ""
+    sources = cells[3] if len(cells) == 4 else ""
+    return {"case_id": raw_id, "summary": cells[1],
+            "declared_boundaries": boundaries,
+            "source_declarations": sources,
+            "declared_status_tags": list(dict.fromkeys(TAG.findall(boundaries)))[:10]}
 
 
 def search_research_memory(settings: Settings, query: str, limit: int = 5) -> dict:
