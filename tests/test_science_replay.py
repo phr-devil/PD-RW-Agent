@@ -94,6 +94,18 @@ class ReplayTests(unittest.TestCase):
         with self.assertRaises(AgentError):
             blind_responses(self.root, self.manifest, self.responses, 7)
 
+    def test_cli_nonreplayable_returns_nonzero(self):
+        folder = Path(self.tmp.name)
+        manifest_path = folder / "case_bad.json"
+        manifest_path.write_text(json.dumps(self.manifest), encoding="utf-8")
+        (self.root / "snapshot.md").write_text("no longer frozen", encoding="utf-8")
+        run = subprocess.run([
+            sys.executable, "-m", "pdrw_agent.science.cli", "replay-check",
+            "--root", str(self.root), "--manifest", str(manifest_path)
+        ], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
+        self.assertEqual(json.loads(run.stdout)["status"], "NOT_REPLAYABLE")
+
     def test_duplicate_sources_fail_and_naive_timestamp_fails(self):
         p = dict(self.manifest)
         p["sources"] = [self.manifest["sources"][0]] * 2

@@ -25,6 +25,8 @@ def _write_secret(path: Path, value: dict, root: Path) -> None:
                          "Keep blind unblinding key outside the fixture directory")
     if not target.parent.is_dir():
         raise AgentError("REPLAY_KEY_LOCATION_INVALID", "Private key directory must already exist")
+    if any((parent / ".git").exists() for parent in (target.parent, *target.parents)):
+        raise AgentError("REPLAY_KEY_LOCATION_INVALID", "Private blind key cannot be written under a Git checkout")
     fd = os.open(str(target), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as out:
@@ -69,7 +71,9 @@ def main() -> int:
     except (ValueError, OSError, TypeError) as exc:
         result = failure(exc)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 2 if result.get("status") == "ERROR" else 0
+    if result.get("status") == "ERROR":
+        return 2
+    return 3 if result.get("status") == "NOT_REPLAYABLE" else 0
 
 
 if __name__ == "__main__":

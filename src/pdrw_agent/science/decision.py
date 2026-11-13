@@ -53,7 +53,10 @@ def assess_proposal(packet: dict) -> dict:
     """
     if not isinstance(packet, dict):
         raise AgentError("SCIENCE_PACKET_INVALID", "Expected a JSON object")
-    claim_type = CLAIM_ALIASES.get(packet.get("claim_type"), packet.get("claim_type"))
+    raw_type = packet.get("claim_type")
+    if not isinstance(raw_type, str):
+        raise AgentError("SCIENCE_PACKET_INVALID", "Claim type must be textual")
+    claim_type = CLAIM_ALIASES.get(raw_type, raw_type)
     if claim_type not in CLAIMS:
         raise AgentError("SCIENCE_PACKET_INVALID", "Use a PD-RW capability, mechanism, or boundary claim type")
     question = packet.get("question")
@@ -80,7 +83,7 @@ def assess_proposal(packet: dict) -> dict:
     prechecks = {}
     for key in CHECKS:
         entry = checks.get(key, {"status": "NOT_CHECKED", "evidence_refs": []})
-        if not isinstance(entry, dict) or entry.get("status") not in CHECK_STATES:
+        if not isinstance(entry, dict) or not isinstance(entry.get("status"), str) or entry["status"] not in CHECK_STATES:
             raise AgentError("SCIENCE_PACKET_INVALID", f"Invalid check: {key}")
         refs = _refs(entry.get("evidence_refs", []), key)
         prechecks[key] = {
@@ -104,7 +107,7 @@ def assess_proposal(packet: dict) -> dict:
         old_scope = _scope(lesson.get("scope", {}))
         refs = _refs(lesson.get("evidence_refs", []), "negative evidence refs")
         validity = lesson.get("validity")
-        if validity not in {"VALID_NEGATIVE", "INVALID", "UNKNOWN"}:
+        if not isinstance(validity, str) or validity not in {"VALID_NEGATIVE", "INVALID", "UNKNOWN"}:
             raise AgentError("SCIENCE_PACKET_INVALID", "Negative lesson validity must be explicit")
         if old_id != premise_id:
             continue
@@ -140,10 +143,10 @@ def assess_proposal(packet: dict) -> dict:
         predictions = probe.get("predictions")
         if not isinstance(predictions, dict) or set(predictions) - set(ids):
             raise AgentError("SCIENCE_PACKET_INVALID", "Prediction keys must reference named hypotheses")
-        if any(v not in OUTCOMES for v in predictions.values()):
+        if any(not isinstance(v, str) or v not in OUTCOMES for v in predictions.values()):
             raise AgentError("SCIENCE_PACKET_INVALID", "Prediction outcomes must be qualitative")
         cost = probe.get("cost_band", "UNKNOWN")
-        if cost not in COSTS:
+        if not isinstance(cost, str) or cost not in COSTS:
             raise AgentError("SCIENCE_PACKET_INVALID", "Invalid cost band")
         refs = _refs(probe.get("prediction_evidence_refs", []), "probe evidence refs")
         separated = []

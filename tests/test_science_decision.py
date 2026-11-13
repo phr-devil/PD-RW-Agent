@@ -110,6 +110,20 @@ class ScienceDecisionTests(unittest.TestCase):
         with self.assertRaises(AgentError):
             assess_proposal(p)
 
+    def test_malformed_json_types_fail_with_stable_contract_error(self):
+        p = proposal()
+        p["claim_type"] = ["MECHANISM"]
+        with self.assertRaises(AgentError):
+            assess_proposal(p)
+        p = proposal()
+        p["probes"][0]["predictions"]["causal"] = []
+        with self.assertRaises(AgentError):
+            assess_proposal(p)
+        p = proposal()
+        p["prechecks"]["group_independence"]["status"] = []
+        with self.assertRaises(AgentError):
+            assess_proposal(p)
+
     def test_reject_unknown_hypothesis_and_duplicate_probe(self):
         p = proposal()
         p["probes"][0]["predictions"]["future-hypothesis"] = "INCREASE"

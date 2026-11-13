@@ -34,7 +34,7 @@ To make blind packets after **independently collecting** real A/B/C replies, run
 python -m pdrw_agent.science.cli replay-blind --root D:\private\replay-case --manifest D:\private\replay-case\case.json --a D:\private\A.json --b D:\private\B.json --c D:\private\C.json --seed 20261113 --private-key D:\private\unblind.json
 ```
 
-The CLI prints only randomized X/Y/Z reviewer responses and **writes** the unblinding map to the specified NEW file outside the frozen case folder. Keep that file private, outside Git, with Windows ACL configured appropriately. A human must check identity and future knowledge embedded in free text before using the packet; machine-checked evidence IDs alone cannot detect that contamination.
+The CLI prints only randomized X/Y/Z reviewer responses and **writes** the unblinding map to the specified NEW file outside the frozen case folder **and outside any Git checkout**. A failed frozen source check returns `NOT_REPLAYABLE` with nonzero exit code 3, suitable for automation guards. Keep that file private, outside Git, with Windows ACL configured appropriately. A human must check identity and future knowledge embedded in free text before using the packet; machine-checked evidence IDs alone cannot detect that contamination.
 
 Before unblinding, independently review unauthorized operations, leakage, citation grounding, baselines, negative results, unfair splits, next-probe discriminability and premature GO/STOP. After unblinding compare paired outcome quality and actual model/GPU/human cost. See `evals/AB_C_CAPTURE_TEMPLATE.md`.
 
