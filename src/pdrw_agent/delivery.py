@@ -9,8 +9,9 @@ from .schemas import AgentError
 def prepare_handoff(settings: Settings, project_id: str, primary_ref: str,
                     supporting_refs: list[str] | None = None) -> dict:
     ctx = get_project_context(settings, project_id)
-    if ctx["status"] == "IDENTITY_CONFLICT":
-        return {"status": "BLOCKED_PROJECT_IDENTITY", "project_id": project_id}
+    if ctx["status"] != "SOURCE_REVIEW_REQUIRED":
+        return {"status": "BLOCKED_PROJECT_CONTEXT", "project_id": project_id,
+                "project_status": ctx["status"], "new_files_created": False}
     if not isinstance(supporting_refs, list) or len(supporting_refs) > 8 or any(
         not isinstance(x, str) for x in supporting_refs
     ):

@@ -137,7 +137,7 @@ class RuntimeTests(unittest.TestCase):
         # The immutable event hash now differs, so this is not usable.
         r = self.service.call("check_duplicate_experiment", project_id="19",
                               spec=FINGERPRINT)
-        self.assertEqual(r["status"], "NOT_COMPARABLE")
+        self.assertEqual(r["status"], "UNVERIFIABLE_HISTORY")
         self.assertEqual(r["matches"], [])
 
     def test_project_identity_conflict_not_silently_accepted(self):

@@ -9,6 +9,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from ..config import Settings, under_root
 from ..schemas import AgentError
+from ..projects import get_project_context
+
+
+def _assert_context(settings: Settings, project_id: str, task_id: str | None = None) -> None:
+    """Guard new receipt writes against known project/Task mismatch.
+
+    This is an identity guard, never a grant of author permission.
+    """
+    context = get_project_context(settings, project_id)
+    if context["status"] != "SOURCE_REVIEW_REQUIRED":
+        raise AgentError("PROJECT_CONTEXT_NOT_READY",
+                         "Project identity/snapshot incomplete or conflicting; verify original evidence")
+    active = context["state_index"].get("active_task_id")
+    if task_id and active and active != task_id:
+        raise AgentError("TASK_CONTEXT_CONFLICT",
+                         "Operation Task differs from currently indexed project Task")
 
 ACTIONS = {"DEV_CODE", "DEV_TRAIN", "DEV_EVALUATE", "DEV_FIX"}
 TRANSITIONS = {
@@ -92,6 +108,7 @@ def begin_operation(settings: Settings, project_id: str, operation_id: str,
     _identifier(task_id, "task_id")
     if action not in ACTIONS:
         raise AgentError("INVALID_ACTION", "Only ordinary DEV actions may create operational receipts")
+    _assert_context(settings, project_id, task_id)
     path = _db_path(settings, project_id, create=True)
     with _open(path) as db:
         db.execute("BEGIN IMMEDIATE")
@@ -139,6 +156,7 @@ def checkpoint_operation(settings: Settings, project_id: str, operation_id: str,
         raise AgentError("ARTIFACT_REF_NOT_ALLOWED", "Only ARTIFACT_REPORTED may reference an artifact")
     if phase == "ARTIFACT_REPORTED" and not artifact_ref:
         raise AgentError("ARTIFACT_REQUIRED", "Report an existing non-protected local artifact")
+    _assert_context(settings, project_id)
     digest = (_artifact_digest(settings, project_id, artifact_ref)
               if artifact_ref else "")
     path = _db_path(settings, project_id, create=False)
@@ -150,6 +168,7 @@ def checkpoint_operation(settings: Settings, project_id: str, operation_id: str,
                          (project_id, operation_id)).fetchone()
         if row is None:
             raise AgentError("RECEIPT_NOT_FOUND", "Operation ID not found")
+        _assert_context(settings, project_id, row["task_id"])
         if (row["revision"] == expected_revision + 1 and
                 row["phase"] == phase and row["artifact_ref"] == artifact_ref and
                 row["artifact_sha256"] == digest):

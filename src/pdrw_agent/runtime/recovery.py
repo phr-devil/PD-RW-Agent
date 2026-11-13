@@ -8,7 +8,12 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
     project = get_project_context(settings, project_id)
     if project["status"] == "IDENTITY_CONFLICT":
         return {"status": "BLOCKED_PROJECT_IDENTITY", "project_id": project_id,
-                "project": project, "next": "VERIFY_ORIGINAL_PROJECT_IDENTITY"}
+                "project": project, "next": "VERIFY_ORIGINAL_PROJECT_IDENTITY",
+                "authorization_verified": False}
+    if project["status"] == "INCOMPLETE_CONTEXT":
+        return {"status": "BLOCKED_INCOMPLETE_CONTEXT", "project_id": project_id,
+                "project": project, "next": "RESTORE_MISSING_ORIGINAL_SOURCE_FILES",
+                "authorization_verified": False}
     operations = execution_status(settings, project_id, limit=6)
     unresolved = [r for r in operations["operations"]
                   if r["phase"] in {"PLANNED", "RUNNING_DECLARED", "ARTIFACT_REPORTED"}]

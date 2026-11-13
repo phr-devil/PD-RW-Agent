@@ -116,6 +116,33 @@ class ReceiptTests(unittest.TestCase):
         self.assertTrue((runtime / "runtime.sqlite").is_file())
         self.assertFalse((self.root / "runtime.sqlite").exists())
 
+    def test_incomplete_source_blocks_resume_and_receipt(self):
+        (self.root / "RESEARCH_RECORD.md").unlink()
+        result = self.call("get_resume_context")
+        self.assertEqual(result["status"], "BLOCKED_INCOMPLETE_CONTEXT")
+        receipt = self.call("begin_operation_receipt", operation_id="blocked-source",
+                            task_id="dev-task", action="DEV_CODE")
+        self.assertEqual(receipt["error_code"], "PROJECT_CONTEXT_NOT_READY")
+
+    def test_wrong_task_blocks_new_receipt(self):
+        result = self.call("begin_operation_receipt", operation_id="wrong-task",
+                           task_id="unrelated-task", action="DEV_TRAIN")
+        self.assertEqual(result["error_code"], "TASK_CONTEXT_CONFLICT")
+        self.assertEqual(self.call("get_execution_status")["status"], "NO_RECEIPTS")
+
+    def test_identity_change_blocks_receipt_checkpoints(self):
+        self.call("begin_operation_receipt", operation_id="before",
+                  task_id="dev-task", action="DEV_CODE")
+        state_path = self.root / "STATE.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["project_id"] = "incorrect"
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        resume = self.call("get_resume_context")
+        self.assertEqual(resume["status"], "BLOCKED_PROJECT_IDENTITY")
+        checkpoint = self.call("checkpoint_operation_receipt", operation_id="before",
+                               expected_revision=0, phase="RUNNING_DECLARED")
+        self.assertEqual(checkpoint["error_code"], "PROJECT_CONTEXT_NOT_READY")
+
     def test_absent_runtime_remains_readable(self):
         with patch.dict(os.environ, {"PDRW_RUNTIME_DIR": ""}):
             r = self.call("get_execution_status")
