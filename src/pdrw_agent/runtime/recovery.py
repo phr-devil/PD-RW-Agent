@@ -3,6 +3,7 @@ from __future__ import annotations
 from ..config import Settings
 from ..projects import get_project_context
 from .receipts import execution_status
+from .history import reconstruct_project_history
 
 def get_resume_context(settings: Settings, project_id: str) -> dict:
     project = get_project_context(settings, project_id)
@@ -18,6 +19,16 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
                 "authorization_verified": False,
                 "restart_permitted": False,
                 "read_only_next_actions": ["AUDIT_PROJECT_STATE", "RESTORE_ORIGINAL_SOURCES"]}
+    history = reconstruct_project_history(settings, project_id)
+    if history["status"] not in {"METADATA_CHAIN_MATCHED_ONLY",
+                                  "HISTORY_SOURCES_MISSING"}:
+        return {"status": "BLOCKED_HISTORY_INCONSISTENT",
+                "project_id": project_id, "project": project,
+                "history_status": history["status"],
+                "authorization_verified": False,
+                "restart_permitted": False,
+                "read_only_next_actions": ["AUDIT_PROJECT_STATE",
+                                           "REVIEW_RAW_EVENTS_NO_AUTO_REPAIR"]}
     operations = execution_status(settings, project_id, limit=6)
     unresolved = [r for r in operations["operations"] if
                   r["recovery_class"] in {"VERIFY_ACTUAL_EXECUTION",

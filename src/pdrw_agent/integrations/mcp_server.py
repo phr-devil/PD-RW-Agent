@@ -35,6 +35,23 @@ def create_server(settings: Settings | None = None):
         return service.call("audit_project_state", project_id=project_id)
 
     @mcp.tool()
+    def reconstruct_project_history(project_id: str) -> dict[str, Any]:
+        """Check machine STATE/EVENTS metadata chain; never repair or certify Runs."""
+        return service.call("reconstruct_project_history", project_id=project_id)
+
+    @mcp.tool()
+    def verify_run_evidence(project_id: str, run_id: str) -> dict[str, Any]:
+        """Compare an indexed DEV/VAL Run to original contract and bounded artifact hashes."""
+        return service.call("verify_run_evidence", project_id=project_id, run_id=run_id)
+
+    @mcp.tool()
+    def review_lesson_applicability(proposal: dict[str, Any],
+                                    lessons: list[dict[str, Any]]) -> dict[str, Any]:
+        """Compare literal scientific premise and declared scopes; no automatic STOP."""
+        return service.call("review_lesson_applicability",
+                            proposal=proposal, lessons=lessons)
+
+    @mcp.tool()
     def get_applicable_rules(topic: str = "") -> dict[str, Any]:
         """Get current local PD-RW AGENTS.md routing hints, never grant authorization."""
         return service.call("get_applicable_rules", topic=topic)

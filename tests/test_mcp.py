@@ -29,6 +29,8 @@ class MCPTests(unittest.TestCase):
                     names = {t.name for t in registered.tools}
                     self.assertEqual(names, {
                         "get_project_context", "audit_project_state", "get_applicable_rules",
+                        "reconstruct_project_history", "verify_run_evidence",
+                        "review_lesson_applicability",
                         "search_research_memory", "find_experiment_evidence",
                         "check_duplicate_experiment",
                         "get_resume_context", "get_execution_status",
