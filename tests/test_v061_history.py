@@ -215,7 +215,8 @@ class LessonApplicabilityTests(unittest.TestCase):
         scope = {
             "dataset_version": "D1", "evaluation_unit": "subject",
             "group_split": "LOSO", "metric": "macro-F1",
-            "legal_inputs": "PPG-only"
+            "legal_inputs": "PPG-only", "label_definition": "HR reference-v1",
+            "comparison_reference": "strong baseline"
         }
         lessons = [
             {"premise_id": "p1", "scope": scope, "validity": "VALID_NEGATIVE",
@@ -242,7 +243,9 @@ class LessonApplicabilityTests(unittest.TestCase):
 
     def test_missing_critical_and_partial_scope_are_not_exact(self):
         s = {"dataset_version": "D1", "evaluation_unit": "trial",
-             "group_split": "group", "metric": "MAE"}
+             "group_split": "group", "metric": "MAE",
+             "label_definition": "force-v1", "legal_inputs": "causal-window",
+             "comparison_reference": "constant-predictor"}
         partial = review_lesson_applicability(
             {"premise_id": "x", "scope": {**s, "new": "A"}},
             [{"premise_id": "x", "scope": s,
@@ -255,6 +258,18 @@ class LessonApplicabilityTests(unittest.TestCase):
               "validity": "VALID_NEGATIVE", "evidence_refs": ["r"]}])
         self.assertEqual(missing["reviews"][0]["classification"],
                          "CRITICAL_SCOPE_UNKNOWN")
+
+    def test_missing_label_semantics_never_counts_as_exact(self):
+        s = {"dataset_version": "D1", "evaluation_unit": "subject",
+             "group_split": "LOSO", "metric": "MAE"}
+        response = review_lesson_applicability(
+            {"premise_id": "p1", "scope": s},
+            [{"premise_id": "p1", "scope": s,
+              "validity": "VALID_NEGATIVE", "evidence_refs": ["r1"]}])
+        self.assertEqual(response["reviews"][0]["classification"],
+                         "CRITICAL_SCOPE_UNKNOWN")
+        self.assertIn("label_definition", response["missing_critical_scope_fields"])
+        self.assertFalse(response["automatic_stop"])
 
     def test_invalid_declared_packet_fails(self):
         with self.assertRaises(ValueError):

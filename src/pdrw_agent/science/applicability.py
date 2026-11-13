@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from ..schemas import AgentError
 
-CRITICAL = ("dataset_version", "evaluation_unit", "group_split", "metric")
+CRITICAL = ("dataset_version", "label_definition", "evaluation_unit",
+            "group_split", "legal_inputs", "metric", "comparison_reference")
 MAX_LESSONS = 20
 MAX_SCOPE = 16
 

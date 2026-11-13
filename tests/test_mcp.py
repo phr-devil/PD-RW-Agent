@@ -77,12 +77,34 @@ class MCPTests(unittest.TestCase):
                     context = await client.call_tool("get_project_context", {"project_id": "37"})
                     resume = await client.call_tool("get_resume_context", {"project_id": "37"})
                     rules = await client.call_tool("get_applicable_rules", {"topic": "DEV"})
-                    for response in (context, resume, rules):
+                    history = await client.call_tool(
+                        "reconstruct_project_history", {"project_id": "37"})
+                    run = await client.call_tool(
+                        "verify_run_evidence", {"project_id": "37", "run_id": "r1"})
+                    scope = {
+                        "dataset_version": "D1", "label_definition": "L1",
+                        "evaluation_unit": "subject", "group_split": "LOSO",
+                        "legal_inputs": "IMU", "metric": "macro-F1",
+                        "comparison_reference": "baseline"
+                    }
+                    lessons = await client.call_tool(
+                        "review_lesson_applicability", {
+                            "proposal": {"premise_id": "p1", "scope": scope},
+                            "lessons": [{"premise_id": "p1", "scope": scope,
+                                        "validity": "VALID_NEGATIVE",
+                                        "evidence_refs": ["r1"]}]})
+                    for response in (context, resume, rules, history, run, lessons):
                         self.assertFalse(response.is_error)
                     self.assertIn("INCOMPLETE_CONTEXT", str(context.structured_content or context.content))
                     self.assertIn("BLOCKED_INCOMPLETE_CONTEXT", str(resume.structured_content or resume.content))
                     self.assertIn("ROUTE_FOUND", str(rules.structured_content or rules.content))
                     self.assertIn("EXPERIMENT_LOOP.md", str(rules.structured_content or rules.content))
+                    self.assertIn("HISTORY_SOURCES_MISSING",
+                                  str(history.structured_content or history.content))
+                    self.assertIn("RUN_HISTORY_NOT_ATTESTABLE",
+                                  str(run.structured_content or run.content))
+                    self.assertIn("EXACT_DECLARED_SCOPE_CANDIDATE",
+                                  str(lessons.structured_content or lessons.content))
 
             asyncio.run(exercise())
             self.assertFalse((project / "STATE.md").exists())

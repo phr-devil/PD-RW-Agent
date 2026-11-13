@@ -22,8 +22,10 @@ The last file contains:
 
     {
       "proposal": {"premise_id": "p1", "scope": {
-        "dataset_version": "D1", "evaluation_unit": "subject",
-        "group_split": "LOSO", "metric": "macro-F1"
+        "dataset_version": "D1", "label_definition": "reference-v1",
+        "evaluation_unit": "subject", "group_split": "LOSO",
+        "legal_inputs": "sensor-only", "metric": "macro-F1",
+        "comparison_reference": "strong-baseline"
       }},
       "lessons": [{"premise_id": "p1", "scope": {
         "dataset_version": "D1", "evaluation_unit": "subject",
@@ -32,8 +34,8 @@ The last file contains:
     }
 
 EXACT_DECLARED_SCOPE_CANDIDATE means only that the specified fields and
-identifiers match. Critical fields dataset_version/evaluation_unit/group_split/
-metric must be declared in *both* packets. For stronger claims, review legal
+identifiers match. Critical fields dataset_version/label_definition/evaluation_unit/group_split/legal_inputs/
+metric/comparison_reference must be declared in *both* packets. For stronger claims, review legal
 prediction-time inputs, label semantics, baseline, subject/sample histories,
 original Run and independent validation explicitly.
 
