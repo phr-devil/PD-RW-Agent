@@ -31,6 +31,10 @@ When warranted, invoke PD-RW's existing tools from its root, e.g. `python -m cor
 
 v0.5 adds private SQLite operational receipts, read-only recovery, PD-RW Run registration preview and handoff preview. A reported artifact with a matching SHA is `ARTIFACT_REVIEW_PENDING`, NOT `NEEDS_RECONCILIATION`: inspect original Run/protocol and continue separately authorized work, without automatically rerunning or treating its checksum as science. Unknown/changed artifact or uncertain process remains `NEEDS_RECONCILIATION`. Reported `RUNNING_DECLARED` is NOT a verified live process; an uncertain job must be reconciled before restarting. The original PD-RW event writer has a separately callable host-only adapter, but **no MCP/CLI path grants Run registration**; a real independently secured authorization host and OS ACL are still absent. No background scheduler, independent model loop, automatic GPT API bridge, or WorkBuddy runtime enforcement is installed. WorkBuddy's own continuation mechanisms, if available, control execution lifetime.
 
+## Optional scientific discriminability helper
+
+Only at a consequential research fork, assemble a small local DEV proposal with exact premise/scope, at least two competing hypotheses, qualitative probe predictions and original source refs. Use `python -m pdrw_agent.science.cli decision --packet FILE.json` to compare stated distinctions. A matched prior negative is an **advisory candidate**, not automatic STOP. Missing evidence is UNKNOWN; no new approval step or research authority.
+
 ## Minimal handoff
 
 `RESULT | EVIDENCE_PATHS | TESTS_ACTUALLY_RUN | LIMITS/UNKNOWN | NEXT_LEGAL_ACTION_OR_USER_CHOICE`

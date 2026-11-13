@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdrw-agent"
-version = "0.5.0"
+version = "0.5.1"
 description = "PD-RW research runtime: bounded context, MCP, operational receipts and guarded registration preview"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.5.0
+version: 0.5.1
 author: phr-devil
 ---
 
@@ -42,6 +42,10 @@ MCP is **optional**: importing this Skill does NOT install/start Python or MCP. 
 5. **Execute within authority.** Classify a new user message as IDEA, explicit instruction or strategic choice. Author selects/delegates H6 core Task/strategy and H8 primary Claim changes; valid H7 / approved local nonpaid DEV is autonomous without repeated approvals. Continue related diagnosis, coding and targeted tests at useful work-unit granularity; reuse valid Run, avoid repeated false premises, stop when no distinct informative probe remains. For new download, payment, SEALED, confirmation, publication, external upload, writing, drawing or strategic changes, obey PD-RW's existing separate gates. A Skill or self-written JSON never grants permission.
 6. **Validate and persist.** Optional `scripts/context.py action-review` invokes PD-RW's declaration-only preflight; it is **not** a trusted tool interceptor. Verify original user authorization and actual Run/protocol independently. On significant scientific events update the **existing** research record/affected blueprint only; retain negative results and provenance. No new third ledger.
 7. **Deliver.** Use `prepare_handoff` when available, or run the existing PD-RW path-only delivery checker through `scripts/context.py delivery-review` **only when real file artifacts are being handed off**. Give one principal result with paths, checks actually run, scientific limits, and the next legal action (or required user choice). Avoid large log dumps and unsupported PASS claims.
+
+## Optional science check (only for a material research choice)
+
+When competing hypotheses or a repeated negative premise may change an already-authorized DEV choice, optionally run `python -m pdrw_agent.science.cli decision --packet LOCAL_PROPOSAL.json` using permitted local metadata. The result compares **declared** predictions and scope, never independently verified scientific evidence, novelty or user approval. Do not run on every experiment; original PD-RW `HIGH_VALUE_RESEARCH_DESIGN.md` and `SCIENCE_RESULT_HARVEST.md` remain authoritative. Freeze-time A/B/C review is operator-only; see repository `docs/V06_EVAL_PREVIEW.md` on demand.
 
 ## Optional helpers (no network/API required)
 

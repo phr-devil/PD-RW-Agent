@@ -13,4 +13,6 @@ This document defines evaluation gates, **not new PD-RW scientific policy**.
 
 **Experiment design:** Use PD-RW `REPLAY_PROTOCOL.md` with prior evidence frozen at decision time; compare A direct WorkBuddy+PD-RW, B +Skill, C +Skill+Python+MCP. Record actual tools/files opened, wrong project, unsafe effect, claim errors, manual interventions, wall time and model/GPU tokens. Reviewer should blind-mark scientific correctness, applicability of prior negatives, valid baseline preservation and next probe discriminative power. Preserve only anonymized/fake fixtures in public GitHub. No WorkBuddy behavior/Token improvement is measured yet.
 
+**Engineering preview v0.5.1:** Optional local `science/decision.py` and `science/replay.py` inspect declared premise/probe contrasts and validate frozen local source hashes and blinding packets. They do not attest true scientific value or prevent future knowledge embedded in prose. No new MCP tools. Real A/B/C remains `NOT_MEASURED`.
+
 **Implementation gate:** Add a new MCP tool only if it improves a replay failure with bounded input/output, explicit evidence citations, safe UNKNOWN handling and no extra unauthorized action. First fix existing recovery/measurement semantics.

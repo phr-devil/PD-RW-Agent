@@ -17,6 +17,12 @@
 - `register_run_in_trusted_host`: **always-fail-closed compatibility interface**; writing is disabled even with a caller-provided callback. A separate secured host must implement the future authorized path.
 - Original 5 tools remain compatible; real WorkBuddy adoption and performance benefit are NOT_MEASURED.
 
+## v0.5.1 scientific evaluation preview (no new MCP capabilities)
+
+- Optional `science/decision.py` compares only declared negative-premise scope and qualitative probe predictions; cannot prove equivalence, novelty or scientific value.
+- Optional `science/replay.py` verifies local frozen file SHA-256, rejects unlisted evidence refs and creates blind X/Y/Z reviewer packets with a separate mapping.
+- No execution, automatic STOP, scientific ledger writes or WorkBuddy results. Real A/B/C is still `NOT_MEASURED`.
+
 ## Next: WorkBuddy client integration gate
 
 - Validate startup/handshake and each of five tools from the real WorkBuddy UI.

@@ -1,0 +1,50 @@
+{
+  "question": "Does an apparent gain survive a legitimate independent-group control?",
+  "claim_type": "MECHANISM",
+  "claim_evidence_refs": [],
+  "proposed_premise": {
+    "premise_id": "evaluation-gain-caused-by-smoothing",
+    "scope": {
+      "dataset": "synthetic-data",
+      "evaluation_unit": "subject"
+    }
+  },
+  "hypotheses": [
+    "true-temporal-mechanism",
+    "evaluation-artifact",
+    "no-added-value"
+  ],
+  "probes": [
+    {
+      "id": "group-held-out-negative-control",
+      "predictions": {
+        "true-temporal-mechanism": "INCREASE",
+        "evaluation-artifact": "DECREASE",
+        "no-added-value": "NO_CHANGE"
+      },
+      "cost_band": "LOW",
+      "prediction_evidence_refs": []
+    }
+  ],
+  "prechecks": {
+    "label_provenance": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "group_independence": {
+      "status": "NOT_CHECKED",
+      "evidence_refs": []
+    }
+  },
+  "prior_negative_lessons": [
+    {
+      "premise_id": "evaluation-gain-caused-by-smoothing",
+      "scope": {
+        "dataset": "synthetic-data",
+        "evaluation_unit": "subject"
+      },
+      "validity": "UNKNOWN",
+      "evidence_refs": []
+    }
+  ]
+}

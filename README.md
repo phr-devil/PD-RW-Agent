@@ -4,6 +4,18 @@
 
 > Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled in the Agent adapter (including caller-supplied callback) pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
 
+## v0.5.1 evaluation-preview (optional local Python only)
+
+Three small local modules in `src/pdrw_agent/science/` help review **declared** competing hypotheses, repeated negative premises, scientific precheck evidence, and A/B/C frozen-replay integrity/blinding.
+**No additional MCP tools, permissions, research data writes or automatic scientific judgments.** Refer to [docs/V06_EVAL_PREVIEW.md](docs/V06_EVAL_PREVIEW.md).
+
+```powershell
+python -m pdrw_agent.science.cli decision --packet evals/examples/synthetic_decision.json
+python -m pdrw_agent.science.cli replay-check --root evals/examples --manifest evals/examples/synthetic_case.json
+```
+
+These examples are synthetic. Actual WorkBuddy performance, Token savings, and publishing impact remain `NOT_MEASURED`.
+
 ## Purpose
 
 PD-RW-Agent makes an existing research project easier for an AI agent to **find, resume, route, and hand off**. It does **not** redefine scientific rules. [Problem-Data-Research-Workflow](https://github.com/phr-devil/Problem-Data-Research-Workflow) remains the sole authority for scientific workflow, review/authorization, DEV/SEALED boundaries, writing gates, and evidential standards.

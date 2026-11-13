@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-NOT-A-REAL-REPLAY",
+  "frozen_at": "2026-01-05T10:00:00+09:00",
+  "sources": [
+    {
+      "ref": "synthetic_snapshot.md",
+      "sha256": "5cc8353391d68303e1ddff69e5ba959e1d8450ed2468ee37d3e1aef1fd85980e"
+    }
+  ],
+  "allowed_evidence_refs": [
+    "synthetic_snapshot.md"
+  ]
+}
