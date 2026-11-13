@@ -1,5 +1,6 @@
-"""One error-safe service used by both CLI and MCP; never executes experiments."""
+"""One stable service for CLI and MCP. No scientific effect by default."""
 from __future__ import annotations
+import sqlite3
 from .config import Settings
 from .schemas import failure
 from .projects import get_project_context
@@ -7,22 +8,34 @@ from .rules import get_applicable_rules
 from .memory import search_research_memory
 from .evidence import find_experiment_evidence
 from .experiments import check_duplicate_experiment
+from .runtime.receipts import begin_operation, checkpoint_operation, execution_status
+from .runtime.recovery import get_resume_context
+from .runtime.registration import preview_experiment_record
+from .delivery import prepare_handoff
+
 
 class ResearchService:
     def __init__(self, settings: Settings):
         self.settings = settings
 
     def call(self, name: str, **kwargs) -> dict:
-        tools = {
+        handlers = {
             "get_project_context": get_project_context,
             "get_applicable_rules": get_applicable_rules,
             "search_research_memory": search_research_memory,
             "find_experiment_evidence": find_experiment_evidence,
             "check_duplicate_experiment": check_duplicate_experiment,
+            "get_resume_context": get_resume_context,
+            "get_execution_status": execution_status,
+            "begin_operation_receipt": begin_operation,
+            "checkpoint_operation_receipt": checkpoint_operation,
+            "preview_experiment_record": preview_experiment_record,
+            "prepare_handoff": prepare_handoff,
         }
         try:
-            if name not in tools:
+            handler = handlers.get(name)
+            if handler is None:
                 return {"status": "ERROR", "error_code": "UNKNOWN_TOOL"}
-            return tools[name](self.settings, **kwargs)
-        except (ValueError, OSError, UnicodeError, TypeError) as exc:
+            return handler(self.settings, **kwargs)
+        except (ValueError, OSError, UnicodeError, TypeError, sqlite3.Error) as exc:
             return failure(exc)

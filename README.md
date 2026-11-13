@@ -2,11 +2,17 @@
 
 **Research agent integration for WorkBuddy, powered by the existing PD-RW workflow.**
 
-> Status: **v0.4 read-only runtime + MCP foundation** — installable shared Python library, 5 read-only MCP v2 tools, CLI parity, the original Skill and legacy standalone helpers. WorkBuddy on-device behavior and trusted enforcement are NOT yet validated.
+> Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled through MCP pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
 
 ## Purpose
 
 PD-RW-Agent makes an existing research project easier for an AI agent to **find, resume, route, and hand off**. It does **not** redefine scientific rules. [Problem-Data-Research-Workflow](https://github.com/phr-devil/Problem-Data-Research-Workflow) remains the sole authority for scientific workflow, review/authorization, DEV/SEALED boundaries, writing gates, and evidential standards.
+
+## v0.5 continuation and controlled registration
+
+See [docs/V05_EXECUTION.md](docs/V05_EXECUTION.md) for a minimal AI-oriented contract, operator setup, safe write boundary, receipt lifecycle and crash recovery.
+
+Add `PDRW_RUNTIME_DIR` as a **private path outside the project and Git repositories** to allow non-scientific execution receipts. This is not an authorization token. It does not execute training.
 
 ## v0.4 Python Runtime + MCP
 
@@ -46,6 +52,7 @@ python skills/pd-rw-research/scripts/context.py route --workflow-root "D:/path/t
 | [src/pdrw_agent/integrations/mcp_server.py](src/pdrw_agent/integrations/mcp_server.py) | Five bounded read-only MCP v2 tools |
 | [docs/RUNTIME_AND_MCP.md](docs/RUNTIME_AND_MCP.md) | Windows setup, CLI usage and WorkBuddy stdio configuration |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Delivery stages, acceptance criteria and explicit non-goals |
+| [docs/V05_EXECUTION.md](docs/V05_EXECUTION.md) | v0.5 operator/AI contract, receipt recovery and trusted write limitations |
 | [config/project-map.example.json](config/project-map.example.json) | Example only; actual project paths kept locally |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Boundaries, extension points, limitations |
 | [tests/](tests/) and [evals/](evals/) | Deterministic checks and scenarios for real Agent evaluations |

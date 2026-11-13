@@ -1,4 +1,4 @@
-# Python Runtime + MCP — operator documentation (v0.4 preview)
+# Python Runtime + MCP — operator documentation (v0.5)
 
 This is an adapter. PD-RW remains the one and only scientific-rule authority. Python and MCP **cannot** authorize operations, decide scientific merit, or read SEALED data by virtue of being installed.
 
@@ -71,3 +71,20 @@ For tests:
 4. Research records stay at existing project paths; case index stays in PD-RW. Never create another mutable science memory ledger.
 5. Adding write tools requires independent trusted authorization, actual filesystem/tool controls, idempotent event writes and failure replay tests.
 6. CI proves engineering behavior. WorkBuddy on-device evaluation is still **NOT_MEASURED** until real capture.
+
+
+## v0.5 local continuation
+
+A private `PDRW_RUNTIME_DIR` (absolute directory **outside** the research project, rule checkout and agent repository) enables small SQLite **operation receipts**, NOT scientific records. No directory is required for normal read-only project/memory tools. An example on Windows:
+
+```powershell
+$env:PDRW_RUNTIME_DIR = "$env:LOCALAPPDATA\\PD-RW-Agent\\private-runtime"
+.\\.venv\\Scripts\\python.exe -m pdrw_agent.cli resume --project-id "example-project"
+.\\.venv\\Scripts\\python.exe -m pdrw_agent.cli begin-operation --project-id "example-project" --operation-id "op-example-1" --task-id "dev-task" --action DEV_EVALUATE
+.\\.venv\\Scripts\\python.exe -m pdrw_agent.cli operations --project-id "example-project"
+.\\.venv\\Scripts\\python.exe -m pdrw_agent.cli preview-record --project-id "example-project" --artifact-ref "runs/example.json"
+```
+
+Add `PDRW_RUNTIME_DIR` to the stdio MCP `env` block. WorkBuddy must use the same private directory across sessions; otherwise only science-project recovery works. All tool interfaces are defined in [V05_EXECUTION.md](V05_EXECUTION.md).
+
+The MCP server exposes **11 tools** (5 original read-only + 4 new read-only + 2 write-only-operational-metadata). No tool registers an original PD-RW Run. Original user authorization, Windows ACL and independent trusted host **remain out of scope of this release**. Install/import Skill and MCP separately.

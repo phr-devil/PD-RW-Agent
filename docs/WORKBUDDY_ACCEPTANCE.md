@@ -34,3 +34,15 @@ Baseline and v0.2 all remain `NOT_MEASURED` until observations are captured. Do 
 1. In WorkBuddy add the stdio configuration from `RUNTIME_AND_MCP.md`, separately import the Skill, and inspect which of the **five** tools appear.
 2. In a new chat request a **read-only** recovery for a registered project. Record actual MCP tool names, returned source paths, rule commit status and whether any incorrect project or SEALED artifact was read.
 3. Repeat using direct PD-RW without MCP against a frozen snapshot, same tools/model and matched budget. Record actual token usage and user interventions; do not claim savings without traces.
+
+
+## v0.5 acceptance (NOT_MEASURED on real WorkBuddy)
+
+- New chat: `get_resume_context` finds prior receipt without fabricating live GPU processes.
+- Repeated `begin_operation_receipt` with the same id is stable; conflicting IDs stay blocked.
+- `checkpoint_operation_receipt` replays and version conflicts do not overwrite newer evidence.
+- A changed/missing local Run metadata artifact causes reconciliation, not silent re-execution.
+- `preview_experiment_record` does not modify `STATE.json` or `EVENTS.jsonl`.
+- Original Run recording is **not** enabled over MCP; an `APPROVED` JSON field gives no permission.
+- Run protected/SEALED access tests in an **OS-isolated** account before claiming hard enforcement.
+- Compare same-task token count, manual interventions and valid science outcomes against previous direct-PD-RW baseline.

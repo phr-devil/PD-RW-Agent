@@ -31,7 +31,11 @@ class MCPTests(unittest.TestCase):
                         "get_project_context", "get_applicable_rules",
                         "search_research_memory", "find_experiment_evidence",
                         "check_duplicate_experiment",
+                        "get_resume_context", "get_execution_status",
+                        "begin_operation_receipt", "checkpoint_operation_receipt",
+                        "preview_experiment_record", "prepare_handoff",
                     })
+                    self.assertNotIn("record_experiment_result", names)
                     response = await client.call_tool(
                         "get_project_context", {"project_id": "missing"})
                     self.assertFalse(response.is_error)

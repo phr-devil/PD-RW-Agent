@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.4.0
+version: 0.5.0
 author: phr-devil
 ---
 
@@ -26,12 +26,12 @@ Use this Skill only when the user explicitly selects PD-RW or asks to continue a
 - **Memory:** use the project's existing `STATE`, `RESEARCH_RECORD.md`, and (when relevant) `PAPER_BLUEPRINT.md`. Do not create a second project memory database.
 - **Limits:** bundled scripts are read-only helpers, not a secure executor or permission enforcement. Do not claim SEALED isolation or WorkBuddy integration has been proven.
 
-## Tool access: prefer MCP v0.4 when configured
+## Tool access: prefer MCP v0.5 when configured
 
 For registered projects, call the `pd-rw-research` MCP server tools, preferably in this order as needed:
-`get_project_context` → `get_applicable_rules` → `find_experiment_evidence`; consult `search_research_memory` only when useful and `check_duplicate_experiment` before costly repeated runs. These five tools are **read-only** and return bounded metadata. Never treat `status`, `APPROVED` or a fingerprint match as real authorization or scientific validation.
+`get_project_context` → `get_applicable_rules` → `find_experiment_evidence`; consult `search_research_memory` only when useful and `check_duplicate_experiment` before costly repeated runs. These five tools are **read-only** and return bounded metadata. For cross-session continuation, use `get_resume_context` and `get_execution_status` first when an interrupted operation is relevant. Only for a meaningful, already-authorized DEV operation, use `begin_operation_receipt` and at significant transitions `checkpoint_operation_receipt` to maintain **private operational metadata**, not science or permission. Before any proposed Run registration call `preview_experiment_record`; it is read-only and does NOT write PD-RW. `prepare_handoff` checks declared paths without creating files. **No MCP tool is allowed to register Run/Claim or repair STATE.** Never treat `status`, `APPROVED`, receipt state or fingerprint as authentic permission or science.
 
-MCP is **optional**: importing this Skill does NOT install/start Python or MCP. If MCP is unavailable, use the existing standalone `scripts/bridge.py`/`scripts/context.py` fallback or read the actual PD-RW project sources within verified access. Do not repeatedly retry a missing integration. Full setup: repository `docs/RUNTIME_AND_MCP.md` (maintainer/operator reference, not default task context).
+MCP is **optional**: importing this Skill does NOT install/start Python or MCP. To use receipts set private `PDRW_RUNTIME_DIR` once; absence is not a reason to block unrelated authorized DEV work. If MCP is unavailable, use the existing standalone `scripts/bridge.py`/`scripts/context.py` fallback or read the actual PD-RW project sources within verified access. Do not repeatedly retry a missing integration. Full setup: repository `docs/RUNTIME_AND_MCP.md` (maintainer/operator reference, not default task context).
 
 ## Task lifecycle
 
@@ -41,7 +41,7 @@ MCP is **optional**: importing this Skill does NOT install/start Python or MCP. 
 4. **Route by need.** Read PD-RW `AGENTS.md` once per known rule version/task. Optionally run `scripts/context.py route` to obtain rule-file hints **parsed from the current AGENTS.md**, then load the relevant owner only. Keep H1–H10, science, permissions and delivery under PD-RW's existing authority; do not read the full repository.
 5. **Execute within authority.** Classify a new user message as IDEA, explicit instruction or strategic choice. Author selects/delegates H6 core Task/strategy and H8 primary Claim changes; valid H7 / approved local nonpaid DEV is autonomous without repeated approvals. Continue related diagnosis, coding and targeted tests at useful work-unit granularity; reuse valid Run, avoid repeated false premises, stop when no distinct informative probe remains. For new download, payment, SEALED, confirmation, publication, external upload, writing, drawing or strategic changes, obey PD-RW's existing separate gates. A Skill or self-written JSON never grants permission.
 6. **Validate and persist.** Optional `scripts/context.py action-review` invokes PD-RW's declaration-only preflight; it is **not** a trusted tool interceptor. Verify original user authorization and actual Run/protocol independently. On significant scientific events update the **existing** research record/affected blueprint only; retain negative results and provenance. No new third ledger.
-7. **Deliver.** Run the existing PD-RW path-only delivery checker through `scripts/context.py delivery-review` **only when real file artifacts are being handed off**. Give one principal result with paths, checks actually run, scientific limits, and the next legal action (or required user choice). Avoid large log dumps and unsupported PASS claims.
+7. **Deliver.** Use `prepare_handoff` when available, or run the existing PD-RW path-only delivery checker through `scripts/context.py delivery-review` **only when real file artifacts are being handed off**. Give one principal result with paths, checks actually run, scientific limits, and the next legal action (or required user choice). Avoid large log dumps and unsupported PASS claims.
 
 ## Optional helpers (no network/API required)
 

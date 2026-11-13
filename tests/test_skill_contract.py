@@ -18,7 +18,7 @@ class SkillContractTests(unittest.TestCase):
             self.assertRegex(front, rf"(?m)^{re.escape(key)}:")
         self.assertIn("name: pd-rw-research", front)
         self.assertLess(len(text.splitlines()), 160)
-        self.assertIn("version: 0.4.0", front)
+        self.assertIn("version: 0.5.0", front)
 
     def test_references_are_real_and_opt_in(self):
         text = ENTRY.read_text(encoding="utf-8")

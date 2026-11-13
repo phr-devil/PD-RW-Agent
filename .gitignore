@@ -10,3 +10,10 @@ project-map.local.json
 !.env.example
 *.log
 .DS_Store
+
+# Local-only runtime state and integration checkout
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.agent-runtime/
+pd-rw-fixture/
