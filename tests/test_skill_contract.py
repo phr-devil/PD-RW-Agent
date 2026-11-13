@@ -28,6 +28,16 @@ class SkillContractTests(unittest.TestCase):
             self.assertEqual(label, target)
             self.assertTrue((SKILL / "references" / target).is_file())
 
+    def test_reference_index_is_optional_metadata_with_existing_targets(self):
+        index = json.loads((SKILL / "references" / "INDEX.json").read_text("utf-8"))
+        self.assertEqual(index["schema_version"], 1)
+        names = {item["file"] for item in index["references"]}
+        self.assertEqual(names, {"integration.md", "execution.md", "troubleshooting.md"})
+        for item in index["references"]:
+            self.assertTrue((SKILL / "references" / item["file"]).is_file())
+            self.assertEqual(item["authority"], "ADAPTER_GUIDANCE_ONLY")
+            self.assertTrue(item["triggers"])
+
     def test_example_mapping_is_structured_but_not_real(self):
         item = json.loads((ROOT / "config" / "project-map.example.json").read_text("utf-8"))
         self.assertEqual(item["schema_version"], 1)

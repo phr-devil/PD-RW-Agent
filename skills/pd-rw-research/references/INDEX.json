@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "purpose": "Optional Skill file routing metadata. Source of scientific policy remains PD-RW AGENTS.md.",
+  "default": "SKILL.md",
+  "references": [
+    {
+      "file": "integration.md",
+      "triggers": [
+        "setup",
+        "install",
+        "WorkBuddy",
+        "project switch",
+        "rule version",
+        "path mapping"
+      ],
+      "scope": "Project/checkout linkage",
+      "authority": "ADAPTER_GUIDANCE_ONLY"
+    },
+    {
+      "file": "execution.md",
+      "triggers": [
+        "autonomous DEV",
+        "task continuation",
+        "experiment",
+        "handoff",
+        "reconciliation"
+      ],
+      "scope": "Safe operation flow, permission separation, output",
+      "authority": "ADAPTER_GUIDANCE_ONLY"
+    },
+    {
+      "file": "troubleshooting.md",
+      "triggers": [
+        "missing file",
+        "identity conflict",
+        "stale checkout",
+        "permission conflict",
+        "failure"
+      ],
+      "scope": "Failure diagnosis",
+      "authority": "ADAPTER_GUIDANCE_ONLY"
+    }
+  ]
+}

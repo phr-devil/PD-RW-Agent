@@ -46,3 +46,14 @@ No real WorkBuddy A/B/C, blinded historical decision replay, measured Token/GPU/
 - Final audit test suite: **49 tests on Ubuntu, 49 on Windows; PASS** at the corresponding tested commit. This excludes real WorkBuddy, real user messages, SEALED OS ACL, GPU workload, scientific decision/replay and token accounting. `NOT_MEASURED` remains mandatory for those behaviors.
 
 **Release determination:** v0.5 **PASS for synthetic engineering baseline and non-scientific receipt use**; **NOT CLEARED for protected Run/SEALED writes or claims of autonomous research performance**. Remaining P1 blockers require a separately secured executor and evidence-backed final reconciliation; real WorkBuddy acceptance remains pending.
+
+## Independent review reconciliation — 2026-11-13
+
+External reviewer inspected a stale `41ae04ab` view, could not fetch `experiments.py`/`registration.py`, and did not run CI. The current baseline `339c1640` was already newer and included 49 passing Windows/Ubuntu tests. Claims about those unread files are **hypotheses, not verified defects**.
+
+- **Accepted with scientific correction:** An immutable `ARTIFACT_REPORTED` receipt with a matching hash no longer triggers process reconciliation on every resume. It becomes `ARTIFACT_REVIEW_PENDING`, **not** `resolved=True` or confirmed scientific completion. Unknown/changed artifacts still block speculative re-execution.
+- **Accepted:** Reject invalid keyword-memory `limit`. Distinguish unknown and mismatching declared hash via an additive `hash_detail` field.
+- **Assessed, not added as an automatic veto:** Premise-level negative-result reuse is valuable, but text/ID matches are not proof of scientific equivalence. Keep Run fingerprint checks factual; test an advisory evidence-backed premise index using blind historical replays before adding a blocking status.
+- **Minimal experiment:** Added an optional machine-readable references index for the three Skill references. It is NOT a second PD-RW policy router and token savings remain NOT_MEASURED.
+- **Rejected as unsafe to implement naively:** Four booleans claiming leakage/group independence/metric/effect size. Missing measurements must be `UNKNOWN/NOT_CHECKED`, never default to `False` or a fabricated PASS.
+- **Deferred:** literature novelty / experiment ranking tools require trustworthy sources, frozen evaluation tasks and evidence standards, not keyword claims or arbitrary numerical novelty scores.

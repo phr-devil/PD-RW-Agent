@@ -5,6 +5,8 @@ from .config import Settings
 from .schemas import AgentError
 
 def search_research_memory(settings: Settings, query: str, limit: int = 5) -> dict:
+    if type(limit) is not int or limit < 1:
+        raise AgentError("LIMIT_INVALID", "limit must be a positive integer")
     if not isinstance(query, str) or len(query.strip()) < 2:
         raise AgentError("QUERY_REQUIRED", "Use a query of at least two characters")
     source = settings.workflow_root / "LESSONS" / "CASE_REGISTRY.md"
@@ -28,7 +30,8 @@ def search_research_memory(settings: Settings, query: str, limit: int = 5) -> di
                      "source_file": "LESSONS/CASE_REGISTRY.md",
                      "evidence_level": "REPOSITORY_CASE_INDEX_NOT_RAW_RUN"})
     hits.sort(key=lambda x: (-x["score"], x["line"]))
+    cap = min(limit, 10)
     return {"status": "MATCHES_FOUND" if hits else "NO_CASE_INDEX_MATCH",
-            "query": query, "matches": hits[:max(1, min(limit, 10))],
-            "truncated": len(hits) > max(1, min(limit, 10)),
+            "query": query, "matches": hits[:cap],
+            "truncated": len(hits) > cap,
             "limitations": "Index only; verify case scope, original project Run and updated evidence before reuse"}

@@ -8,7 +8,7 @@ This is an execution adapter, **not** a new PD-RW scientific phase or a second e
 ## AI-readable call order
 
 1. On fresh chat/project switch, call `get_resume_context(project_id)`. A conflicting or incomplete project context returns `BLOCKED_PROJECT_IDENTITY` or `BLOCKED_INCOMPLETE_CONTEXT`; use source recovery only, no execution hint. Confirm actual project ID, user scope and original evidence; do not trust a receipt as science.
-2. When a previous receipt indicates `RUNNING_DECLARED` or `ARTIFACT_REPORTED`, query `get_execution_status`, check the *real* process/log/Run through the already-allowed local tools, and reconcile before repeating a GPU job. No automatic restart.
+2. For `PLANNED` or `RUNNING_DECLARED`, verify actual process/log before resuming. For `ARTIFACT_REPORTED` with matching hash, the status is `ARTIFACT_REVIEW_PENDING`: leave the fault-recovery loop and examine original Run/protocol, but do **not** claim scientific completion; no automatic GPU restart. If the artifact changed or is missing, remain `NEEDS_RECONCILIATION`.
 3. For a meaningful, already-authorized non-paid DEV work unit, call `begin_operation_receipt(project_id, operation_id, task_id, action)` **once**. Receipt writes reject missing project context and a declared Task that conflicts with the indexed active Task. A receipt records intent only; does not authorize, execute, or freeze scientific strategy.
 4. At a meaningful state change, call `checkpoint_operation_receipt(..., expected_revision, phase, artifact_ref?)`. Never checkpoint every line or every test. `ARTIFACT_REPORTED` needs a small existing non-protected evidence file; it is a source claim, not independently verified science.
 5. Before scientific Run registration, call `preview_experiment_record(project_id, artifact_ref)`; only returns structural/source-integrity hints. **No MCP or CLI tool can modify original PD-RW research ledger.**
@@ -18,7 +18,7 @@ This is an execution adapter, **not** a new PD-RW scientific phase or a second e
 
 | Tool | Effect | Output contract |
 | --- | --- | --- |
-| `get_resume_context` | Read | Existing snapshot + at most six unresolved operation receipts |
+| `get_resume_context` | Read | Existing snapshot + up to six uncertain operations and six reported matching artifacts awaiting scientific review; no automatic completion |
 | `get_execution_status` | Read | Small SQLite receipt index, artifact integrity, process liveliness **not verified** |
 | `begin_operation_receipt` | Private metadata write | `RECEIPT_CREATED`, `ALREADY_RECEIPTED`, `OPERATION_ID_CONFLICT`; never permission |
 | `checkpoint_operation_receipt` | Private metadata write | Versioned CAS state transition; retries idempotent; technical failure ≠ scientific negative |

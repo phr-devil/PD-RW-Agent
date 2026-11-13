@@ -63,6 +63,7 @@ All JSON outputs are **locators, routing hints, or structural checks**, never or
 - PD-RW path/version/project integration → [references/integration.md](references/integration.md)
 - Autonomous DEV loop or handoff mechanics → [references/execution.md](references/execution.md)
 - Missing paths, contradictory state, stale checkout, other failure → [references/troubleshooting.md](references/troubleshooting.md)
+- Optional machine-readable trigger index → [references/INDEX.json](references/INDEX.json) (metadata only; **never** replaces current PD-RW rule router)
 - Design coverage map (maintainers only; not task context) → see repository `docs/DECISION_COVERAGE.md`
 
 Do not automatically load all three references. Fail only the affected action if evidence or authority is missing; continue separately permitted, read-only work.

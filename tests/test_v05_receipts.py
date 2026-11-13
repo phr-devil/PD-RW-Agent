@@ -81,12 +81,49 @@ class ReceiptTests(unittest.TestCase):
         self.assertEqual(artifact["status"], "CHECKPOINT_SAVED")
         self.assertEqual(self.call("get_execution_status")["operations"][0]["artifact_integrity"], "MATCH")
         resume = self.call("get_resume_context")
-        self.assertEqual(resume["status"], "NEEDS_RECONCILIATION")
+        self.assertEqual(resume["status"], "ARTIFACT_REVIEW_PENDING")
+        self.assertEqual(resume["active_operations"], [])
+        self.assertEqual(resume["pending_scientific_review"][0]["recovery_class"],
+                         "PENDING_SCIENTIFIC_REVIEW")
+        self.assertEqual(resume["next"], "REVIEW_ORIGINAL_RUN_AND_SCOPE_NO_AUTO_RERUN")
+        self.assertFalse(resume["scientific_completion_verified"])
         self.assertFalse(resume["process_liveness_verified"])
         (self.root / "runs" / "run.json").write_text('{"changed": true}', encoding="utf-8")
         second = self.call("get_resume_context")
         self.assertEqual(second["next"], "RECONCILE_CHANGED_ARTIFACTS")
         self.assertEqual(second["active_operations"][0]["artifact_integrity"], "CHANGED")
+        self.assertEqual(second["status"], "NEEDS_RECONCILIATION")
+
+    def test_artifact_match_is_review_pending_not_science_complete(self):
+        self.call("begin_operation_receipt", operation_id="op-reviewed",
+                  task_id="dev-task", action="DEV_CODE")
+        reported = self.call("checkpoint_operation_receipt",
+                             operation_id="op-reviewed", expected_revision=0,
+                             phase="ARTIFACT_REPORTED", artifact_ref="runs/run.json")
+        self.assertEqual(reported["status"], "CHECKPOINT_SAVED")
+        resume = self.call("get_resume_context")
+        self.assertEqual(resume["status"], "ARTIFACT_REVIEW_PENDING")
+        self.assertEqual(len(resume["pending_scientific_review"]), 1)
+        self.assertFalse(resume["scientific_completion_verified"])
+        status = self.call("get_execution_status")
+        self.assertEqual(status["operations"][0]["recovery_class"],
+                         "PENDING_SCIENTIFIC_REVIEW")
+        self.assertFalse(status["operations"][0]["science_registration_verified"])
+
+    def test_running_operation_keeps_higher_reconciliation_priority(self):
+        self.call("begin_operation_receipt", operation_id="op-art",
+                  task_id="dev-task", action="DEV_EVALUATE")
+        self.call("checkpoint_operation_receipt", operation_id="op-art",
+                  expected_revision=0, phase="ARTIFACT_REPORTED",
+                  artifact_ref="runs/run.json")
+        self.call("begin_operation_receipt", operation_id="op-running",
+                  task_id="dev-task", action="DEV_TRAIN")
+        self.call("checkpoint_operation_receipt", operation_id="op-running",
+                  expected_revision=0, phase="RUNNING_DECLARED")
+        resume = self.call("get_resume_context")
+        self.assertEqual(resume["status"], "NEEDS_RECONCILIATION")
+        self.assertEqual(resume["active_operations"][0]["operation_id"], "op-running")
+        self.assertEqual(resume["pending_scientific_review"][0]["operation_id"], "op-art")
 
     def test_unknown_and_protected_actions_cannot_be_executed(self):
         result = self.call("begin_operation_receipt", operation_id="op-sealed",

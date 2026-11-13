@@ -57,15 +57,26 @@ def indexed_runs(settings: Settings, project_id: str, task_id: str = "",
             continue
         exists = path.is_file()
         hash_status = "MISSING"
+        hash_detail = "ARTIFACT_MISSING"
         if exists and path.stat().st_size <= 2 * 1024 * 1024:
-            hash_status = ("MATCH" if isinstance(entry.get("artifact_sha256"), str)
-                           and sha256_file(path) == entry["artifact_sha256"] else "MISMATCH_OR_UNKNOWN")
+            declared = entry.get("artifact_sha256")
+            if not isinstance(declared, str) or not declared:
+                hash_status = "MISMATCH_OR_UNKNOWN"  # Legacy field retained.
+                hash_detail = "HASH_UNKNOWN"
+            elif sha256_file(path) == declared:
+                hash_status = "MATCH"
+                hash_detail = "HASH_MATCH"
+            else:
+                hash_status = "MISMATCH_OR_UNKNOWN"
+                hash_detail = "HASH_MISMATCH"
         elif exists:
             hash_status = "NOT_CHECKED_OVERSIZE"
+            hash_detail = "NOT_CHECKED_OVERSIZE"
         results.append({"run_id": entry.get("artifact_id"), "task_id": entry.get("task_id"),
                         "status_declared": entry.get("status"), "split_declared": entry.get("split"),
                         "artifact": str(path), "artifact_exists": exists,
-                        "artifact_sha256_status": hash_status})
+                        "artifact_sha256_status": hash_status,
+                        "hash_detail": hash_detail})
         if len(results) >= max(1, min(limit, 10)):
             break
     return root, results

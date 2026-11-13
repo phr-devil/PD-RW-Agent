@@ -101,6 +101,32 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(r["matches"][0]["source_file"], "LESSONS/CASE_REGISTRY.md")
         self.assertIn("NOT_RAW_RUN", r["matches"][0]["evidence_level"])
 
+    def test_memory_limit_rejects_zero_negative_and_boolean(self):
+        for bad in (0, -1, True, "3"):
+            with self.subTest(limit=bad):
+                result = self.service.call("search_research_memory", query="HAR",
+                                           limit=bad)
+                self.assertEqual(result["status"], "ERROR")
+                self.assertEqual(result["error_code"], "LIMIT_INVALID")
+
+    def test_evidence_hash_details_distinguish_unknown_and_mismatch(self):
+        ledger = self.project / "EVENTS.jsonl"
+        events = [json.loads(x) for x in ledger.read_text(encoding="utf-8").splitlines()]
+        for event in events:
+            if event.get("artifact_id") == "run-001":
+                event.pop("artifact_sha256", None)
+        ledger.write_text("".join(json.dumps(x) + "\\n" for x in events), encoding="utf-8")
+        result = self.service.call("find_experiment_evidence", project_id="19")
+        self.assertEqual(result["matches"][0]["hash_detail"], "HASH_UNKNOWN")
+        self.assertEqual(result["matches"][0]["artifact_sha256_status"],
+                         "MISMATCH_OR_UNKNOWN")  # Compatible field.
+        for event in events:
+            if event.get("artifact_id") == "run-001":
+                event["artifact_sha256"] = "0" * 64
+        ledger.write_text("".join(json.dumps(x) + "\\n" for x in events), encoding="utf-8")
+        result = self.service.call("find_experiment_evidence", project_id="19")
+        self.assertEqual(result["matches"][0]["hash_detail"], "HASH_MISMATCH")
+
     def test_evidence_hides_sealed(self):
         r = self.service.call("find_experiment_evidence", project_id="19")
         self.assertEqual(len(r["matches"]), 1)

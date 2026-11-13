@@ -211,7 +211,13 @@ def execution_status(settings: Settings, project_id: str,
                               (project_id, operation_id)).fetchall()
         else:
             rows = db.execute("""SELECT * FROM operations WHERE project_id=?
-                                 ORDER BY updated_at DESC, operation_id DESC LIMIT ?""",
+                                 ORDER BY
+                                   CASE
+                                     WHEN phase IN ('PLANNED','RUNNING_DECLARED') THEN 0
+                                     WHEN phase='ARTIFACT_REPORTED' THEN 1
+                                     ELSE 2
+                                   END,
+                                   updated_at DESC, operation_id DESC LIMIT ?""",
                               (project_id, count)).fetchall()
     operations = []
     for row in rows:
@@ -227,6 +233,16 @@ def execution_status(settings: Settings, project_id: str,
             item["artifact_integrity"] = "NOT_REPORTED"
         item["process_liveness_verified"] = False
         item["science_registration_verified"] = False
+        # A matching checksum proves byte stability only. It can advance the
+        # OPERATIONAL follow-up, but NEVER certifies experiment completion.
+        if item["phase"] == "ARTIFACT_REPORTED":
+            item["recovery_class"] = ("PENDING_SCIENTIFIC_REVIEW"
+                                      if item["artifact_integrity"] == "MATCH"
+                                      else "NEEDS_ARTIFACT_RECONCILIATION")
+        elif item["phase"] in {"PLANNED", "RUNNING_DECLARED"}:
+            item["recovery_class"] = "VERIFY_ACTUAL_EXECUTION"
+        else:
+            item["recovery_class"] = "REVIEW_TECHNICAL_FAILURE"
         operations.append(item)
     return {"status": "RECEIPTS_FOUND" if operations else "NO_RECEIPTS",
             "operations": operations, "process_liveness_verified": False,
