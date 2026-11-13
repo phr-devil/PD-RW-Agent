@@ -19,7 +19,9 @@ class StaticCodeTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        # under_root requires a canonical root; Windows temp paths may differ
+        # from their resolved spelling (short names / junction normalization).
+        self.root = Path(self.temp.name).resolve()
         self.code = self.root / "train.py"
 
     def inspect(self, source):
