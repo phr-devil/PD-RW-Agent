@@ -28,7 +28,8 @@ class ResearchService:
             "audit_project_state": audit_project_state,
             "reconstruct_project_history": reconstruct_project_history,
             "verify_run_evidence": verify_run_evidence,
-            "review_lesson_applicability": review_lesson_applicability,
+            "review_lesson_applicability":
+                lambda _settings, **inputs: review_lesson_applicability(**inputs),
             "get_applicable_rules": get_applicable_rules,
             "search_research_memory": search_research_memory,
             "find_experiment_evidence": find_experiment_evidence,
