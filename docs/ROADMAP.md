@@ -14,7 +14,7 @@
 - `begin_operation_receipt`, `checkpoint_operation_receipt`: local SQLite operational-only event breadcrumbs with optimistic concurrency and idempotent retries. No GPU execution and no permission grant.
 - `preview_experiment_record`: original PD-RW `validate_run` and `core.cli status` via subprocess, with protected-history fail-closed and conflict handling.
 - `prepare_handoff`: reuses PD-RW `core.delivery_check`, creates no research files.
-- `register_run_in_trusted_host`: **library-only integration point**, disabled via MCP/CLI until a genuine independent authorization and protected executor exists.
+- `register_run_in_trusted_host`: **always-fail-closed compatibility interface**; writing is disabled even with a caller-provided callback. A separate secured host must implement the future authorized path.
 - Original 5 tools remain compatible; real WorkBuddy adoption and performance benefit are NOT_MEASURED.
 
 ## Next: WorkBuddy client integration gate

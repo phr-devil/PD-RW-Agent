@@ -61,6 +61,16 @@ class OriginalPD_RWTests(unittest.TestCase):
         self.svc = ResearchService(Settings.load(str(self.config), str(rule_root)))
         self.settings = self.svc.settings
 
+    def original_pdrw_record(self):
+        # Test the real authoritative writer in an isolated synthetic project.
+        # This test is NOT an Agent/MCP write API or a user-authentication test.
+        return subprocess.run(
+            [sys.executable, "-m", "core.cli", "record",
+             "--root", str(self.root), "--kind", "run",
+             "--artifact", "runs/run-1.json"],
+            cwd=str(self.rules), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", check=False)
+
     def preview(self):
         return self.svc.call("preview_experiment_record", project_id="demo",
                              artifact_ref="runs/run-1.json")
@@ -71,44 +81,40 @@ class OriginalPD_RWTests(unittest.TestCase):
         self.assertFalse(pre["write_authorized"])
         denial = register_run_in_trusted_host(self.settings, "demo", "runs/run-1.json",
                                                "op-1", None)
-        self.assertEqual(denial["status"], "TRUSTED_HOST_NOT_CONFIGURED")
+        self.assertEqual(denial["status"], "TRUSTED_HOST_NOT_CONNECTED")
         denied = register_run_in_trusted_host(
             self.settings, "demo", "runs/run-1.json", "op-1",
             lambda *_: False)
-        self.assertEqual(denied["status"], "AUTHORIZATION_NOT_ATTESTED")
+        self.assertEqual(denied["status"], "TRUSTED_HOST_NOT_CONNECTED")
         self.assertFalse((self.root / "EVENTS.jsonl").read_text(encoding="utf-8"))
 
-    def test_registration_and_retry_idempotency(self):
-        grant = lambda *_: True  # Synthetic host fixture, NEVER user authorization.
-        done = register_run_in_trusted_host(
-            self.settings, "demo", "runs/run-1.json", "op-1", grant)
-        self.assertEqual(done["status"], "RECORDED", done)
-        same = register_run_in_trusted_host(
-            self.settings, "demo", "runs/run-1.json", "op-1", grant)
-        self.assertEqual(same["status"], "ALREADY_RECORDED", same)
+    def test_authorizer_callback_cannot_enable_agent_write(self):
+        fake_grant = lambda *_: True
+        result = register_run_in_trusted_host(
+            self.settings, "demo", "runs/run-1.json", "op-1", fake_grant)
+        self.assertEqual(result["status"], "TRUSTED_HOST_NOT_CONNECTED")
+        self.assertFalse(result["write_performed"])
+        self.assertEqual(len((self.root / "EVENTS.jsonl").read_text(encoding="utf-8").splitlines()), 0)
+
+    def test_original_pdrw_writer_idempotency_is_independent(self):
+        first = self.original_pdrw_record()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        duplicate = self.original_pdrw_record()
+        self.assertNotEqual(duplicate.returncode, 0)
         self.assertEqual(len((self.root / "EVENTS.jsonl").read_text(encoding="utf-8").splitlines()), 1)
         self.assertEqual(self.preview()["status"], "ALREADY_RECORDED")
 
-    def test_concurrent_registration_never_duplicates(self):
-        def record(_):
-            return register_run_in_trusted_host(
-                self.settings, "demo", "runs/run-1.json", "same-op",
-                lambda *_: True)["status"]
+    def test_original_pdrw_writer_concurrency(self):
         with ThreadPoolExecutor(max_workers=2) as pool:
-            statuses = list(pool.map(record, [1, 2]))
-        self.assertIn("RECORDED", statuses)
-        self.assertTrue(set(statuses).issubset({
-            "RECORDED", "ALREADY_RECORDED", "RECORD_INDETERMINATE",
-            "RECONCILIATION_REQUIRED"
-        }))
+            runs = list(pool.map(lambda _: self.original_pdrw_record(), [1, 2]))
+        self.assertEqual(sum(r.returncode == 0 for r in runs), 1)
         events = (self.root / "EVENTS.jsonl").read_text(encoding="utf-8").splitlines()
         self.assertEqual(len(events), 1)
         self.assertEqual(self.preview()["status"], "ALREADY_RECORDED")
 
     def test_conflicting_run_id_is_blocked(self):
-        register_run_in_trusted_host(
-            self.settings, "demo", "runs/run-1.json", "op-1",
-            lambda *_: True)
+        result = self.original_pdrw_record()
+        self.assertEqual(result.returncode, 0, result.stderr)
         obj = json.loads(self.artifact.read_text(encoding="utf-8"))
         obj["dataset_version"] = "changed-after-registration"
         self.artifact.write_text(json.dumps(obj), encoding="utf-8")
@@ -131,7 +137,7 @@ class OriginalPD_RWTests(unittest.TestCase):
         self.assertEqual(result["status"], "RECONCILIATION_REQUIRED", result)
         blocked = register_run_in_trusted_host(
             self.settings, "demo", "runs/run-1.json", "op-1", lambda *_: True)
-        self.assertEqual(blocked["status"], "RECONCILIATION_REQUIRED")
+        self.assertEqual(blocked["status"], "TRUSTED_HOST_NOT_CONNECTED")
         self.assertFalse(blocked.get("write_performed"))
         self.assertEqual(len((self.root / "EVENTS.jsonl").read_text(encoding="utf-8").splitlines()), 1)
 

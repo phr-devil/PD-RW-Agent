@@ -37,7 +37,7 @@ Only four supported receipt actions: `DEV_CODE`, `DEV_TRAIN`, `DEV_EVALUATE`, `D
 
 ## Registration semantics / crash reconciliation
 
-The **internal** `register_run_in_trusted_host` adapter delegates Run writes to existing PD-RW `core.cli record` / `core.state.record_event`. It is **not exposed to MCP or CLI**. Its optional `authenticate` callback is ONLY a dependency-injection point for a future separately secured host, not a trust boundary when run in WorkBuddy's own unrestricted Python process. Passing `lambda: True`, `approved=true`, environment variables, or MCP arguments is NOT real authorization.
+The **internal** `register_run_in_trusted_host` compatibility interface is **fail-closed**: it returns `TRUSTED_HOST_NOT_CONNECTED` and NEVER writes original PD-RW files, even if the caller supplies `lambda: True`. Actual write behavior belongs in a future independently secured OS/tool host that must authenticate original user permissions before invoking PD-RW's native writer. This interface is not exposed to MCP/CLI. Running WorkBuddy with broad write access still allows its terminal to bypass any Python-level boundary, so real isolation requires independent OS ACLs and permissions.
 
 Integration design tests only use a synthetic host. Actual protected writes require a separate OS permission domain that can authenticate original author scope and enforce filesystem/tool ACLs.
 

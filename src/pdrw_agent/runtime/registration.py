@@ -143,36 +143,18 @@ def register_run_in_trusted_host(
     settings: Settings, project_id: str, artifact_ref: str, operation_id: str,
     authenticate: Callable[[str, str, str, str], bool] | None,
 ) -> dict:
-    """Integration point for an independently secured operator host ONLY.
+    """Disabled compatibility interface until an independent trusted host exists.
 
-    The host must independently check original author permissions and enforce
-    OS/tool ACLs. A caller-created lambda in an unrestricted WorkBuddy shell
-    is NOT an authorization mechanism. This function is NOT an MCP/CLI tool.
+    A callback supplied by an Agent-controlled Python process is NOT an
+    authorization boundary. Never invoke PD-RW core.cli record here; the
+    actual trusted service must run with independently enforced OS identity
+    and original-user permissions. No caller-supplied callback can enable
+    this interface.
     """
     _identifier(operation_id, "operation_id")
-    if authenticate is None or not callable(authenticate):
-        return {"status": "TRUSTED_HOST_NOT_CONFIGURED", "write_performed": False}
-    if not authenticate(project_id, operation_id, "RECORD_DEV_RUN", artifact_ref):
-        return {"status": "AUTHORIZATION_NOT_ATTESTED", "write_performed": False}
-    pre = preview_experiment_record(settings, project_id, artifact_ref)
-    if pre["status"] == "ALREADY_RECORDED":
-        return {"status": "ALREADY_RECORDED", "write_performed": False,
-                "run_id": pre.get("run_id")}
-    if pre["status"] != "READY_FOR_TRUSTED_HOST_REVIEW":
-        return {"status": pre["status"], "write_performed": False,
-                "reconciliation_required": pre["status"] == "RECONCILIATION_REQUIRED"}
-    root, _ = settings.project(project_id)
-    result, succeeded = _invoke_rules(
-        settings, ["-m", "core.cli", "record", "--root", str(root),
-                   "--kind", "run", "--artifact", pre["artifact_ref"],
-                   "--note", "Agent operation " + operation_id])
-    post = preview_experiment_record(settings, project_id, artifact_ref)
-    if post["status"] == "ALREADY_RECORDED":
-        return {"status": "RECORDED" if succeeded else "ALREADY_RECORDED",
-                "write_performed": bool(succeeded),
-                "run_id": pre["run_id"],
-                "event_id": result.get("event_id") if succeeded else None,
-                "ledger_consistent": True}
-    return {"status": "RECONCILIATION_REQUIRED" if post["status"] == "RECONCILIATION_REQUIRED"
-            else "RECORD_INDETERMINATE", "write_performed": bool(succeeded),
-            "reconciliation_required": True, "auto_recover": False}
+    return {
+        "status": "TRUSTED_HOST_NOT_CONNECTED",
+        "write_performed": False,
+        "original_authorization_verified": False,
+        "reason": "Protected Run writes require a separate authenticated OS/tool host",
+    }
