@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.5.3
+version: 0.6.0
 author: phr-devil
 ---
 
@@ -28,7 +28,12 @@ Use this Skill only when the user explicitly selects PD-RW or asks to continue a
 
 ## Tool access: MCP-first for a registered, permitted project
 
-For a **fresh WorkBuddy task** with an explicit project ID, an operator-registered project mapping, and enabled `pd-rw-research` MCP tools, **actually call `get_project_context(project_id)` once before bulk project-file reading**. Do not merely list the tool or cite this Skill as evidence that it ran. The MCP call executes the shared `pdrw_agent` Python service; WorkBuddy's own terminal Python is not evidence of that integration. Avoid additional preflight calls when the same verified tool result is already in this task's context.
+For a **fresh WorkBuddy task** with an explicit project ID, an operator-registered project mapping, and enabled `pd-rw-research` MCP tools, **actually call `get_project_context(project_id)` once before bulk project-file reading**. Do not merely list the tool or cite this Skill as evidence that it ran. After that scope check, use `audit_project_state(project_id)` when source
+completeness or rule drift affects the decision. It is optional for a quick
+informational lookup: avoid redundant scans and treat `PARTIAL_RECOVERY` only
+as a diagnostic, not permission to run.
+
+The MCP call executes the shared `pdrw_agent` Python service; WorkBuddy's own terminal Python is not evidence of that integration. Avoid additional preflight calls when the same verified tool result is already in this task's context.
 
 **Scope gate:** when the user restricts sources to a frozen snapshot, use this MCP only if the registered mapping has been explicitly permitted for that snapshot. Compare its reported `project_root` with the user-approved snapshot before using any returned project state; a mismatch means **do not continue project MCP access or read a different project root**. A matching string is a locator check, *not* independent proof of project identity, authorization, provenance, or SEALED isolation.
 

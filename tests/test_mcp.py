@@ -28,7 +28,7 @@ class MCPTests(unittest.TestCase):
                     registered = await client.list_tools()
                     names = {t.name for t in registered.tools}
                     self.assertEqual(names, {
-                        "get_project_context", "get_applicable_rules",
+                        "get_project_context", "audit_project_state", "get_applicable_rules",
                         "search_research_memory", "find_experiment_evidence",
                         "check_duplicate_experiment",
                         "get_resume_context", "get_execution_status",

@@ -6,7 +6,7 @@ from pathlib import Path
 from .config import Settings, read_json
 from .schemas import AgentError
 
-MD_KEYS = ("ACTIVE_TASK", "NEXT", "BEST_VALID_RUN", "HOLDOUT", "RESEARCH_RECORD_REF",
+MD_KEYS = ("PROJECT_ID", "ACTIVE_TASK", "NEXT", "BEST_VALID_RUN", "HOLDOUT", "RESEARCH_RECORD_REF",
            "PAPER_BLUEPRINT_REF", "NEXT_ACTION_OWNER", "MANUSCRIPT_WRITE_AUTH",
            "WORKFLOW", "USER_SCOPE")
 JSON_KEYS = ("schema_version", "project_id", "active_task_id",
@@ -23,15 +23,19 @@ def rule_commit(root: Path) -> str | None:
 def snapshot_head(path: Path) -> str | None:
     if not path.is_file():
         return None
-    # Avoid loading the entire history; section 0 is the resume snapshot.
+    # Historic projects use both section 0 and "1. 当前状态快照".
+    # An excerpt is advisory, never proof of machine STATE or Run validity.
     with path.open(encoding="utf-8-sig", errors="replace") as fp:
         data = fp.read(36_000)
-    match = re.search(r"(?m)^##\s+0[.、\s]", data)
-    if not match:
+    headers = list(re.finditer(r"(?m)^##\s+\d+[.、\s]", data))
+    selected = next((h for h in headers if
+        re.match(r"##\s+0[.、\s]", h.group(0)) or
+        re.match(r"##\s+1[.、\s]*(?:当前状态快照|状态快照|Current(?: State)? Snapshot)",
+                 data[h.start():h.start()+80], re.I)), None)
+    if not selected:
         return None
-    rest = data[match.start():]
-    end = re.search(r"(?m)^##\s+1[.、\s]", rest)
-    return rest[:end.start() if end else 2600][:2600]
+    end = next((h.start() for h in headers if h.start() > selected.start()), len(data))
+    return data[selected.start():end][:2600]
 
 def get_project_context(settings: Settings, project_id: str) -> dict:
     root, item, paths = settings.project_paths(project_id)
@@ -54,7 +58,7 @@ def get_project_context(settings: Settings, project_id: str) -> dict:
     expected = item.get("expected_state_project_id")
     if expected is not None and not isinstance(expected, str):
         raise AgentError("INVALID_EXPECTED_ID", "Expected state ID must be text")
-    actual = state.get("project_id")
+    actual = state.get("project_id") or state.get("PROJECT_ID")
     mismatch = bool(expected and actual and expected != actual)
     paths_public = {k: {"path": str(p), "exists": p.is_file()} for k, p in paths.items()}
     missing = [k for k in ("state", "research_record") if not paths[k].is_file()]
