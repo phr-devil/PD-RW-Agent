@@ -27,6 +27,10 @@ def main() -> int:
     science.add_argument("--project-id", required=True)
     science.add_argument("--run-id", required=True)
     science.add_argument("--baseline-run-id", default="")
+    sourced_lesson = sub.add_parser("lesson-evidence")
+    sourced_lesson.add_argument("--project-id", required=True)
+    sourced_lesson.add_argument("--run-id", required=True)
+    sourced_lesson.add_argument("--proposal-file", required=True)
     scope = sub.add_parser("lesson-scope")
     scope.add_argument("--packet", required=True,
                        help="JSON with proposal and lessons")
@@ -86,6 +90,10 @@ def main() -> int:
             out = service.call("audit_scientific_experiment",
                                project_id=options.project_id, run_id=options.run_id,
                                baseline_run_id=options.baseline_run_id)
+        elif command == "lesson-evidence":
+            out = service.call("review_evidenced_lesson",
+                               project_id=options.project_id, run_id=options.run_id,
+                               proposal=read_json(Path(options.proposal_file)))
         elif command == "lesson-scope":
             packet = read_json(Path(options.packet))
             out = service.call("review_lesson_applicability",

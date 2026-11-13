@@ -17,6 +17,7 @@ from ..config import Settings, read_json, under_root
 from ..evidence import _events
 from ..schemas import AgentError
 from .run_integrity import verify_run_evidence
+from .lineage import audit_python_code, audit_content_fingerprints
 
 MAX_CSV_BYTES = 8 * 1024 * 1024
 MAX_ROWS = 100_000
@@ -233,6 +234,8 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
     checks["evaluation_rows"] = _check(
         "PASS", "Bounded predictions have unique sample IDs and nonempty group IDs",
         n_samples=len(pred), n_groups=len({x["group_id"] for x in pred}))
+    checks["source_code_lineage"] = audit_python_code(
+        root, refs.get("code", ""), obj.get("legal_inputs", []))
     # The legacy sample_ids_hash is not defined to use one universal encoding.
     # Only verify if a frozen audit explicitly selects our canonicalization.
     fingerprint_rule = spec.get("sample_ids_hash_rule")
@@ -291,6 +294,10 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
                 "Training membership malformed" if invalid else
                 "Training index unavailable or not fully inspected",
                 reason=code)
+
+    checks["cross_split_content_identity"] = audit_content_fingerprints(
+        root, refs, pred, train_rows, _csv_rows,
+        spec.get("content_fingerprint_rule"))
 
     try:
         recomputed, groups = _metric(pred, metric, unit, labels)
@@ -389,15 +396,18 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
                     reason=getattr(exc, "code", "BASELINE_UNAVAILABLE"))
 
     failures = sorted(k for k, v in checks.items() if v["status"] == "FAIL")
+    reviews = sorted(k for k, v in checks.items() if v["status"] == "REVIEW")
     unknown = sorted(k for k, v in checks.items() if v["status"] == "UNKNOWN")
     status = ("SCIENTIFIC_AUDIT_CONFLICT" if failures else
+              "SCIENTIFIC_AUDIT_REVIEW_REQUIRED" if reviews else
               "SCIENTIFIC_AUDIT_INCOMPLETE" if unknown else
               "SCOPED_NUMERIC_CHECKS_MATCHED_ONLY")
     return {
         **base, "status": status, "metric": metric,
         "evaluation_unit_declared": unit,
         "independence_unit_declared": spec["independence_unit"],
-        "checks": checks, "failed_checks": failures, "unknown_checks": unknown,
+        "checks": checks, "failed_checks": failures,
+        "review_checks": reviews, "unknown_checks": unknown,
         "all_scientific_conditions_verified": False,
         "scientific_claims_verified": False,
         "original_code_inputs_traced": False,

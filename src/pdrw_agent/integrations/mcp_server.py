@@ -53,6 +53,13 @@ def create_server(settings: Settings | None = None):
                             baseline_run_id=baseline_run_id)
 
     @mcp.tool()
+    def review_evidenced_lesson(project_id: str, run_id: str,
+                               proposal: dict[str, Any]) -> dict[str, Any]:
+        """Match a hash-bound Run negative metric observation to declared new premise scope."""
+        return service.call("review_evidenced_lesson",
+                            project_id=project_id, run_id=run_id, proposal=proposal)
+
+    @mcp.tool()
     def review_lesson_applicability(proposal: dict[str, Any],
                                     lessons: list[dict[str, Any]]) -> dict[str, Any]:
         """Compare literal scientific premise and declared scopes; no automatic STOP."""

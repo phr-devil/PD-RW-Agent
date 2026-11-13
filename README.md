@@ -1,5 +1,11 @@
 # PD-RW-Agent
 
+> **v0.6.3 source-lineage and evidenced-lessons increment:** bounded,
+> non-executing Python AST feature/split-fit risk detection and optional
+> linked content-hash overlap checks; original Run + science-audit + baseline
+> grounded negative metric lesson matching (never an automatic STOP).
+> See [docs/V063_LINEAGE_LESSONS.md](docs/V063_LINEAGE_LESSONS.md).
+
 > **v0.6.2 scientific-evaluation checks:** bounded, hash-bound DEV/VAL
 > train/evaluation sample and group overlap; real metric recomputation;
 > declared-input scope and matched baseline evaluation. The new tool is

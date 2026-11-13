@@ -1,5 +1,22 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.6.3 source lineage and evidenced negative lessons
+
+- Parse only hash-bound linked Python source with bounded AST; identify
+  explicit forbidden feature selection in feature sinks and probable eval
+  fit calls. No code execution and never claim complete dynamic provenance.
+- Optional original Run-linked canonical input feature hashes identify exact
+  reported content collisions across train/eval even with different IDs;
+  missing/unauthenticated fingerprints remain UNKNOWN.
+- New `review_evidenced_lesson`: require original DEV/VAL Run contract,
+  STATE/EVENTS consistency, Run/hash-linked lesson context, independently
+  recomputed challenger/baseline metrics, verified group disjointness and
+  structural fairness before comparing an old negative metric observation
+  to a proposed new premise. Neither the prior outcome's scientific truth
+  nor the new proposal's provenance is certified.
+- CLI/MCP share one service; synthetic original-contract and boundary CI
+  tests. No research ledger mutations, automatic GO/STOP or SEALED access.
+
 ## v0.6.2 scientific evaluation checking engine
 
 - A Run-linked `science_audit` spec and DEV/VAL artifacts are hash-attested
