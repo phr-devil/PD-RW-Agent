@@ -133,7 +133,7 @@ def audit_python_code(root: Path, code_ref: str, legal_inputs: list[str]) -> dic
 
 def audit_content_fingerprints(root: Path, refs: dict, predictions: list[dict],
                                training: list[dict] | None,
-                               csv_reader) -> dict:
+                               csv_reader, fingerprint_rule: str | None = None) -> dict:
     """Compare declared canonical *input content* hashes on bound sample IDs.
 
     A shared hash is an observable collision under the source's own declared
@@ -142,6 +142,8 @@ def audit_content_fingerprints(root: Path, refs: dict, predictions: list[dict],
     base = {"status": "UNKNOWN",
             "source_truth_verified": False,
             "near_duplicate_independence_verified": False}
+    if fingerprint_rule != "sha256_canonical_input_v1":
+        return {**base, "reason": "CANONICAL_INPUT_FINGERPRINT_RULE_NOT_DECLARED"}
     train_ref = refs.get("train_content_hashes")
     eval_ref = refs.get("eval_content_hashes")
     if not isinstance(train_ref, str) or not isinstance(eval_ref, str):

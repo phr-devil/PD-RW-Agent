@@ -38,6 +38,12 @@ Optional **Run-linked and hash-verified** CSV artifacts:
 canonically serialized prediction-time input content by the producing
 pipeline, *not* from ID, target, future label, or metadata.
 
+The original Run-linked `science_audit` config must additionally declare
+`content_fingerprint_rule: "sha256_canonical_input_v1"`. Missing or unknown
+convention is UNKNOWN even when a provided table contains colliding digests.
+This is a **declared** source convention; independently validating its
+implementation remains a separate scientific audit.
+
 The engine verifies sidecar sample/group membership matches the existing
 Run-linked \`train_index\` and prediction rows exactly, then compares
 64-hex SHA-256 digests across the splits.

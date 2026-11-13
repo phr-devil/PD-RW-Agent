@@ -296,7 +296,8 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
                 reason=code)
 
     checks["cross_split_content_identity"] = audit_content_fingerprints(
-        root, refs, pred, train_rows, _csv_rows)
+        root, refs, pred, train_rows, _csv_rows,
+        spec.get("content_fingerprint_rule"))
 
     try:
         recomputed, groups = _metric(pred, metric, unit, labels)

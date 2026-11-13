@@ -209,6 +209,11 @@ class BoundScienceTests(unittest.TestCase):
         self.assertEqual(out["status"], "SCIENTIFIC_AUDIT_REVIEW_REQUIRED")
 
     def _fingerprints(self, overlap):
+        run = self.runs["r-main"][0]
+        spec_ref = run["artifact_refs"]["science_audit"]
+        spec = json.loads((self.root / spec_ref).read_text(encoding="utf-8"))
+        spec["content_fingerprint_rule"] = "sha256_canonical_input_v1"
+        self.rewrite_link("r-main", "science_audit", json.dumps(spec))
         a = "a" * 64
         b = "b" * 64
         c = "c" * 64
@@ -228,6 +233,18 @@ class BoundScienceTests(unittest.TestCase):
         self.assertEqual(check["cross_split_content_hash_matches"], 1)
         self.assertFalse(check["source_truth_verified"])
         self.assertEqual(out["status"], "SCIENTIFIC_AUDIT_CONFLICT")
+
+    def test_content_fingerprint_without_frozen_rule_remains_unknown(self):
+        self._fingerprints(True)
+        run = self.runs["r-main"][0]
+        spec_ref = run["artifact_refs"]["science_audit"]
+        spec = json.loads((self.root / spec_ref).read_text(encoding="utf-8"))
+        spec.pop("content_fingerprint_rule")
+        self.rewrite_link("r-main", "science_audit", json.dumps(spec))
+        check = self.science()["checks"]["cross_split_content_identity"]
+        self.assertEqual(check["status"], "UNKNOWN")
+        self.assertEqual(check["reason"],
+                         "CANONICAL_INPUT_FINGERPRINT_RULE_NOT_DECLARED")
 
     def test_no_content_collision_remains_unknown(self):
         self._fingerprints(False)
