@@ -1,4 +1,4 @@
-name: skill-framework-tests
+name: skill-runtime-mcp-tests
 
 on:
   push:
@@ -16,5 +16,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Run offline framework tests
+      - name: Install local runtime and MCP v2 dependency
+        run: python -m pip install -e ".[mcp]"
+      - name: Run all offline framework and real in-memory MCP tests
         run: python -m unittest discover -s tests -v
+      - name: Validate Skill ZIP
+        run: python tools/package_skill.py

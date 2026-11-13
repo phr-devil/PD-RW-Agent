@@ -27,3 +27,10 @@ These are **actual WorkBuddy-client steps to perform**, distinct from GitHub CI.
 Score an actual WorkBuddy A/B only with the same input snapshot, tools/model/permissions and matched budget; use independently checked raw evidence. Static tests passing does **not** imply WorkBuddy was invoked or made good scientific decisions.
 
 Baseline and v0.2 all remain `NOT_MEASURED` until observations are captured. Do not commit user transcripts, authentication tokens, datasets, private project paths, or sensitive tool logs to this public repository.
+
+
+## v0.4 real MCP client checks (pending)
+
+1. In WorkBuddy add the stdio configuration from `RUNTIME_AND_MCP.md`, separately import the Skill, and inspect which of the **five** tools appear.
+2. In a new chat request a **read-only** recovery for a registered project. Record actual MCP tool names, returned source paths, rule commit status and whether any incorrect project or SEALED artifact was read.
+3. Repeat using direct PD-RW without MCP against a frozen snapshot, same tools/model and matched budget. Record actual token usage and user interventions; do not claim savings without traces.

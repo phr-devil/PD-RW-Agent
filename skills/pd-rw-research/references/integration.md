@@ -9,6 +9,10 @@ Read when configuring WorkBuddy, switching projects, or diagnosing project-versi
 - Existing project sources: `STATE.md` or `STATE.json`, `RESEARCH_RECORD.md`, `PAPER_BLUEPRINT.md` as applicable; actual Run/protocol/manifests are primary scientific evidence.
 - WorkBuddy Skill entry: `skills/pd-rw-research/SKILL.md` **in this adapter repository**, not a replacement for PD-RW `AGENTS.md`.
 
+## Runtime selection
+
+When the shared `pdrw_agent` Python package and `pd-rw-research` stdio MCP are installed, prefer the five MCP read-only tools to reduce repeated file reads. The Python CLI invokes the same service. Standalone `scripts/bridge.py` and `scripts/context.py` remain fallbacks. Installing the Skill by itself does not install the MCP server. See the repo's `docs/RUNTIME_AND_MCP.md` for private machine configuration.
+
 ## Configure once on the operator's computer
 
 Copy `config/project-map.example.json` from the **development repository root** to `project-map.local.json`; fill in real local paths. Do not add real project directories, unpublished data, user chats, or credentials to the Skill archive or public GitHub.

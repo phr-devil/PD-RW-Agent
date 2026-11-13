@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.2.0
+version: 0.4.0
 author: phr-devil
 ---
 
@@ -25,6 +25,13 @@ Use this Skill only when the user explicitly selects PD-RW or asks to continue a
 - **Evidence:** original project Run, protocol, data manifest, and user messages outrank summaries. A state value or checker result never authenticates a user decision or experiment.
 - **Memory:** use the project's existing `STATE`, `RESEARCH_RECORD.md`, and (when relevant) `PAPER_BLUEPRINT.md`. Do not create a second project memory database.
 - **Limits:** bundled scripts are read-only helpers, not a secure executor or permission enforcement. Do not claim SEALED isolation or WorkBuddy integration has been proven.
+
+## Tool access: prefer MCP v0.4 when configured
+
+For registered projects, call the `pd-rw-research` MCP server tools, preferably in this order as needed:
+`get_project_context` → `get_applicable_rules` → `find_experiment_evidence`; consult `search_research_memory` only when useful and `check_duplicate_experiment` before costly repeated runs. These five tools are **read-only** and return bounded metadata. Never treat `status`, `APPROVED` or a fingerprint match as real authorization or scientific validation.
+
+MCP is **optional**: importing this Skill does NOT install/start Python or MCP. If MCP is unavailable, use the existing standalone `scripts/bridge.py`/`scripts/context.py` fallback or read the actual PD-RW project sources within verified access. Do not repeatedly retry a missing integration. Full setup: repository `docs/RUNTIME_AND_MCP.md` (maintainer/operator reference, not default task context).
 
 ## Task lifecycle
 

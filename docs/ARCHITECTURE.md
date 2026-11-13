@@ -4,7 +4,7 @@
 
 - **PD-RW** owns H1–H10 semantics, task/claim strategy, authorized DEV work, data/SEALED segregation, scientific evidence, paper/figure/writing permissions, and its own preflight/checker implementations.
 - **Existing project folders** own STATE, RESEARCH_RECORD, PAPER_BLUEPRINT, immutable run evidence, scripts and data.
-- **This repository** owns the WorkBuddy Skill entry, locating/recovery glue, live AGENTS.md routing, advisory-checker bridge, packaging and Skill-specific regression tests. It contains no second scientific workflow.
+- **This repository** owns the WorkBuddy Skill, the shared read-only Python Runtime under `src/pdrw_agent`, CLI/MCP tool adapters, optional legacy standalone helpers, packaging and integration tests. It contains no second scientific workflow.
 - A traceable inventory of prior design rationale is in [DECISION_COVERAGE.md](DECISION_COVERAGE.md); maintainers may consult it, but agents do **not** preload it.
 
 ## AI context budget
@@ -30,12 +30,12 @@
 | `AGENTS.md` / `WORKFLOW.md` | PD-RW | Research Agent | Scientific routing and decision authority |
 | Run/protocol and original messages | Research project/user | Research Agent | Primary evidence and real authorization, independently checked |
 
-## What is not implemented in v0.2
+## What is not implemented in v0.4
 
 - No automatic syncing of PD-RW Git checkout, shell/task orchestration, or independent API model calls.
 - No writing of project state or claims by the supplied bridge.
 - No tool interceptor, sandbox, OS ACL or authentic original-user authorization service.
-- No WorkBuddy end-to-end acceptance tests or measured Token/quality improvement. See [WORKBUDDY_ACCEPTANCE.md](WORKBUDDY_ACCEPTANCE.md).
+- No real WorkBuddy end-to-end acceptance tests or measured Token/quality improvement. See [WORKBUDDY_ACCEPTANCE.md](WORKBUDDY_ACCEPTANCE.md) and [RUNTIME_AND_MCP.md](RUNTIME_AND_MCP.md).
 
 ## Adding a capability without increasing confusion
 

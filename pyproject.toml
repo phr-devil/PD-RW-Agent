@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdrw-agent"
+version = "0.4.0"
+description = "Read-only PD-RW scientific workflow runtime and MCP tools"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=2.2,<3"]
+
+[project.scripts]
+pdrw-agent = "pdrw_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pdrw_agent*"]
