@@ -18,6 +18,14 @@ def main() -> int:
     p.add_argument("--project-id", required=True)
     a = sub.add_parser("audit")
     a.add_argument("--project-id", required=True)
+    history = sub.add_parser("history")
+    history.add_argument("--project-id", required=True)
+    vr = sub.add_parser("verify-run")
+    vr.add_argument("--project-id", required=True)
+    vr.add_argument("--run-id", required=True)
+    scope = sub.add_parser("lesson-scope")
+    scope.add_argument("--packet", required=True,
+                       help="JSON with proposal and lessons")
     r = sub.add_parser("rules")
     r.add_argument("--topic", default="")
     m = sub.add_parser("memory")
@@ -65,6 +73,16 @@ def main() -> int:
             out = service.call("get_project_context", project_id=options.project_id)
         elif command == "audit":
             out = service.call("audit_project_state", project_id=options.project_id)
+        elif command == "history":
+            out = service.call("reconstruct_project_history", project_id=options.project_id)
+        elif command == "verify-run":
+            out = service.call("verify_run_evidence", project_id=options.project_id,
+                               run_id=options.run_id)
+        elif command == "lesson-scope":
+            packet = read_json(Path(options.packet))
+            out = service.call("review_lesson_applicability",
+                               proposal=packet.get("proposal"),
+                               lessons=packet.get("lessons"))
         elif command == "rules":
             out = service.call("get_applicable_rules", topic=options.topic)
         elif command == "memory":

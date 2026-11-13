@@ -6,6 +6,7 @@ WorkBuddy/MCP write tool until an independently secured host exists.
 from __future__ import annotations
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -23,7 +24,8 @@ MAX_STATUS_SECONDS = 25
 def _invoke_rules(settings: Settings, args: list[str], *, payload: str = "") -> tuple[dict, bool]:
     try:
         proc = subprocess.run(
-            [sys.executable, *args], input=payload,
+            [sys.executable, "-B", *args], input=payload,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             cwd=str(settings.workflow_root), timeout=MAX_STATUS_SECONDS, check=False)
     except subprocess.TimeoutExpired as exc:

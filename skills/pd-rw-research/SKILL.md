@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.6.0
+version: 0.6.1
 author: phr-devil
 ---
 
@@ -29,7 +29,12 @@ Use this Skill only when the user explicitly selects PD-RW or asks to continue a
 ## Tool access: MCP-first for a registered, permitted project
 
 For a **fresh WorkBuddy task** with an explicit project ID, an operator-registered project mapping, and enabled `pd-rw-research` MCP tools, **actually call `get_project_context(project_id)` once before bulk project-file reading**. Do not merely list the tool or cite this Skill as evidence that it ran. After that scope check, use `audit_project_state(project_id)` when source
-completeness or rule drift affects the decision. It is optional for a quick
+completeness or rule drift affects the decision. When relevant, use
+`reconstruct_project_history(project_id)` to diagnose STATE/EVENTS conflicts,
+`verify_run_evidence(project_id, run_id)` to check original DEV/VAL Run bytes,
+and `review_lesson_applicability(proposal, lessons)` to compare declared
+negative-premise scope. Never treat any of these as scientific verification,
+original approval, permission to run, or a reason to auto-STOP. It is optional for a quick
 informational lookup: avoid redundant scans and treat `PARTIAL_RECOVERY` only
 as a diagnostic, not permission to run.
 

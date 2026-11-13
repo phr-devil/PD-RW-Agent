@@ -14,6 +14,7 @@ from ..config import Settings, under_root
 from ..evidence import sha256_file
 from ..projects import get_project_context
 from ..schemas import AgentError
+from .history import reconstruct_project_history
 
 MAX_DIRS = 128
 MAX_MANIFESTS = 16
@@ -149,6 +150,7 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
     availability = {name: path.is_file() for name, path in paths.items()}
     availability["events"] = events.is_file()
     manifest = audit_frozen_manifests(root)
+    history = reconstruct_project_history(settings, project_id)
     recorded = _declared_version(paths["research_record"])
     authority = _declared_version(settings.workflow_root / "WORKFLOW.md")
     version_discrepancy = bool(recorded and authority and recorded != authority)
@@ -163,6 +165,9 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
         blockers.append("RESEARCH_RECORD_MISSING")
     if version_discrepancy:
         blockers.append("DECLARED_RULE_VERSION_DIFFERS")
+    if history["status"] not in {"METADATA_CHAIN_MATCHED_ONLY",
+                                 "HISTORY_SOURCES_MISSING"}:
+        blockers.append("STATE_EVENTS_METADATA_CONFLICT")
     if manifest["status"] == "NO_MANIFESTS":
         blockers.append("EVIDENCE_MANIFEST_ABSENT")
     elif manifest["status"] in {"EVIDENCE_GAPS", "AUDIT_INCOMPLETE"}:
@@ -175,6 +180,12 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
         "snapshot_excerpt": context["snapshot_excerpt"],
         "source_exists": availability,
         "manifest_audit": manifest,
+        "history_diagnostic": {
+            "status": history["status"],
+            "state_matches_events": history.get("state_matches_events", False),
+            "event_chain_valid": history.get("event_chain_valid", False),
+            "differing_state_fields": history.get("differing_state_fields", []),
+        },
         "rule_versions": {"record_declared": recorded,
                           "local_authority_declared": authority,
                           "local_authority_commit": context["workflow_commit_local_only"],
@@ -183,7 +194,9 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
         "blockers": blockers,
         "scientific_claims_verified": False,
         "original_authorization_verified": False,
-        "event_chain_verified": False,
+        "event_chain_verified": history.get("event_chain_valid", False),
+        "state_events_metadata_consistent":
+            history.get("state_matches_events", False),
         "process_liveness_verified": False,
         "sealed_access": "NOT_ATTEMPTED",
         "execution_authorized": False,

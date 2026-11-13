@@ -13,6 +13,9 @@ from .runtime.recovery import get_resume_context
 from .runtime.registration import preview_experiment_record
 from .delivery import prepare_handoff
 from .runtime.audit import audit_project_state
+from .runtime.history import reconstruct_project_history
+from .science.run_integrity import verify_run_evidence
+from .science.applicability import review_lesson_applicability
 
 
 class ResearchService:
@@ -23,6 +26,10 @@ class ResearchService:
         handlers = {
             "get_project_context": get_project_context,
             "audit_project_state": audit_project_state,
+            "reconstruct_project_history": reconstruct_project_history,
+            "verify_run_evidence": verify_run_evidence,
+            "review_lesson_applicability":
+                lambda _settings, **inputs: review_lesson_applicability(**inputs),
             "get_applicable_rules": get_applicable_rules,
             "search_research_memory": search_research_memory,
             "find_experiment_evidence": find_experiment_evidence,

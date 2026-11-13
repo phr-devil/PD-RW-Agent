@@ -1,5 +1,11 @@
 # PD-RW-Agent
 
+> **v0.6.1 research integrity increment:** read-only reconstruction of machine
+> STATE/EVENTS metadata, original-PD-RW-contract Run evidence checks, and
+> declared negative-lesson scope comparisons, exposed via CLI/MCP. None
+> authenticates approvals, validates scientific truth, or permits execution.
+> See [v0.6.1 contract](docs/V061_HISTORY_RUN_LESSONS.md).
+
 > **v0.6.0 Python state/evidence increment:** The shared CLI/MCP service
 > now provides bounded, read-only `audit_project_state` diagnostics:
 > registered source availability, SHA-256 manifest coverage, historical

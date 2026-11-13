@@ -1,5 +1,20 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.6.1 history/Run/lesson applicability increment
+
+- New read-only `reconstruct_project_history` checks the original
+  STATE.json/EVENTS.jsonl metadata chain without opening SEALED artifacts;
+  blocked reconciliation is separate from optional source diagnostics.
+- `verify_run_evidence` checks original PD-RW Run structural contract,
+  indexed source SHA-256, metadata and bounded declared linked hashes.
+- `review_lesson_applicability` compares literal negative premise and
+  declared scope with conservative UNKNOWN/conflict categories. Exact
+  declared scope is not proof of scientific equivalence or automatic STOP.
+- CLI/MCP expose these selective tools, with synthetic fixture tests.
+- Future: immutable authorized Run archival, stronger scientific data quality
+  checks, semantic premise review with independently grounded evidence, and
+  actual WorkBuddy cost/quality measurement.
+
 ## v0.6.0 state/evidence increment
 
 - Bounded read-only `audit_project_state` is shared by Python CLI and MCP.
