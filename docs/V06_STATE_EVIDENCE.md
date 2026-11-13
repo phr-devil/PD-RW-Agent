@@ -36,6 +36,15 @@ registered-project scope gate, when a combined state/evidence diagnosis
 will materially reduce repeated file reading. It is optional for quick
 informational tasks. CLI and MCP share `ResearchService`.
 
+## Structured memory increment
+
+`search_research_memory` now parses the existing four-column CASE_REGISTRY
+case table into bounded, ranked cards with case IDs, declared status tags,
+boundaries and source declarations. It is **not** a new memory database,
+not a semantic-equivalence detector, and never promotes historical prose
+to scientific evidence. Only search this cross-project index when the
+current user's allowed source scope permits doing so.
+
 ## Non-goals and pending work
 
 No automatic data downloads, experiment runs, GPU restarts, scientific

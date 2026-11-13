@@ -9,11 +9,15 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
     if project["status"] == "IDENTITY_CONFLICT":
         return {"status": "BLOCKED_PROJECT_IDENTITY", "project_id": project_id,
                 "project": project, "next": "VERIFY_ORIGINAL_PROJECT_IDENTITY",
-                "authorization_verified": False}
+                "authorization_verified": False,
+                "restart_permitted": False,
+                "read_only_next_actions": ["VERIFY_ORIGINAL_PROJECT_IDENTITY"]}
     if project["status"] == "INCOMPLETE_CONTEXT":
         return {"status": "BLOCKED_INCOMPLETE_CONTEXT", "project_id": project_id,
                 "project": project, "next": "RESTORE_MISSING_ORIGINAL_SOURCE_FILES",
-                "authorization_verified": False}
+                "authorization_verified": False,
+                "restart_permitted": False,
+                "read_only_next_actions": ["AUDIT_PROJECT_STATE", "RESTORE_ORIGINAL_SOURCES"]}
     operations = execution_status(settings, project_id, limit=6)
     unresolved = [r for r in operations["operations"] if
                   r["recovery_class"] in {"VERIFY_ACTUAL_EXECUTION",
@@ -42,5 +46,8 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
         "receipt_status": operations["status"],
         "authorization_verified": False,
         "process_liveness_verified": False,
+        "restart_permitted": False,
+        "read_only_next_actions": ["VERIFY_ACTUAL_PROCESS_AND_ARTIFACTS",
+                                   "REVIEW_ORIGINAL_RUN_AND_AUTHORIZATION"],
         "next": next_hint,
     }
