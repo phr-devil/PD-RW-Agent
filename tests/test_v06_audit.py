@@ -92,10 +92,10 @@ class V06AuditTests(unittest.TestCase):
     def test_structured_memory_retains_failure_boundaries(self):
         index = self.rules / "LESSONS" / "CASE_REGISTRY.md"
         index.write_text(
-            "| CASE_ID / 号（非强制唯一编号） | 已有证据与真实结果（严格限定义） | 各成功轴 / 当前边界 | 来源 |\\n"
-            "|---|---|---|---|\\n"
-            "| `TACTILE-X` | 触觉数据 分组泄漏 | `INVALID_EXPERIMENT`；不能推广到其他数据集 | `CHAT` |\\n"
-            "| `IMU-Y` | 跨人数据 合法对照 | `ALGO_DEV_POSITIVE`；仅DEV成立 | `REPORT` |\\n",
+            "| CASE_ID / 号（非强制唯一编号） | 已有证据与真实结果（严格限定义） | 各成功轴 / 当前边界 | 来源 |\n"
+            "|---|---|---|---|\n"
+            "| `TACTILE-X` | 触觉数据 分组泄漏 | `INVALID_EXPERIMENT`；不能推广到其他数据集 | `CHAT` |\n"
+            "| `IMU-Y` | 跨人数据 合法对照 | `ALGO_DEV_POSITIVE`；仅DEV成立 | `REPORT` |\n",
             encoding="utf-8")
         item = self.service.call("search_research_memory", query="TACTILE-X")
         self.assertEqual(item["status"], "MATCHES_FOUND")
