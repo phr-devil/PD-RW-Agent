@@ -41,6 +41,7 @@ Predictions must be hashed, bounded UTF-8 CSV at original
 \`sample_id,group_id,y_true,y_pred\`. At most 100k rows and 8 MiB/file.
 \`artifact_refs.train_index\` is a hashed optional CSV containing
 \`sample_id,group_id\`; missing source -> leakage UNKNOWN, never PASS.
+Malformed or duplicate training membership rows are FAIL. An optional `sample_ids_hash_rule: "sha256_sorted_ids_v1"` binds the Run's sample_ids_hash to SHA-256 of sorted exact UTF-8 sample IDs, each terminated by LF. Legacy IDs without a defined convention remain UNKNOWN.
 Group-disjoint checks exact IDs and all group IDs. Sample-disjoint checks
 exact sample IDs, reports group overlap but does not reject it.
 **Exact group absence is not proof of no duplicates, causality, unobserved
@@ -53,7 +54,7 @@ prediction-time availability and preprocessing have not been traced.
 
 Baseline (optional): a separate verified Run must match exact
 task/protocol/dataset/evaluator/split/group-split/sample-ID hash, evaluation
-unit, metric, legal inputs and declared budget basis. Sample-level group/label
+unit, metric, legal inputs, declared label definition, metric direction and budget basis. Missing budget, label definition or metric direction yields UNKNOWN instead of fairness PASS. Both Runs must also have matching training membership (when hash-bound); missing training membership yields UNKNOWN. Sample-level group/label
 identity and recomputed baseline metric must match. Positive baseline PASS
 only means structural comparability under these recorded conditions; it
 does not prove tuning-budget parity or a causal ablation.

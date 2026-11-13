@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import csv
 import math
+import hashlib
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -25,7 +27,8 @@ REQUIRED_PRED = {"sample_id", "group_id", "y_true", "y_pred"}
 REQUIRED_TRAIN = {"sample_id", "group_id"}
 COMPARABLE = ("task_id", "protocol_id", "dataset_version",
               "evaluator_version", "split", "group_split", "sample_ids_hash",
-              "level_id", "k_unit", "support_query_policy")
+              "level_id", "k_unit", "support_query_policy",
+              "label_definition", "evaluation_unit", "metric_direction")
 TOL_ABS = 1e-7
 TOL_REL = 1e-6
 
@@ -101,8 +104,8 @@ def _metric(rows: list[dict[str, str]], metric: str, unit: str,
     # Every class must be declared in advance; never silently exclude a rare
     # class or change the denominator based on which labels appeared.
     if (not class_labels or len(class_labels) > 100
-            or len(set(class_labels)) != len(class_labels)
-            or any(not isinstance(x, str) or not x.strip() for x in class_labels)):
+            or any(not isinstance(x, str) or not x.strip() for x in class_labels)
+            or len(set(class_labels)) != len(class_labels)):
         raise AgentError("CLASS_UNIVERSE_REQUIRED",
                          "Macro-F1 needs a fixed nonempty class list")
     observed = {v for x in rows for v in (x["y_true"], x["y_pred"])}
@@ -116,6 +119,18 @@ def _metric(rows: list[dict[str, str]], metric: str, unit: str,
         den = 2 * tp + fp + fn
         f1s.append(2 * tp / den if den else 0.0)
     return sum(f1s) / len(f1s), len(groups)
+
+
+def _membership(rows: list[dict[str, str]]) -> dict[str, str]:
+    return {row["sample_id"]: row["group_id"] for row in rows}
+
+
+def _sorted_id_digest(rows: list[dict[str, str]]) -> str:
+    # Defined canonicalization: UTF-8 sorted exact IDs, each with final LF.
+    h = hashlib.sha256()
+    for sid in sorted(row["sample_id"] for row in rows):
+        h.update(sid.encode("utf-8") + b"\n")
+    return h.hexdigest()
 
 
 def _pred_identity(rows: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
@@ -207,9 +222,32 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
     checks["evaluation_rows"] = _check(
         "PASS", "Bounded predictions have unique sample IDs and nonempty group IDs",
         n_samples=len(pred), n_groups=len({x["group_id"] for x in pred}))
+    # The legacy sample_ids_hash is not defined to use one universal encoding.
+    # Only verify if a frozen audit explicitly selects our canonicalization.
+    fingerprint_rule = spec.get("sample_ids_hash_rule")
+    if fingerprint_rule is None:
+        checks["sample_identity_fingerprint"] = _check(
+            "UNKNOWN", "No original canonical sample-ID hash convention declared")
+    elif fingerprint_rule != "sha256_sorted_ids_v1":
+        checks["sample_identity_fingerprint"] = _check(
+            "UNKNOWN", "Unrecognized declared sample-ID fingerprint convention")
+    else:
+        declared_digest = obj.get("sample_ids_hash")
+        calculated_digest = _sorted_id_digest(pred)
+        valid_digest = (isinstance(declared_digest, str) and
+                        bool(re.fullmatch(r"[a-fA-F0-9]{64}", declared_digest)))
+        checks["sample_identity_fingerprint"] = _check(
+            "PASS" if valid_digest and calculated_digest.casefold() == declared_digest.casefold()
+            else "FAIL" if valid_digest else "UNKNOWN",
+            ("Canonical sorted evaluation IDs match Run declaration"
+             if valid_digest and calculated_digest.casefold() == declared_digest.casefold()
+             else "Canonical evaluation IDs disagree with Run declaration"
+             if valid_digest else "Run uses no supported 64-hex sample fingerprint"),
+            rule=fingerprint_rule)
     # Explicit input train_index must be a link registered with and hash-checked
     # by verify_run_evidence. No free-standing, unanchored train CSV.
     train_ref = refs.get("train_index")
+    train_rows = None
     if train_ref is None:
         checks["split_leakage"] = _check(
             "UNKNOWN", "No Run-linked training membership manifest; leakage cannot be ruled out",
@@ -217,6 +255,7 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
     else:
         try:
             train = _csv_rows(root, train_ref, REQUIRED_TRAIN)
+            train_rows = train
             train_ids = {x["sample_id"] for x in train}
             eval_ids = {x["sample_id"] for x in pred}
             train_groups = {x["group_id"] for x in train}
@@ -233,9 +272,14 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
                 declared_independence_unit=spec["independence_unit"],
                 observed_groups=len(eval_groups))
         except (AgentError, UnicodeError, ValueError, OSError) as exc:
+            code = getattr(exc, "code", "TRAIN_INDEX_READ_FAILED")
+            invalid = code in {"EVALUATION_KEYS_INVALID", "EVALUATION_ROW_INVALID",
+                               "EVALUATION_SCHEMA_INVALID", "EVALUATION_ROWS_MISSING"}
             checks["split_leakage"] = _check(
-                "UNKNOWN", "Training index unavailable or structurally invalid",
-                reason=getattr(exc, "code", "TRAIN_INDEX_READ_FAILED"))
+                "FAIL" if invalid else "UNKNOWN",
+                "Training membership malformed" if invalid else
+                "Training index unavailable or not fully inspected",
+                reason=code)
 
     try:
         recomputed, groups = _metric(pred, metric, unit, labels)
@@ -286,8 +330,15 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
             different = [k for k in COMPARABLE if obj.get(k) != past.get(k)]
             if sorted(obj.get("legal_inputs", [])) != sorted(past.get("legal_inputs", [])):
                 different.append("legal_inputs")
-            if obj.get("budget_basis") != past.get("budget_basis"):
+            uncertain = []
+            if not obj.get("budget_basis") or not past.get("budget_basis"):
+                uncertain.append("budget_basis_not_declared")
+            elif obj["budget_basis"] != past["budget_basis"]:
                 different.append("budget_basis")
+            if not obj.get("label_definition") or not past.get("label_definition"):
+                uncertain.append("label_definition_not_declared")
+            if not obj.get("metric_direction") or not past.get("metric_direction"):
+                uncertain.append("metric_direction_not_declared")
             try:
                 base_rows = _csv_rows(
                     root, past["artifact_refs"]["predictions"], REQUIRED_PRED)
@@ -305,11 +356,20 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
                     different.append("baseline_metric")
                 if past.get("evaluation_unit") != unit:
                     different.append("baseline_evaluation_unit")
+                prior_train_ref = past.get("artifact_refs", {}).get("train_index")
+                if train_rows is None or not isinstance(prior_train_ref, str):
+                    uncertain.append("training_membership_not_bound")
+                else:
+                    other_train = _csv_rows(root, prior_train_ref, REQUIRED_TRAIN)
+                    if _membership(other_train) != _membership(train_rows):
+                        different.append("training_membership")
                 checks["baseline_fairness"] = _check(
-                    "FAIL" if different else "PASS",
+                    "FAIL" if different else "UNKNOWN" if uncertain else "PASS",
                     ("Baseline not structurally comparable" if different else
-                     "Matching evaluated cases, metrics and declared protocol; tuning fairness unverified"),
+                     "Training budget/lineage not fully declared" if uncertain else
+                     "Matching train/eval memberships, metric and recorded protocol; tuning fairness unverified"),
                     differing_fields=sorted(set(different)),
+                    unresolved_fields=sorted(set(uncertain)),
                     baseline_metric_recomputed=base_score,
                     equal_evaluation_rows=identity_agrees)
             except (AgentError, KeyError, UnicodeError, ValueError, OSError) as exc:

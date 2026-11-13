@@ -81,7 +81,8 @@ class ScientificAuditTests(unittest.TestCase):
             "group_split": "group-disjoint", "sample_ids_hash": "evaluation-v1",
             "status": "VALID", "split": "dev", "legal_inputs": ["sensor"],
             "metrics": {"MAE": metric}, "artifact_refs": refs,
-            "evaluation_unit": "sample", "budget_basis": "CPU-hours-v1"
+            "evaluation_unit": "sample", "budget_basis": "CPU-hours-v1",
+            "label_definition": "synthetic-force-v1", "metric_direction": "min"
         }
         run_path = self._write(directory / "run.json", json.dumps(run))
         event = {
@@ -164,6 +165,34 @@ class ScientificAuditTests(unittest.TestCase):
         self.assertEqual(result["checks"]["metric_recomputation"]["status"], "FAIL")
         self.assertAlmostEqual(result["checks"]["metric_recomputation"]["computed"], 0.1)
 
+    def test_mismatch_with_canonical_sample_fingerprint_is_found(self):
+        run, _, _ = self.info["r-main"]
+        spec_ref = run["artifact_refs"]["science_audit"]
+        spec = json.loads((self.root / spec_ref).read_text(encoding="utf-8"))
+        spec["sample_ids_hash_rule"] = "sha256_sorted_ids_v1"
+        self._rewrite_link("r-main", "science_audit", json.dumps(spec))
+        run["sample_ids_hash"] = "0" * 64
+        self._rewrite_run("r-main")
+        output = self.audit()
+        self.assertEqual(output["checks"]["sample_identity_fingerprint"]["status"], "FAIL")
+
+    def test_matched_canonical_sample_fingerprint_is_found(self):
+        run, _, _ = self.info["r-main"]
+        spec_ref = run["artifact_refs"]["science_audit"]
+        spec = json.loads((self.root / spec_ref).read_text(encoding="utf-8"))
+        spec["sample_ids_hash_rule"] = "sha256_sorted_ids_v1"
+        self._rewrite_link("r-main", "science_audit", json.dumps(spec))
+        fingerprint = hashlib.sha256(b"s1\ns2\n").hexdigest()
+        run["sample_ids_hash"] = fingerprint
+        self._rewrite_run("r-main")
+        # Baseline ID hash must match if the declared evaluation set is shared.
+        prior, _, _ = self.info["r-base"]
+        prior["sample_ids_hash"] = fingerprint
+        self._rewrite_run("r-base")
+        output = self.audit()
+        self.assertEqual(output["checks"]["sample_identity_fingerprint"]["status"], "PASS")
+        self.assertEqual(output["checks"]["baseline_fairness"]["status"], "PASS")
+
     def test_tampered_predictions_block_even_if_metric_is_correct(self):
         p = self.root / self.info["r-main"][0]["artifact_refs"]["predictions"]
         p.write_text(p.read_text(encoding="utf-8") + "\n", encoding="utf-8")
@@ -205,6 +234,23 @@ class ScientificAuditTests(unittest.TestCase):
         self.assertEqual(result["checks"]["baseline_fairness"]["status"], "FAIL")
         self.assertIn("budget_basis", result["checks"]["baseline_fairness"]["differing_fields"])
 
+    def test_baseline_training_membership_conflict(self):
+        self._rewrite_link("r-base", "train_index",
+                           "sample_id,group_id\nt1,g1\nt9,g2\n")
+        result = self.audit()
+        self.assertEqual(result["checks"]["baseline_fairness"]["status"], "FAIL")
+        self.assertIn("training_membership",
+                      result["checks"]["baseline_fairness"]["differing_fields"])
+
+    def test_missing_budget_is_unknown_not_fairness_pass(self):
+        run, _, _ = self.info["r-base"]
+        run.pop("budget_basis")
+        self._rewrite_run("r-base")
+        result = self.audit()
+        self.assertEqual(result["checks"]["baseline_fairness"]["status"], "UNKNOWN")
+        self.assertIn("budget_basis_not_declared",
+                      result["checks"]["baseline_fairness"]["unresolved_fields"])
+
     def test_missing_train_index_is_unknown_not_no_leakage(self):
         run, event, _ = self.info["r-main"]
         ref = run["artifact_refs"].pop("train_index")
@@ -212,6 +258,14 @@ class ScientificAuditTests(unittest.TestCase):
         self._rewrite_run("r-main")
         result = self.audit()
         self.assertEqual(result["checks"]["split_leakage"]["status"], "UNKNOWN")
+
+    def test_malformed_train_index_is_failure_not_false_leakage_pass(self):
+        self._rewrite_link("r-main", "train_index",
+                           "sample_id,group_id\nt1,g1\nt1,g2\n")
+        result = self.audit()
+        self.assertEqual(result["checks"]["split_leakage"]["status"], "FAIL")
+        self.assertEqual(result["checks"]["split_leakage"]["reason"],
+                         "EVALUATION_KEYS_INVALID")
 
     def test_group_metric_equal_weighting_is_explicit(self):
         run, _, _ = self.info["r-main"]
