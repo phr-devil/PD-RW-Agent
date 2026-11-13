@@ -115,7 +115,7 @@ class RuntimeTests(unittest.TestCase):
         for event in events:
             if event.get("artifact_id") == "run-001":
                 event.pop("artifact_sha256", None)
-        ledger.write_text("".join(json.dumps(x) + "\\n" for x in events), encoding="utf-8")
+        ledger.write_text("".join(json.dumps(x) + chr(10) for x in events), encoding="utf-8")
         result = self.service.call("find_experiment_evidence", project_id="19")
         self.assertIn("matches", result, result)
         self.assertEqual(result["matches"][0]["hash_detail"], "HASH_UNKNOWN")
@@ -124,7 +124,7 @@ class RuntimeTests(unittest.TestCase):
         for event in events:
             if event.get("artifact_id") == "run-001":
                 event["artifact_sha256"] = "0" * 64
-        ledger.write_text("".join(json.dumps(x) + "\\n" for x in events), encoding="utf-8")
+        ledger.write_text("".join(json.dumps(x) + chr(10) for x in events), encoding="utf-8")
         result = self.service.call("find_experiment_evidence", project_id="19")
         self.assertEqual(result["matches"][0]["hash_detail"], "HASH_MISMATCH")
 
