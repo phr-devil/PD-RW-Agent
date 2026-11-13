@@ -163,7 +163,9 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
         blockers.append("RESEARCH_RECORD_MISSING")
     if version_discrepancy:
         blockers.append("DECLARED_RULE_VERSION_DIFFERS")
-    if manifest["status"] in {"EVIDENCE_GAPS", "AUDIT_INCOMPLETE"}:
+    if manifest["status"] == "NO_MANIFESTS":
+        blockers.append("EVIDENCE_MANIFEST_ABSENT")
+    elif manifest["status"] in {"EVIDENCE_GAPS", "AUDIT_INCOMPLETE"}:
         blockers.append("EVIDENCE_COVERAGE_INCOMPLETE")
     return {
         "status": "PARTIAL_RECOVERY" if blockers else "SOURCE_REVIEW_REQUIRED",

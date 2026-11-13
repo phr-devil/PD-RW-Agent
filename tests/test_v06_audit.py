@@ -104,6 +104,32 @@ class V06AuditTests(unittest.TestCase):
         self.assertFalse(item["matches"][0]["original_run_verified"])
         self.assertFalse(item["matches"][0]["premise_equivalence_verified"])
 
+    def test_markdown_project_id_collision_is_not_ignored(self):
+        (self.project / "STATE.md").write_text(
+            "PROJECT_ID: different-project\\nACTIVE_TASK: demo\\n", encoding="utf-8")
+        config = self.settings.project_map
+        config.write_text(json.dumps({"schema_version": 1, "projects": {
+            "37": {"root": str(self.project),
+                   "expected_state_project_id": "approved-project"}}}),
+            encoding="utf-8")
+        result = self.service.call("get_project_context", project_id="37")
+        self.assertEqual(result["status"], "IDENTITY_CONFLICT")
+
+    def test_sqlite_readonly_status_cannot_modify_receipts(self):
+        import sqlite3
+        from pdrw_agent.runtime.receipts import _open
+        path = self.project.parent / "readonly-receipts.sqlite"
+        db = sqlite3.connect(str(path))
+        db.execute("CREATE TABLE sample (id INTEGER)")
+        db.commit()
+        db.close()
+        with _open(path, write=False) as readonly:
+            self.assertEqual(readonly.execute("SELECT COUNT(*) FROM sample").fetchone()[0], 0)
+            with self.assertRaises(sqlite3.OperationalError):
+                readonly.execute("INSERT INTO sample VALUES (1)")
+        with sqlite3.connect(str(path)) as reopened:
+            self.assertEqual(reopened.execute("SELECT COUNT(*) FROM sample").fetchone()[0], 0)
+
     def test_missing_index_distinct_from_no_runs(self):
         data = self.service.call("find_experiment_evidence", project_id="37")
         self.assertEqual(data["status"], "EVIDENCE_INDEX_MISSING")
