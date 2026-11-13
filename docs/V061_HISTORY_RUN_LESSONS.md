@@ -28,8 +28,10 @@ The last file contains:
         "comparison_reference": "strong-baseline"
       }},
       "lessons": [{"premise_id": "p1", "scope": {
-        "dataset_version": "D1", "evaluation_unit": "subject",
-        "group_split": "LOSO", "metric": "macro-F1"
+        "dataset_version": "D1", "label_definition": "reference-v1",
+        "evaluation_unit": "subject", "group_split": "LOSO",
+        "legal_inputs": "sensor-only", "metric": "macro-F1",
+        "comparison_reference": "strong-baseline"
       }, "validity": "VALID_NEGATIVE", "evidence_refs": ["runs/r1.json"]}]
     }
 
