@@ -37,3 +37,12 @@ Reviewer should start from the **pinned current post-fix commit**, not from this
 ## Real-v0.6 acceptance still required
 
 No real WorkBuddy A/B/C, blinded historical decision replay, measured Token/GPU/user intervention, independent OS ACL, original author-authorization verification, or SEALED enforcement was performed. Those results are **NOT_MEASURED**. Use PD-RW `REPLAY_PROTOCOL.md`, with time-frozen legitimate evidence and no future leakage, before claiming an Agent science improvement.
+
+## Completed self-audit engineering verification
+
+- Fixed code reviewed after initial CI failures: operation-ID conflict precedence and configured-but-empty receipt store now produce stable results.
+- Exercised real MCP v2 SDK in-process: original tool discovery plus new `begin_operation_receipt`, retry, `get_execution_status` and `get_resume_context` roundtrip.
+- The authoritative PD-RW writer is tested directly on synthetic Runs; its behaviour is **not** an authorization grant to the Agent adapter.
+- Final audit test suite: **49 tests on Ubuntu, 49 on Windows; PASS** at the corresponding tested commit. This excludes real WorkBuddy, real user messages, SEALED OS ACL, GPU workload, scientific decision/replay and token accounting. `NOT_MEASURED` remains mandatory for those behaviors.
+
+**Release determination:** v0.5 **PASS for synthetic engineering baseline and non-scientific receipt use**; **NOT CLEARED for protected Run/SEALED writes or claims of autonomous research performance**. Remaining P1 blockers require a separately secured executor and evidence-backed final reconciliation; real WorkBuddy acceptance remains pending.

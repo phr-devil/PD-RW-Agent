@@ -64,7 +64,7 @@ class MCPTests(unittest.TestCase):
                 "last_event_id": None, "evidence_refs": []
             }), encoding="utf-8")
             (project / "RESEARCH_RECORD.md").write_text(
-                "## 0. Snapshot\\nReady for test\\n## 1. History\\n",
+                "## 0. Snapshot\nReady for test\n## 1. History\n",
                 encoding="utf-8")
             cfg = base / "config"
             cfg.mkdir()

@@ -2,7 +2,7 @@
 
 **Research agent integration for WorkBuddy, powered by the existing PD-RW workflow.**
 
-> Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled through MCP pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
+> Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled in the Agent adapter (including caller-supplied callback) pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
 
 ## Purpose
 
@@ -49,7 +49,7 @@ python skills/pd-rw-research/scripts/context.py route --workflow-root "D:/path/t
 | [skills/pd-rw-research/scripts/bridge.py](skills/pd-rw-research/scripts/bridge.py) | Read-only `doctor` and `resume` JSON commands |
 | [skills/pd-rw-research/scripts/context.py](skills/pd-rw-research/scripts/context.py) | Legacy live rule routing and advisory/delivery checker wrappers |
 | [src/pdrw_agent/](src/pdrw_agent/) | Shared Python runtime: explicit registered projects, rules, evidence, memory, dedup |
-| [src/pdrw_agent/integrations/mcp_server.py](src/pdrw_agent/integrations/mcp_server.py) | Five bounded read-only MCP v2 tools |
+| [src/pdrw_agent/integrations/mcp_server.py](src/pdrw_agent/integrations/mcp_server.py) | Eleven bounded MCP tools: nine read-only and two private-receipt metadata writes; no scientific record writer |
 | [docs/RUNTIME_AND_MCP.md](docs/RUNTIME_AND_MCP.md) | Windows setup, CLI usage and WorkBuddy stdio configuration |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Delivery stages, acceptance criteria and explicit non-goals |
 | [docs/V05_EXECUTION.md](docs/V05_EXECUTION.md) | v0.5 operator/AI contract, receipt recovery and trusted write limitations |
