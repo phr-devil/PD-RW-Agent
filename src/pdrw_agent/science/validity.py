@@ -194,6 +194,17 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
             "PASS", "Declared unit is consistent; its scientific appropriateness is unverified",
             unit=unit)
 
+    original_independence = obj.get("independence_unit")
+    if original_independence not in {"sample", "group"}:
+        checks["split_policy_alignment"] = _check(
+            "UNKNOWN", "Run does not independently declare a split independence unit")
+    elif original_independence != spec["independence_unit"]:
+        checks["split_policy_alignment"] = _check(
+            "FAIL", "Run and hashed audit declare different split independence units")
+    else:
+        checks["split_policy_alignment"] = _check(
+            "PASS", "Run and audit independence declarations agree; underlying grouping remains unverified")
+
     declared_inputs = spec.get("used_inputs_declared")
     legal = obj.get("legal_inputs")
     if (not isinstance(declared_inputs, list) or not declared_inputs

@@ -27,6 +27,8 @@ artifact_refs.science_audit -> hashed JSON with linked_sha256 coverage.
       "used_inputs_declared": ["sensor"]
     }
 
+For a positive split-policy consistency check, original Run must declare `independence_unit` as `sample` or `group`, matching the hashed audit config. Missing declaration is UNKNOWN, not an assumption that the split is independent.
+
 Original Run must declare \`evaluation_unit\` to obtain a positive unit
 consistency check. A sample/group unit mismatch is a hard FAIL. The Run's
 \`metrics\` must contain the exact named key. Supported \`metric\` values:

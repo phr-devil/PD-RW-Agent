@@ -82,7 +82,8 @@ class ScientificAuditTests(unittest.TestCase):
             "status": "VALID", "split": "dev", "legal_inputs": ["sensor"],
             "metrics": {"MAE": metric}, "artifact_refs": refs,
             "evaluation_unit": "sample", "budget_basis": "CPU-hours-v1",
-            "label_definition": "synthetic-force-v1", "metric_direction": "min"
+            "label_definition": "synthetic-force-v1", "metric_direction": "min",
+            "independence_unit": "group"
         }
         run_path = self._write(directory / "run.json", json.dumps(run))
         event = {
@@ -193,6 +194,14 @@ class ScientificAuditTests(unittest.TestCase):
         self.assertEqual(output["checks"]["sample_identity_fingerprint"]["status"], "PASS")
         self.assertEqual(output["checks"]["baseline_fairness"]["status"], "PASS")
 
+    def test_split_independence_claim_conflict_is_detected(self):
+        run, _, _ = self.info["r-main"]
+        run["independence_unit"] = "sample"
+        self._rewrite_run("r-main")
+        result = self.audit()
+        self.assertEqual(result["checks"]["split_policy_alignment"]["status"], "FAIL")
+        self.assertEqual(result["status"], "SCIENTIFIC_AUDIT_CONFLICT")
+
     def test_tampered_predictions_block_even_if_metric_is_correct(self):
         p = self.root / self.info["r-main"][0]["artifact_refs"]["predictions"]
         p.write_text(p.read_text(encoding="utf-8") + "\n", encoding="utf-8")
@@ -301,6 +310,42 @@ class ScientificAuditTests(unittest.TestCase):
     def test_missing_or_damaged_machine_ledger_blocks_row_checks(self):
         (self.root / "STATE.json").unlink()
         self.assertEqual(self.audit()["status"], "AUDIT_PREREQUISITE_UNVERIFIED")
+
+
+class MetricFormulaTests(unittest.TestCase):
+    def test_fixed_class_macro_f1_includes_unobserved_class(self):
+        from pdrw_agent.science.validity import _metric
+        rows = [
+            {"sample_id": "s1", "group_id": "g1", "y_true": "A", "y_pred": "A"},
+            {"sample_id": "s2", "group_id": "g2", "y_true": "A", "y_pred": "B"},
+        ]
+        score, units = _metric(rows, "macro_f1", "sample", ["A", "B", "C"])
+        self.assertAlmostEqual(score, 2/9)
+        self.assertEqual(units, 2)
+        acc, _ = _metric(rows, "accuracy", "sample", [])
+        self.assertEqual(acc, 0.5)
+
+    def test_class_universe_absence_and_group_classification_fail_closed(self):
+        from pdrw_agent.science.validity import _metric
+        from pdrw_agent.schemas import AgentError
+        rows = [{"sample_id": "s1", "group_id": "g1",
+                 "y_true": "A", "y_pred": "A"}]
+        with self.assertRaises(AgentError):
+            _metric(rows, "macro_f1", "sample", [])
+        with self.assertRaises(AgentError):
+            _metric(rows, "macro_f1", "group", ["A"])
+
+    def test_equal_group_weighting_differs_from_pooled_mae(self):
+        from pdrw_agent.science.validity import _metric
+        rows = [
+            {"sample_id": "s1", "group_id": "g1", "y_true": "0", "y_pred": "0"},
+            {"sample_id": "s2", "group_id": "g1", "y_true": "0", "y_pred": "0"},
+            {"sample_id": "s3", "group_id": "g2", "y_true": "0", "y_pred": "3"},
+        ]
+        pooled, _ = _metric(rows, "MAE", "sample", [])
+        macro, _ = _metric(rows, "MAE", "group", [])
+        self.assertAlmostEqual(pooled, 1.0)
+        self.assertAlmostEqual(macro, 1.5)
 
 
 if __name__ == "__main__":
