@@ -49,7 +49,7 @@ class ContextTests(unittest.TestCase):
 
     def test_route_is_sourced_from_live_agents(self):
         code, data = self.call("route", "--topic", "DEV 算法")
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, data)
         self.assertEqual(data["status"], "ROUTE_FOUND")
         self.assertEqual(data["matches"][0]["rule_paths"],
                          ["EXPERIMENT_LOOP.md", "ALGORITHM_ENGINEERING.md"])
@@ -57,13 +57,13 @@ class ContextTests(unittest.TestCase):
 
     def test_route_lists_available_topics_when_missing(self):
         code, data = self.call("route", "--topic", "not found")
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, data)
         self.assertEqual(data["status"], "ROUTE_SELECTION_REQUIRED")
         self.assertEqual(data["matches"], [])
 
     def test_action_review_never_authenticates_approval(self):
         code, data = self.call("action-review", "--packet", str(self.packet))
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, data)
         self.assertEqual(data["status"], "ADVISORY_ONLY")
         self.assertFalse(data["original_user_permission_authenticated"])
         self.assertFalse(data["trusted_tool_interceptor_connected"])
@@ -73,7 +73,7 @@ class ContextTests(unittest.TestCase):
         code, data = self.call("delivery-review",
                                "--output-root", str(self.rules),
                                "--primary", "output.txt")
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, data)
         self.assertEqual(data["pd_rw_delivery_result"]["result"],
                          "PASS_PATHS_ONLY")
         self.assertFalse(data["scientific_truth_verified"])
@@ -81,7 +81,7 @@ class ContextTests(unittest.TestCase):
     def test_missing_authoritative_route_file_is_not_invented(self):
         (self.rules / "EXPERIMENT_LOOP.md").unlink()
         code, data = self.call("route", "--topic", "DEV")
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, data)
         self.assertEqual(data["matches"][0]["rule_paths"],
                          ["ALGORITHM_ENGINEERING.md"])
 
