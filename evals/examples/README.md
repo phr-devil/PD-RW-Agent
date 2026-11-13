@@ -8,3 +8,5 @@
 python -m pdrw_agent.science.cli decision --packet evals/examples/synthetic_decision.json
 python -m pdrw_agent.science.cli replay-check --root evals/examples --manifest evals/examples/synthetic_case.json
 ```
+
+The synthetic decision and lesson examples cite `synthetic_snapshot.md` only to demonstrate SHA-256 allowlisting. The fake snapshot contains no valid scientific result; a successful citation binding cannot promote any declared research claim.

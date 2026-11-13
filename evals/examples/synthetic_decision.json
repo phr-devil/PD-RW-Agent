@@ -1,7 +1,9 @@
 {
   "question": "Does an apparent gain survive a legitimate independent-group control?",
   "claim_type": "MECHANISM",
-  "claim_evidence_refs": [],
+  "claim_evidence_refs": [
+    "synthetic_snapshot.md"
+  ],
   "proposed_premise": {
     "premise_id": "evaluation-gain-caused-by-smoothing",
     "scope": {
@@ -23,7 +25,9 @@
         "no-added-value": "NO_CHANGE"
       },
       "cost_band": "LOW",
-      "prediction_evidence_refs": [],
+      "prediction_evidence_refs": [
+        "synthetic_snapshot.md"
+      ],
       "observable": "independent-group signed effect",
       "evaluation_unit": "independent subject",
       "comparison_reference": "fixed simple baseline"

@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.5.1
+version: 0.5.2
 author: phr-devil
 ---
 
@@ -46,6 +46,8 @@ MCP is **optional**: importing this Skill does NOT install/start Python or MCP. 
 ## Optional science check (only for a material research choice)
 
 When competing hypotheses or a repeated negative premise may change an already-authorized DEV choice, optionally run `python -m pdrw_agent.science.cli decision --packet LOCAL_PROPOSAL.json` using permitted local metadata. The result compares **declared** predictions and scope, never independently verified scientific evidence, novelty or user approval. Do not run on every experiment; original PD-RW `HIGH_VALUE_RESEARCH_DESIGN.md` and `SCIENCE_RESULT_HARVEST.md` remain authoritative. Freeze-time A/B/C review is operator-only; see repository `docs/V06_EVAL_PREVIEW.md` on demand.
+
+For a meaningful, evidence-backed negative Run, optional `python -m pdrw_agent.science.cli lessons --packet DEV_OBSERVATIONS.json` separates technical/invalid failures from *declared* negative evidence. If a legitimately frozen historical source manifest is available, optionally add `--evidence-root DIR --evidence-manifest CASE.json` to either science command to check that cited IDs resolve to hash-checked, allowlisted frozen source bytes. No semantic science, permission or literature novelty is attested; do not perform this on every Run. See `docs/V06_EVAL_PREVIEW.md` only when needed.
 
 ## Optional helpers (no network/API required)
 

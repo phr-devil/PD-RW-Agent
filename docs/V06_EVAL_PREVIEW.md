@@ -1,4 +1,4 @@
-# v0.6 evaluation-preview: local operator instructions (v0.5.1)
+# v0.6 evaluation-preview: local operator instructions (v0.5.2)
 
 **Status:** Synthetic engineering contract implemented. Actual WorkBuddy, independent expert scientific quality and efficiency remain `NOT_MEASURED`. PD-RW is the only scientific rule authority; no new stage, permissions, or MCP tools.
 
@@ -14,7 +14,28 @@ Output `ADVISORY_REVIEW_ONLY` shows *declared* hypothesis pairs with distinct pr
 
 Six optional prechecks are `label_provenance`, `group_independence`, `legal_inputs`, `evaluation_integrity`, `metric_appropriateness`, `effect_size`. Their declared statuses are `PASS`, `FAIL`, `UNKNOWN`, `NOT_CHECKED`. Missing checks default to `NOT_CHECKED`; declared `PASS` without source becomes `SOURCE_REQUIRED`, not independently verified. Scientific interpretation follows PD-RW `HIGH_VALUE_RESEARCH_DESIGN.md` and `SCIENCE_RESULT_HARVEST.md`. No references, article originality or Run provenance are fetched or fabricated.
 
-## 2. Prepare real A/B/C frozen replay (manual, not executed by this tool)
+## 2. Negative-result classification and frozen citation binding
+
+For an existing **DEV-only** observation set, use the optional read-only compiler:
+
+```powershell
+python -m pdrw_agent.science.cli lessons --packet evals/examples/synthetic_lessons.json
+```
+
+This distinguishes declared `ENGINEERING_FAILURE`, `INVALID_EXPERIMENT`, `INCONCLUSIVE`, `VALID_POSITIVE` and `VALID_NEGATIVE`. Only `VALID_NEGATIVE` declarations with named premise/scope and evidence IDs are exported as *candidates*. An exact SHA-256 premise fingerprint means the serialized **declared** `premise_id + scope` matches, **not** that experiments are scientifically equivalent, or that the failure was validated. Neither output creates an original PD-RW Run or LESSON.
+
+To check whether proposal/lesson references exist in a legitimately frozen, hash-checked source allowlist, supply **both** options:
+
+```powershell
+python -m pdrw_agent.science.cli decision --packet evals/examples/synthetic_decision.json --evidence-root evals/examples --evidence-manifest evals/examples/synthetic_case.json
+python -m pdrw_agent.science.cli lessons --packet evals/examples/synthetic_lessons.json --evidence-root evals/examples --evidence-manifest evals/examples/synthetic_case.json
+```
+
+Binding returns `SOURCE_BYTES_MATCHED_ONLY`, `EVIDENCE_OUT_OF_FREEZE`, `NOT_REPLAYABLE` or `NO_REFERENCES_DECLARED`. The latter three make CLI exit with code 3, so an automation cannot silently treat missing citations as verified. Without a manifest, outputs explicitly say `source_binding: NOT_CHECKED`. **Even a successful binding does not verify semantic support, Run validity, genuine author permissions, or absence of future knowledge inside text.**
+
+These are optional diagnostics at consequential research choices, not mandatory checks for each DEV iteration or new permanent scientific gates. The history and science of prior negatives still must be checked against original PD-RW and genuine experiment records.
+
+## 3. Prepare real A/B/C frozen replay (manual, not executed by this tool)
 
 Follow authoritative PD-RW `REPLAY_PROTOCOL.md`: reconstruct the actual history at decision time, then freeze **legally available** records, original user scope, version, tools, budget and referenced documents. Exclude future outcomes and SEALED/holdout. If original sources are unavailable, set the case `NOT_REPLAYABLE` rather than inventing a substitute.
 

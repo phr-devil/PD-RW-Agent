@@ -23,6 +23,12 @@
 - Optional `science/replay.py` verifies local frozen file SHA-256, rejects unlisted evidence refs and creates blind X/Y/Z reviewer packets with a separate mapping.
 - No execution, automatic STOP, scientific ledger writes or WorkBuddy results. Real A/B/C is still `NOT_MEASURED`.
 
+## v0.5.2 evidence-bound decision and failure classification
+
+- Optional `science/lessons.py`: bounded, read-only compilation of declared `ENGINEERING_FAILURE`, `INVALID_EXPERIMENT`, `INCONCLUSIVE`, `VALID_POSITIVE` and `VALID_NEGATIVE`; only declared valid negatives become advisory premise candidates.
+- Optional `science/provenance.py`: bind decision/lesson citation IDs to existing **time-frozen** allowlisted files with checked SHA-256; does not validate scientific truth or original historical provenance.
+- CLI remains local and opt-in. Source-binding failures return a nonzero exit, no output Run/claim is written, and the 11 MCP tools are unchanged.
+
 ## Next: WorkBuddy client integration gate
 
 - Validate startup/handshake and each of five tools from the real WorkBuddy UI.

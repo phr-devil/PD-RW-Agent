@@ -1,10 +1,7 @@
-"""Optional local scientific decision and frozen-history replay assistant.
+"""Optional local-only research proposal, negative lesson and A/B/C replay checks.
 
-Not an MCP tool and not a scientific authorization channel.
-Usage: python -m pdrw_agent.science.cli decision --packet proposal.json
-       python -m pdrw_agent.science.cli replay-check --root DIR --manifest case.json
-       python -m pdrw_agent.science.cli replay-blind --root DIR --manifest case.json
-           --a a.json --b b.json --c c.json --seed 7 --private-key DIR/key.json
+No MCP tool; no research ledger or authorization writes. Blind mapping is the
+sole output file and is protected from checkout-path writes.
 """
 from __future__ import annotations
 import argparse
@@ -15,6 +12,8 @@ from pathlib import Path
 from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
+from .lessons import compile_declared_lessons
+from .provenance import bind_frozen_evidence, bind_source_refs
 from .replay import validate_case, blind_responses
 
 
@@ -37,11 +36,32 @@ def _write_secret(path: Path, value: dict, root: Path) -> None:
         raise
 
 
+def _binding_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--evidence-root", type=Path)
+    parser.add_argument("--evidence-manifest", type=Path)
+
+
+def _binding(args, packet: dict, *, kind: str) -> dict:
+    if (args.evidence_root is None) != (args.evidence_manifest is None):
+        raise AgentError("EVIDENCE_CONFIG_INCOMPLETE",
+                         "Supply both --evidence-root and --evidence-manifest")
+    if args.evidence_root is None:
+        return {"status": "NOT_CHECKED", "scientific_claims_verified": False}
+    manifest = read_json(args.evidence_manifest, limit=128 * 1024)
+    if kind == "decision":
+        return bind_frozen_evidence(args.evidence_root, manifest, packet)
+    refs = [ref for observation in packet["observations"]
+            for ref in observation["evidence_refs"]]
+    return bind_source_refs(args.evidence_root, manifest, refs)
+
+
 def main() -> int:
-    cli = argparse.ArgumentParser(description="Optional read-only research decision checks")
+    cli = argparse.ArgumentParser(description="Optional evidence-aware scientific checks")
     sub = cli.add_subparsers(dest="action", required=True)
-    d = sub.add_parser("decision")
-    d.add_argument("--packet", type=Path, required=True)
+    for kind in ("decision", "lessons"):
+        p = sub.add_parser(kind)
+        p.add_argument("--packet", type=Path, required=True)
+        _binding_options(p)
     for cmd in ("replay-check", "replay-blind"):
         p = sub.add_parser(cmd)
         p.add_argument("--root", type=Path, required=True)
@@ -53,8 +73,17 @@ def main() -> int:
             p.add_argument("--private-key", type=Path, required=True)
     args = cli.parse_args()
     try:
-        if args.action == "decision":
-            result = assess_proposal(read_json(args.packet, limit=128 * 1024))
+        if args.action in {"decision", "lessons"}:
+            packet = read_json(args.packet, limit=128 * 1024)
+            result = (assess_proposal(packet) if args.action == "decision"
+                      else compile_declared_lessons(packet))
+            binding = _binding(args, packet, kind=args.action)
+            if binding["status"] in {"NOT_REPLAYABLE", "EVIDENCE_OUT_OF_FREEZE",
+                                     "NO_REFERENCES_DECLARED"}:
+                result = {"status": "EVIDENCE_BINDING_FAILED", "source_binding": binding,
+                          "assessment_not_authorized": True}
+            else:
+                result["source_binding"] = binding
         else:
             manifest = read_json(args.manifest, limit=128 * 1024)
             if args.action == "replay-check":
@@ -67,13 +96,13 @@ def main() -> int:
                     "case_id": manifest["case_id"],
                     "mapping": result["private_unblinding_key"],
                 }, args.root)
-                result = result["review_packet"]  # Secret is never printed.
-    except (ValueError, OSError, TypeError) as exc:
+                result = result["review_packet"]
+    except (ValueError, OSError, TypeError, KeyError) as exc:
         result = failure(exc)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     if result.get("status") == "ERROR":
         return 2
-    return 3 if result.get("status") == "NOT_REPLAYABLE" else 0
+    return 3 if result.get("status") in {"NOT_REPLAYABLE", "EVIDENCE_BINDING_FAILED"} else 0
 
 
 if __name__ == "__main__":

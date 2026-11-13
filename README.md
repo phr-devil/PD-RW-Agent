@@ -4,13 +4,15 @@
 
 > Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled in the Agent adapter (including caller-supplied callback) pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
 
-## v0.5.1 evaluation-preview (optional local Python only)
+## v0.5.2 evidence-binding and negative lesson preview (optional local Python only)
 
-Three small local modules in `src/pdrw_agent/science/` help review **declared** competing hypotheses, repeated negative premises, scientific precheck evidence, and A/B/C frozen-replay integrity/blinding.
+Local `src/pdrw_agent/science/` helpers review **declared** competing hypotheses, classify failure types, compare exact premise/scope identities, bind cited IDs to hash-checked frozen sources, and validate/blind A/B/C replay packets. Byte matches do not prove science or historical authenticity.
 **No additional MCP tools, permissions, research data writes or automatic scientific judgments.** Refer to [docs/V06_EVAL_PREVIEW.md](docs/V06_EVAL_PREVIEW.md).
 
 ```powershell
 python -m pdrw_agent.science.cli decision --packet evals/examples/synthetic_decision.json
+python -m pdrw_agent.science.cli lessons --packet evals/examples/synthetic_lessons.json
+python -m pdrw_agent.science.cli decision --packet evals/examples/synthetic_decision.json --evidence-root evals/examples --evidence-manifest evals/examples/synthetic_case.json
 python -m pdrw_agent.science.cli replay-check --root evals/examples --manifest evals/examples/synthetic_case.json
 ```
 

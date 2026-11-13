@@ -15,4 +15,6 @@ This document defines evaluation gates, **not new PD-RW scientific policy**.
 
 **Engineering preview v0.5.1:** Optional local `science/decision.py` and `science/replay.py` inspect declared premise/probe contrasts and validate frozen local source hashes and blinding packets. They do not attest true scientific value or prevent future knowledge embedded in prose. No new MCP tools. Real A/B/C remains `NOT_MEASURED`.
 
+**v0.5.2 adjustment:** Citation IDs in declared proposals can be bound to a legitimately frozen, SHA-256-checked allowlist (byte integrity only). Declared negative outcomes are classified without promoting crashes or invalid evaluations into scientific failures. Exact premise fingerprints are metadata identity, never causal equivalence or a DEV execution veto.
+
 **Implementation gate:** Add a new MCP tool only if it improves a replay failure with bounded input/output, explicit evidence citations, safe UNKNOWN handling and no extra unauthorized action. First fix existing recovery/measurement semantics.

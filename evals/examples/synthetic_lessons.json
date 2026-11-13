@@ -1,0 +1,23 @@
+{
+  "observations": [
+    {
+      "run_id": "synthetic-crash",
+      "outcome": "ENGINEERING_FAILURE",
+      "evidence_refs": [
+        "synthetic_snapshot.md"
+      ]
+    },
+    {
+      "run_id": "synthetic-valid-negative",
+      "outcome": "VALID_NEGATIVE",
+      "tested_premise_id": "sample-comparison",
+      "scope": {
+        "dataset": "synthetic-only",
+        "group_unit": "subject"
+      },
+      "evidence_refs": [
+        "synthetic_snapshot.md"
+      ]
+    }
+  ]
+}
