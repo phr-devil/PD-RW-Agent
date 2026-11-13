@@ -2,12 +2,19 @@
 
 Load only when a resumed task actually needs multiple tool actions, DEV iteration, or project handoff. Scientific semantics stay in PD-RW.
 
+## Trigger-aware calibrations (not four new stages)
+
+- **Restore** on new chat / compaction / project switch: recover exact project, rule version, record snapshot and primary evidence.
+- **Execution calibration** when WorkBuddy drifts, repeats work, or misses a rule: check only the affected fact and route, then continue.
+- **Gate calibration** immediately before an actual restricted effect: check original permission and tool boundary, not just a state tag.
+- **Science calibration** only when a key new Run, negative result or Claim shift could change the next experiment or contribution.
+
 ## The autonomous loop
 
 1. Verify the chosen task, legal input information, original operation scope and best valid evidence.
-2. Select **one** high-information next action with a distinguishable outcome and bounded cost; reuse prior runs.
+2. Select the next **meaningful cluster** of related safe DEV actions, with a scientific discriminator and bounded cost; reuse valid runs. Do not create artificial micro-approvals or fixed batch counts. A user idea is a hypothesis to assess, not automatically a decision.
 3. Use the WorkBuddy-provided tools to implement within existing approved DEV scope, preserving protected artifacts and original evidence.
-4. Read actual tool exit status and targeted tests/results; if a run fails, distinguish engineering failure, INVALID evaluation and a meaningful scientific negative.
+4. Read actual tool exit status and targeted tests/results; distinguish engineering failure, INVALID evaluation and a meaningful scientific negative. Preserve original failed runs and source paths; do not repeatedly falsify unchanged assumptions.
 5. Decide whether another different probe is informative. Stop an unchanged/low-information loop rather than producing repetitive experiments.
 6. Record only important scientific events in the existing `RESEARCH_RECORD.md`, checking the associated `PAPER_BLUEPRINT.md` when affected. Do not add a parallel approval table or new research phase.
 7. Deliver one principal result, exact artifacts, performed validations, scientific limitations, and one next legal action.
@@ -22,7 +29,7 @@ Reading `approved` in `STATE`, a self-written JSON packet, or a successful stati
 
 When warranted, invoke PD-RW's existing tools from its root, e.g. `python -m core.cli status --root RESEARCH_PROJECT`, `python -m core.execution_preflight action PACKET.json`, or targeted regression tests, using actual compatible inputs from PD-RW documentation. A structural ALLOW declaration is not proof of authorization, isolation, or scientific success. Never invent a run, hash, metric, or test result.
 
-No background scheduler, persistent independent agent loop, automatic model/API bridge, or WorkBuddy runtime enforcement is shipped in v0.1. WorkBuddy's own continuation mechanisms, if available, control execution lifetime.
+The adapter provides `context.py route/action-review/delivery-review` (read-only). There is still **no** background scheduler, persistent independent model loop, automatic GPT API bridge, or WorkBuddy runtime enforcement in v0.2. WorkBuddy's own continuation mechanisms, if available, control execution lifetime.
 
 ## Minimal handoff
 

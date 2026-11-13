@@ -78,7 +78,16 @@ def project_entry(mapping_path, project_id):
     }
     result = {name: inside(root, item.get(name, default))
               for name, default in defaults.items()}
-    return root, result
+    # PD-RW supports both legacy Markdown and append-only machine STATE.json.
+    # Do not mix the two or overwrite either; fall back only if no path was set.
+    if "state" not in item and not result["state"].is_file():
+        machine = inside(root, "STATE.json")
+        if machine.is_file():
+            result["state"] = machine
+    expected = item.get("expected_state_project_id")
+    if expected is not None and (not isinstance(expected, str) or not expected.strip()):
+        raise ValueError("expected_state_project_id must be a nonempty string")
+    return root, result, expected
 
 
 def read_limited(path, cap=131072):
@@ -107,7 +116,15 @@ def state_index(path):
         data = json.loads(raw)
         if not isinstance(data, dict):
             raise ValueError("STATE JSON must be an object")
-        return {k: data[k] for k in STATE_KEYS if k in data}
+        result = {k: data[k] for k in STATE_KEYS if k in data}
+        # PD-RW core.state uses lowercase names; only expose a tiny index.
+        for key in ("schema_version", "project_id", "active_task_id",
+                    "latest_valid_run_id", "last_event_id"):
+            if key in data:
+                result[key] = data[key]
+        if isinstance(data.get("evidence_refs"), list):
+            result["evidence_refs_count"] = len(data["evidence_refs"])
+        return result
     found = {}
     for line in raw.splitlines():
         value = line.strip().removeprefix("- ").strip()
@@ -121,23 +138,31 @@ def resume(workflow_root, project_map, project_id):
     check = doctor(workflow_root)
     if check["status"] != "OK":
         return check
-    root, files = project_entry(project_map, project_id)
+    root, files, expected = project_entry(project_map, project_id)
     paths = {name: {"path": str(p), "exists": p.is_file()} for name, p in files.items()}
     snapshot = current_snapshot(read_limited(files["research_record"]))
     state = state_index(files["state"])
     missing = [name for name in ("state", "research_record") if not paths[name]["exists"]]
+    actual_id = state.get("project_id") if isinstance(state, dict) else None
+    # A map is only a locator, not proof that a research line/dataset matches.
+    mismatch = bool(expected and actual_id and expected != actual_id)
     return {
-        "status": "READY_FOR_SOURCE_REVIEW" if not missing and snapshot is not None
-                  else "INCOMPLETE_CONTEXT",
+        "status": "IDENTITY_CONFLICT" if mismatch else
+                  ("READY_FOR_SOURCE_REVIEW" if not missing and snapshot is not None
+                   else "INCOMPLETE_CONTEXT"),
         "project_id": project_id,
+        "expected_state_project_id": expected,
+        "observed_state_project_id": actual_id,
         "project_root": str(root),
-        "project_identity_status": "UNVERIFIED_REQUIRE_ORIGINAL_SOURCE",
+        "project_identity_status": "DECLARED_ID_MISMATCH" if mismatch
+                                   else "UNVERIFIED_REQUIRE_ORIGINAL_SOURCE",
         "workflow": check,
         "paths": paths,
         "missing": missing,
         "state_index": state,
         "research_snapshot": snapshot,
         "original_user_authorization": "UNVERIFIED",
+        "state_integrity": "NOT_CHECKED_AGAINST_EVENTS_OR_RAW_RUN",
         "scientific_evidence": "UNVERIFIED_REQUIRE_RAW_ARTIFACTS",
         "next": "VERIFY_IDENTITY_AUTH_AND_RAW_EVIDENCE_BEFORE_RESTRICTED_ACTION",
     }

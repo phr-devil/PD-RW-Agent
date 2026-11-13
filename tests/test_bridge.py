@@ -69,6 +69,47 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(data["state_index"]["NEXT"], "validate-dev")
         self.assertEqual(data["original_user_authorization"], "UNVERIFIED")
 
+    def test_machine_state_fallback_and_bounded_index(self):
+        (self.project / "STATE.md").unlink()
+        self.write_map(state="STATE.json")
+        (self.project / "STATE.json").write_text(json.dumps({
+            "schema_version": "1.4", "project_id": "demo",
+            "active_task_id": "task-1", "latest_valid_run_id": "run-1",
+            "last_event_id": "evt-5",
+            "evidence_refs": [{"path": "runs/one.json"}]
+        }), encoding="utf-8")
+        code, data = self.resume()
+        self.assertEqual(code, 0)
+        self.assertEqual(data["state_index"]["active_task_id"], "task-1")
+        self.assertEqual(data["state_index"]["evidence_refs_count"], 1)
+        self.assertNotIn("evidence_refs", data["state_index"])
+        self.assertEqual(data["state_integrity"],
+                         "NOT_CHECKED_AGAINST_EVENTS_OR_RAW_RUN")
+
+    def test_machine_state_id_collision_is_not_accepted(self):
+        (self.project / "STATE.md").unlink()
+        self.write_map(state="STATE.json")
+        item = json.loads(self.mapping.read_text(encoding="utf-8"))
+        item["projects"]["demo"]["expected_state_project_id"] = "correct-id"
+        self.mapping.write_text(json.dumps(item), encoding="utf-8")
+        (self.project / "STATE.json").write_text(json.dumps({
+            "schema_version": "1.4", "project_id": "wrong-id",
+            "evidence_refs": []
+        }), encoding="utf-8")
+        code, data = self.resume()
+        self.assertEqual(code, 0)
+        self.assertEqual(data["status"], "IDENTITY_CONFLICT")
+        self.assertEqual(data["project_identity_status"], "DECLARED_ID_MISMATCH")
+
+    def test_machine_state_auto_fallback(self):
+        (self.project / "STATE.md").unlink()
+        (self.project / "STATE.json").write_text(json.dumps({
+            "project_id": "demo", "active_task_id": "task-1"
+        }), encoding="utf-8")
+        code, data = self.resume()
+        self.assertEqual(code, 0)
+        self.assertTrue(data["paths"]["state"]["path"].endswith("STATE.json"))
+
     def test_unknown_project_fails_without_guess(self):
         code, data = self.resume("project-19")
         self.assertEqual(code, 2)

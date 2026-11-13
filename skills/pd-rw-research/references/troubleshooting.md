@@ -8,6 +8,8 @@ Load only when normal project resolution, rule routing, or state recovery fails.
 | Project ID ambiguous | Compare project ID, research line, dataset, and real root | Request the one missing identity anchor; never merge projects |
 | Project map absent | Inspect the external local `project-map.local.json` location | Use known user-provided paths; do not recursively scan the entire disk |
 | Snapshot file absent | Check listed record paths and known original Run references | Report `MISSING`, use available original artifacts, never fabricate state |
+| Two STATE formats | Check whether project uses `STATE.md` or machine `STATE.json` | Set explicit `state` mapping when both exist; never merge without evidence |
+| STATE project_id differs from expected | Compare mapping, project ID and actual raw data identity | `IDENTITY_CONFLICT` blocks affected project action; no automatic renaming |
 | State conflicts with Run | Read original protocol, run artifacts, and evidence lineage | Mark `SOURCE_CONFLICT`, preserve both claims until resolved |
 | Git HEAD missing / stale | Read-only inspect local `git rev-parse HEAD`; compare remote only with suitable access | `RULE_VERSION_UNVERIFIED`; no automatic pull/rebase |
 | Authorization unclear | Locate the original user instruction and scope | Hold **only** dependent restricted action; continue legal read-only work |

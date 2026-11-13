@@ -2,7 +2,7 @@
 
 **Research agent integration for WorkBuddy, powered by the existing PD-RW workflow.**
 
-> Status: **v0.1 scaffold** — read-only project discovery and resume helpers, Skill routing, and initial tests. Not a deployed autonomous executor or a trusted permission-enforcement layer.
+> Status: **v0.2 integration scaffold** — project recovery (Markdown or machine STATE), live PD-RW rule routing, advisory checker bridging, and focused tests. Not a deployed autonomous executor or a trusted permission-enforcement layer.
 
 ## Purpose
 
@@ -17,6 +17,7 @@ PD-RW-Agent makes an existing research project easier for an AI agent to **find,
 ```powershell
 python skills/pd-rw-research/scripts/bridge.py doctor --workflow-root "D:/path/to/Problem-Data-Research-Workflow"
 python skills/pd-rw-research/scripts/bridge.py resume --project-id "example-project" --project-map "./project-map.local.json" --workflow-root "D:/path/to/Problem-Data-Research-Workflow"
+python skills/pd-rw-research/scripts/context.py route --workflow-root "D:/path/to/Problem-Data-Research-Workflow"
 ```
 
 4. In WorkBuddy, install/import `skills/pd-rw-research/` as a Skill (or package it with `python tools/package_skill.py`). See [WorkBuddy Skill documentation](https://open.workbuddy.cn/docs/skill).
@@ -29,9 +30,12 @@ python skills/pd-rw-research/scripts/bridge.py resume --project-id "example-proj
 | [skills/pd-rw-research/SKILL.md](skills/pd-rw-research/SKILL.md) | **Only Skill entry**: trigger, boot, recovery, rule routing, execution boundaries, handoff |
 | [skills/pd-rw-research/references/](skills/pd-rw-research/references/) | Read only when needed: integration, execution, troubleshooting |
 | [skills/pd-rw-research/scripts/bridge.py](skills/pd-rw-research/scripts/bridge.py) | Read-only `doctor` and `resume` JSON commands |
+| [skills/pd-rw-research/scripts/context.py](skills/pd-rw-research/scripts/context.py) | Live rule routing and PD-RW advisory/delivery checker wrappers |
 | [config/project-map.example.json](config/project-map.example.json) | Example only; actual project paths kept locally |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Boundaries, extension points, limitations |
 | [tests/](tests/) and [evals/](evals/) | Deterministic checks and scenarios for real Agent evaluations |
+| [docs/DECISION_COVERAGE.md](docs/DECISION_COVERAGE.md) | Prior effective design decisions, mapped to their single existing owner |
+| [docs/WORKBUDDY_ACCEPTANCE.md](docs/WORKBUDDY_ACCEPTANCE.md) | On-device acceptance protocol (not yet measured) |
 
 ## Design invariants
 
@@ -52,6 +56,6 @@ Packaging creates `dist/pd-rw-research.zip` for import; **do not commit project 
 
 ## Current limits
 
-Git HEAD is a local version marker, **not** proof the checkout matches remote. Project mapping is an operator-supplied locator, **not** scientific identity verification. The helper does not authenticate original author permissions or enforce tool access. WorkBuddy behavior and token savings require real client-side tests; they have **not yet been measured**.
+Git HEAD is a local version marker, **not** proof the checkout matches remote. Project mapping is an operator-supplied locator, **not** scientific identity verification. The helper does not authenticate original author permissions or enforce tool access. **`context.py action-review` may report structural ALLOW on public read-only requests, but never grants protected effects.** WorkBuddy behavior and token savings require real client-side tests; they have **not yet been measured**.
 
 For extension guidance, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

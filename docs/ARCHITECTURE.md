@@ -4,7 +4,8 @@
 
 - **PD-RW** owns H1–H10 semantics, task/claim strategy, authorized DEV work, data/SEALED segregation, scientific evidence, paper/figure/writing permissions, and its own preflight/checker implementations.
 - **Existing project folders** own STATE, RESEARCH_RECORD, PAPER_BLUEPRINT, immutable run evidence, scripts and data.
-- **This repository** owns the WorkBuddy Skill entry, locating/recovery glue, packaging and skill-specific regression tests. It contains no second scientific workflow.
+- **This repository** owns the WorkBuddy Skill entry, locating/recovery glue, live AGENTS.md routing, advisory-checker bridge, packaging and Skill-specific regression tests. It contains no second scientific workflow.
+- A traceable inventory of prior design rationale is in [DECISION_COVERAGE.md](DECISION_COVERAGE.md); maintainers may consult it, but agents do **not** preload it.
 
 ## AI context budget
 
@@ -21,17 +22,20 @@
 | --- | --- | --- | --- |
 | Skill YAML + `SKILL.md` | This repository | WorkBuddy Skill loader | Trigger and documented workflow, not automatic compliance |
 | `bridge.py doctor` | This repository | WorkBuddy terminal | Local rule-file existence and local HEAD only |
-| `bridge.py resume` | This repository | WorkBuddy terminal | Explicit project paths, bounded snapshot, no edits |
+| `bridge.py resume` | This repository | WorkBuddy terminal | Explicit project paths, bounded snapshot, machine/Markdown STATE index, no edits |
+| `context.py route` | Current PD-RW AGENTS.md | WorkBuddy terminal | Existing routing labels/file pointers; **not** duplicate science policy |
+| `context.py action-review` | PD-RW `core.execution_preflight` | WorkBuddy terminal | Advisory declaration check; no real authorization |
+| `context.py delivery-review` | PD-RW `core.delivery_check` | WorkBuddy terminal | Existence/path-only verification; no content/SEALED clearance |
 | `project-map.local.json` | Operator's local machine | `bridge.py` | Locator only, not identity/auth verification |
 | `AGENTS.md` / `WORKFLOW.md` | PD-RW | Research Agent | Scientific routing and decision authority |
 | Run/protocol and original messages | Research project/user | Research Agent | Primary evidence and real authorization, independently checked |
 
-## What is not implemented in v0.1
+## What is not implemented in v0.2
 
 - No automatic syncing of PD-RW Git checkout, shell/task orchestration, or independent API model calls.
 - No writing of project state or claims by the supplied bridge.
 - No tool interceptor, sandbox, OS ACL or authentic original-user authorization service.
-- No WorkBuddy end-to-end acceptance tests or measured Token/quality improvement.
+- No WorkBuddy end-to-end acceptance tests or measured Token/quality improvement. See [WORKBUDDY_ACCEPTANCE.md](WORKBUDDY_ACCEPTANCE.md).
 
 ## Adding a capability without increasing confusion
 
