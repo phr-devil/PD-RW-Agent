@@ -117,6 +117,7 @@ class RuntimeTests(unittest.TestCase):
                 event.pop("artifact_sha256", None)
         ledger.write_text("".join(json.dumps(x) + "\\n" for x in events), encoding="utf-8")
         result = self.service.call("find_experiment_evidence", project_id="19")
+        self.assertIn("matches", result, result)
         self.assertEqual(result["matches"][0]["hash_detail"], "HASH_UNKNOWN")
         self.assertEqual(result["matches"][0]["artifact_sha256_status"],
                          "MISMATCH_OR_UNKNOWN")  # Compatible field.

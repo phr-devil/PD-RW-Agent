@@ -23,7 +23,8 @@ class SkillContractTests(unittest.TestCase):
     def test_references_are_real_and_opt_in(self):
         text = ENTRY.read_text(encoding="utf-8")
         refs = re.findall(r"\[references/([^\]]+)\]\(references/([^\)]+)\)", text)
-        self.assertEqual(len(refs), 3)
+        self.assertEqual({target for _, target in refs},
+                         {"integration.md", "execution.md", "troubleshooting.md", "INDEX.json"})
         for label, target in refs:
             self.assertEqual(label, target)
             self.assertTrue((SKILL / "references" / target).is_file())
