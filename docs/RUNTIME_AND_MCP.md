@@ -88,3 +88,22 @@ $env:PDRW_RUNTIME_DIR = "$env:LOCALAPPDATA\\PD-RW-Agent\\private-runtime"
 Add `PDRW_RUNTIME_DIR` to the stdio MCP `env` block. WorkBuddy must use the same private directory across sessions; otherwise only science-project recovery works. All tool interfaces are defined in [V05_EXECUTION.md](V05_EXECUTION.md).
 
 The MCP server exposes **11 tools** (5 original read-only + 4 new read-only + 2 write-only-operational-metadata). No tool registers an original PD-RW Run. Original user authorization, Windows ACL and independent trusted host **remain out of scope of this release**. Install/import Skill and MCP separately.
+
+## v0.5.3 WorkBuddy MCP-first routing acceptance
+
+For a **registered project ID** and an enabled, permitted `pd-rw-research` MCP connection, the installed `pd-rw-research` Skill now requests a **real** `get_project_context(project_id)` call at the beginning of a fresh project task (once per task, no repeat loop). This invokes the canonical Python service via MCP. A missing/blocked STATE does not prohibit separate authorized read-only inspection of the frozen evidence. Without MCP, the same Skill falls back to direct sources and reports `MCP_NOT_USED`. No tool response itself verifies original author approval.
+
+Before comparing B and C, update **both the local Python checkout and WorkBuddy's installed Skill**; a `git pull` alone does not prove WorkBuddy loaded the revised Skill. On the operator's Windows PC:
+
+```powershell
+cd D:\workbuddy-agent\PD-RW-Agent
+git pull --ff-only
+.\.venv\Scripts\python.exe -m pip install -e ".[mcp]"
+.\.venv\Scripts\python.exe -c "import pdrw_agent; print(pdrw_agent.__version__)"
+.\.venv\Scripts\python.exe -m pdrw_agent.cli context --project-id 37
+.\.venv\Scripts\python.exe tools\package_skill.py
+```
+
+The CLI uses `PDRW_AGENT_CONFIG` and `PDRW_WORKFLOW_ROOT`; set them on this PowerShell session if absent. Confirm the Python package reports `0.5.3`. Re-import/refresh `dist/pd-rw-research.zip` in WorkBuddy and verify the **actually returned Skill content** says `version: 0.5.3` and `MCP-first for a registered, permitted project`. Restart/reconnect the stdio MCP after changing the venv or repo. Confirm MCP tool visibility and do a non-benchmark call to `get_project_context("37")` once; this functional preflight does NOT count as autonomous tool selection.
+
+**Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.

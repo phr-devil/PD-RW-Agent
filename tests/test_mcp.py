@@ -44,6 +44,49 @@ class MCPTests(unittest.TestCase):
 
             asyncio.run(do_test())
 
+    def test_registered_incomplete_project_triad_is_read_only(self):
+        """Wire-level Python/MCP preflight: incomplete project blocks resume, rules still route."""
+        import json
+        from mcp import Client
+        from pdrw_agent.integrations.mcp_server import create_server
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            rule_root = base / "rules"
+            rule_root.mkdir()
+            (rule_root / "AGENTS.md").write_text(
+                "## 2. Rules\\n| Topic | Owner |\\n| --- | --- |\\n"
+                "| DEV 算法/实验/负结果 | [Experimental](EXPERIMENT_LOOP.md) |\\n"
+                "## 3. Next\\n", encoding="utf-8")
+            (rule_root / "WORKFLOW.md").write_text("# science", encoding="utf-8")
+            (rule_root / "EXPERIMENT_LOOP.md").write_text("# dev", encoding="utf-8")
+            project = base / "frozen"
+            project.mkdir()
+            record = project / "RESEARCH_RECORD.md"
+            record.write_text("## 0. Snapshot\\nUnverified\\n## 1. History\\n", encoding="utf-8")
+            registry = base / "project-map.json"
+            registry.write_text(json.dumps({
+                "schema_version": 1, "projects": {"37": {"root": str(project)}}
+            }), encoding="utf-8")
+            server = create_server(Settings.load(str(registry), str(rule_root)))
+
+            async def exercise():
+                async with Client(server) as client:
+                    context = await client.call_tool("get_project_context", {"project_id": "37"})
+                    resume = await client.call_tool("get_resume_context", {"project_id": "37"})
+                    rules = await client.call_tool("get_applicable_rules", {"topic": "DEV"})
+                    for response in (context, resume, rules):
+                        self.assertFalse(response.is_error)
+                    self.assertIn("INCOMPLETE_CONTEXT", str(context.structured_content or context.content))
+                    self.assertIn("BLOCKED_INCOMPLETE_CONTEXT", str(resume.structured_content or resume.content))
+                    self.assertIn("ROUTE_FOUND", str(rules.structured_content or rules.content))
+                    self.assertIn("EXPERIMENT_LOOP.md", str(rules.structured_content or rules.content))
+
+            asyncio.run(exercise())
+            self.assertFalse((project / "STATE.md").exists())
+            self.assertEqual(record.read_text(encoding="utf-8"),
+                             "## 0. Snapshot\\nUnverified\\n## 1. History\\n")
+
     def test_v05_mcp_receipt_resume_roundtrip(self):
         from unittest.mock import patch
         from mcp import Client
