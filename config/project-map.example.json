@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "projects": {
+    "example-project": {
+      "root": "D:/research/example-project",
+      "state": "STATE.md",
+      "research_record": "RESEARCH_RECORD.md",
+      "paper_blueprint": "PAPER_BLUEPRINT.md"
+    }
+  }
+}
