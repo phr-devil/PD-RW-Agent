@@ -18,6 +18,9 @@ def proposal():
         "probes": [
             {
                 "id": "negative-control",
+                "observable": "subject-level DEV signed effect",
+                "evaluation_unit": "held-out-subject",
+                "comparison_reference": "fixed-simple-baseline",
                 "predictions": {
                     "causal": "DECREASE",
                     "confounded": "INCREASE",
@@ -28,6 +31,9 @@ def proposal():
             },
             {
                 "id": "metric-only",
+                "observable": "subject-level DEV signed effect",
+                "evaluation_unit": "held-out-subject",
+                "comparison_reference": "fixed-simple-baseline",
                 "predictions": {
                     "causal": "INCREASE",
                     "confounded": "INCREASE",
@@ -49,6 +55,9 @@ class ScienceDecisionTests(unittest.TestCase):
     def test_discriminability_is_descriptive_not_automatic_rank(self):
         result = assess_proposal(proposal())
         self.assertEqual(result["status"], "ADVISORY_REVIEW_ONLY")
+        self.assertEqual(result["claim_type"], "MECHANISM/CAUSAL")
+        self.assertEqual(result["probe_comparisons"][0]["observable"],
+                         "subject-level DEV signed effect")
         self.assertEqual(result["probe_comparisons"][0]["pair_count"], 3)
         self.assertEqual(result["probe_comparisons"][1]["pair_count"], 0)
         self.assertFalse(result["probe_comparisons"][0]["prediction_source_verified"])
@@ -88,6 +97,12 @@ class ScienceDecisionTests(unittest.TestCase):
         self.assertEqual(r["probe_comparisons"][0]["pair_count"], 0)
         self.assertEqual(set(r["probe_comparisons"][0]["missing_hypothesis_predictions"]),
                          {"confounded", "no-effect"})
+
+    def test_missing_measurement_axis_cannot_be_counted(self):
+        p = proposal()
+        p["probes"][0].pop("evaluation_unit")
+        with self.assertRaises(AgentError):
+            assess_proposal(p)
 
     def test_reject_fabricated_numeric_prediction_probabilities(self):
         p = proposal()

@@ -8,7 +8,7 @@
 python -m pdrw_agent.science.cli decision --packet evals/examples/synthetic_decision.json
 ```
 
-A proposal JSON contains `question`, `claim_type` (`CAPABILITY`, `MECHANISM`, `LAW`), `proposed_premise` (`premise_id` plus nonempty `scope`), 2–6 `hypotheses`, 1–6 `probes` and optionally `prior_negative_lessons`, `claim_evidence_refs`, `prechecks`. Probes declare predictions per hypothesis (`INCREASE`, `DECREASE`, `NO_CHANGE`, `UNKNOWN`) and a cost band (`LOW`, `MEDIUM`, `HIGH`, `UNKNOWN`).
+A proposal JSON contains `question`, `claim_type` (`CAPABILITY`, `MECHANISM`, `LAW`), `proposed_premise` (`premise_id` plus nonempty `scope`), 2–6 `hypotheses`, 1–6 `probes` and optionally `prior_negative_lessons`, `claim_evidence_refs`, `prechecks`. Each probe also requires an explicit `observable`, `evaluation_unit` and `comparison_reference` shared across the hypotheses; missing measurement context is an input error, not an information-value signal. Claim types are normalized to the existing PD-RW `CAPABILITY/PERFORMANCE`, `MECHANISM/CAUSAL`, `LAW/BOUNDARY` categories. Probes declare predictions per hypothesis (`INCREASE`, `DECREASE`, `NO_CHANGE`, `UNKNOWN`) and a cost band (`LOW`, `MEDIUM`, `HIGH`, `UNKNOWN`).
 
 Output `ADVISORY_REVIEW_ONLY` shows *declared* hypothesis pairs with distinct predictions. Its count is not calibrated information gain, expected effect size or paper-value ranking. A matching negative premise and exactly matching scope **never authorizes STOP or proves scientific equivalence**. If a past result is invalid/unknown, the tool refuses to treat it as valid negative evidence.
 

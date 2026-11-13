@@ -23,7 +23,10 @@
         "no-added-value": "NO_CHANGE"
       },
       "cost_band": "LOW",
-      "prediction_evidence_refs": []
+      "prediction_evidence_refs": [],
+      "observable": "independent-group signed effect",
+      "evaluation_unit": "independent subject",
+      "comparison_reference": "fixed simple baseline"
     }
   ],
   "prechecks": {

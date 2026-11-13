@@ -145,7 +145,11 @@ class ReplayTests(unittest.TestCase):
             "claim_type": "LAW",
             "proposed_premise": {"premise_id": "diff", "scope": {"domain": "synthetic"}},
             "hypotheses": ["h1", "h2"],
-            "probes": [{"id": "p1", "predictions": {
+            "probes": [{"id": "p1",
+                        "observable": "synthetic signed effect",
+                        "evaluation_unit": "independent subject",
+                        "comparison_reference": "fixed baseline",
+                        "predictions": {
                 "h1": "INCREASE", "h2": "DECREASE"
             }, "cost_band": "LOW"}],
         }

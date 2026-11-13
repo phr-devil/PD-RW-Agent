@@ -12,7 +12,12 @@ COSTS = {"LOW", "MEDIUM", "HIGH", "UNKNOWN"}
 CHECKS = ("label_provenance", "group_independence", "legal_inputs",
           "evaluation_integrity", "metric_appropriateness", "effect_size")
 CHECK_STATES = {"PASS", "FAIL", "UNKNOWN", "NOT_CHECKED"}
-CLAIMS = {"CAPABILITY", "MECHANISM", "LAW"}
+CLAIMS = {"CAPABILITY/PERFORMANCE", "MECHANISM/CAUSAL", "LAW/BOUNDARY"}
+CLAIM_ALIASES = {
+    "CAPABILITY": "CAPABILITY/PERFORMANCE",
+    "MECHANISM": "MECHANISM/CAUSAL",
+    "LAW": "LAW/BOUNDARY",
+}
 MAX_PROBES = 6
 
 
@@ -48,8 +53,9 @@ def assess_proposal(packet: dict) -> dict:
     """
     if not isinstance(packet, dict):
         raise AgentError("SCIENCE_PACKET_INVALID", "Expected a JSON object")
-    if packet.get("claim_type") not in CLAIMS:
-        raise AgentError("SCIENCE_PACKET_INVALID", "Use CAPABILITY, MECHANISM, or LAW")
+    claim_type = CLAIM_ALIASES.get(packet.get("claim_type"), packet.get("claim_type"))
+    if claim_type not in CLAIMS:
+        raise AgentError("SCIENCE_PACKET_INVALID", "Use a PD-RW capability, mechanism, or boundary claim type")
     question = packet.get("question")
     if not isinstance(question, str) or not question.strip() or len(question) > 1000:
         raise AgentError("SCIENCE_PACKET_INVALID", "A bounded research question is required")
@@ -126,6 +132,11 @@ def assess_proposal(packet: dict) -> dict:
         if pid in seen:
             raise AgentError("SCIENCE_PACKET_INVALID", "Duplicate probe ID")
         seen.add(pid)
+        # All competing hypotheses must predict the same observable,
+        # evaluation unit and reference condition. No metric is invented.
+        observable = _id(probe.get("observable"), "probe observable")
+        evaluation_unit = _id(probe.get("evaluation_unit"), "evaluation_unit")
+        comparison_reference = _id(probe.get("comparison_reference"), "comparison_reference")
         predictions = probe.get("predictions")
         if not isinstance(predictions, dict) or set(predictions) - set(ids):
             raise AgentError("SCIENCE_PACKET_INVALID", "Prediction keys must reference named hypotheses")
@@ -141,7 +152,10 @@ def assess_proposal(packet: dict) -> dict:
             if pa != "UNKNOWN" and pb != "UNKNOWN" and pa != pb:
                 separated.append([a, b])
         summaries.append({
-            "id": pid, "distinguishable_hypothesis_pairs_as_declared": separated,
+            "id": pid, "observable": observable,
+            "evaluation_unit": evaluation_unit,
+            "comparison_reference": comparison_reference,
+            "distinguishable_hypothesis_pairs_as_declared": separated,
             "pair_count": len(separated),
             "missing_hypothesis_predictions": [
                 h for h in ids if predictions.get(h, "UNKNOWN") == "UNKNOWN"
@@ -155,7 +169,7 @@ def assess_proposal(packet: dict) -> dict:
     return {
         "status": "ADVISORY_REVIEW_ONLY",
         "question": question,
-        "claim_type": packet["claim_type"],
+        "claim_type": claim_type,
         "claim_evidence_refs": claim_refs,
         "premise_candidates": negative_candidates,
         "prechecks": prechecks,
