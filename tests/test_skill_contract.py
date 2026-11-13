@@ -26,7 +26,7 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("actually call `get_project_context(project_id)` once", text)
         self.assertIn("compare", text.casefold())
         self.assertIn("MCP_NOT_USED", text)
-        self.assertIn("not independent proof", text)
+        self.assertIn("independent proof of project identity", text)
         self.assertIn("independent permitted read-only evidence review", text)
         self.assertIn("actual MCP tool names and statuses", text)
 
