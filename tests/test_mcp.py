@@ -30,6 +30,7 @@ class MCPTests(unittest.TestCase):
                     self.assertEqual(names, {
                         "get_project_context", "audit_project_state", "get_applicable_rules",
                         "reconstruct_project_history", "verify_run_evidence",
+                        "audit_scientific_experiment",
                         "review_lesson_applicability",
                         "search_research_memory", "find_experiment_evidence",
                         "check_duplicate_experiment",
@@ -81,6 +82,8 @@ class MCPTests(unittest.TestCase):
                         "reconstruct_project_history", {"project_id": "37"})
                     run = await client.call_tool(
                         "verify_run_evidence", {"project_id": "37", "run_id": "r1"})
+                    science = await client.call_tool(
+                        "audit_scientific_experiment", {"project_id": "37", "run_id": "r1"})
                     scope = {
                         "dataset_version": "D1", "label_definition": "L1",
                         "evaluation_unit": "subject", "group_split": "LOSO",
@@ -93,7 +96,7 @@ class MCPTests(unittest.TestCase):
                             "lessons": [{"premise_id": "p1", "scope": scope,
                                         "validity": "VALID_NEGATIVE",
                                         "evidence_refs": ["r1"]}]})
-                    for response in (context, resume, rules, history, run, lessons):
+                    for response in (context, resume, rules, history, run, science, lessons):
                         self.assertFalse(response.is_error)
                     self.assertIn("INCOMPLETE_CONTEXT", str(context.structured_content or context.content))
                     self.assertIn("BLOCKED_INCOMPLETE_CONTEXT", str(resume.structured_content or resume.content))
@@ -103,6 +106,8 @@ class MCPTests(unittest.TestCase):
                                   str(history.structured_content or history.content))
                     self.assertIn("RUN_HISTORY_NOT_ATTESTABLE",
                                   str(run.structured_content or run.content))
+                    self.assertIn("AUDIT_PREREQUISITE_UNVERIFIED",
+                                  str(science.structured_content or science.content))
                     self.assertIn("EXACT_DECLARED_SCOPE_CANDIDATE",
                                   str(lessons.structured_content or lessons.content))
 

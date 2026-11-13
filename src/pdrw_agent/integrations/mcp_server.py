@@ -45,6 +45,14 @@ def create_server(settings: Settings | None = None):
         return service.call("verify_run_evidence", project_id=project_id, run_id=run_id)
 
     @mcp.tool()
+    def audit_scientific_experiment(project_id: str, run_id: str,
+                                     baseline_run_id: str = "") -> dict[str, Any]:
+        """Read-only DEV/VAL row-level leakage, metric and baseline checks; not science approval."""
+        return service.call("audit_scientific_experiment",
+                            project_id=project_id, run_id=run_id,
+                            baseline_run_id=baseline_run_id)
+
+    @mcp.tool()
     def review_lesson_applicability(proposal: dict[str, Any],
                                     lessons: list[dict[str, Any]]) -> dict[str, Any]:
         """Compare literal scientific premise and declared scopes; no automatic STOP."""
