@@ -103,6 +103,10 @@ class BridgeTests(unittest.TestCase):
 
     def test_machine_state_auto_fallback(self):
         (self.project / "STATE.md").unlink()
+        # Auto fallback only applies when the operator did not pin a state path.
+        config = json.loads(self.mapping.read_text(encoding="utf-8"))
+        del config["projects"]["demo"]["state"]
+        self.mapping.write_text(json.dumps(config), encoding="utf-8")
         (self.project / "STATE.json").write_text(json.dumps({
             "project_id": "demo", "active_task_id": "task-1"
         }), encoding="utf-8")
