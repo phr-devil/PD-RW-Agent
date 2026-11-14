@@ -120,8 +120,22 @@ class SyntheticHostTests(unittest.TestCase):
         self.assertFalse(repeated["actual_synthetic_subprocess_executed"])
         status = get_synthetic_job_status(self.settings, "demo", "synthetic-op-1")
         self.assertEqual(status["job"]["attempt_count"], 1)
+        self.assertEqual(status["job"]["output_integrity"], "MATCH")
         self.assertEqual(before, self.snapshot())  # no project science writes
         self.assertFalse((self.project / "Run.json").exists())
+
+    def test_completed_checkpoint_requires_surviving_output_bytes(self):
+        run_synthetic_in_host(self.settings, fixture_plan())
+        key = hashlib.sha256(b"demo").hexdigest()
+        output = self.private / "synthetic_jobs" / key / "synthetic-op-1" / "result.json"
+        self.assertTrue(output.is_file())
+        output.write_text('{"tampered":true}', encoding="utf-8")
+        check = get_synthetic_job_status(self.settings, "demo", "synthetic-op-1")
+        self.assertEqual(check["status"], "SYNTHETIC_CHECKPOINT_ARTIFACT_MISMATCH")
+        self.assertEqual(check["job"]["output_integrity"], "CHANGED_OR_MISSING")
+        again = run_synthetic_in_host(self.settings, fixture_plan())
+        self.assertFalse(again["actual_synthetic_subprocess_executed"])
+        self.assertEqual(again["job"]["attempt_count"], 1)
 
     def test_same_operation_id_different_plan_is_conflict_not_reexecution(self):
         run_synthetic_in_host(self.settings, fixture_plan())

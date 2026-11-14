@@ -112,7 +112,25 @@ def get_synthetic_job_status(settings: Settings, project_id: str,
     if row["phase"] == "RUNNING_UNVERIFIED":
         status = "RECONCILIATION_REQUIRED_NO_AUTOMATIC_RESTART"
     elif row["phase"] == "COMPLETED":
-        status = "SYNTHETIC_JOB_COMPLETED_RECORDED"
+        project_key = hashlib.sha256(project_id.encode("utf-8")).hexdigest()
+        private_root = db_path.parent.resolve()
+        output = (private_root / "synthetic_jobs" / project_key /
+                  operation_id / "result.json")
+        # Status reads never create directories and never follow escaping
+        # symlinks. A completed receipt alone does not prove output survives.
+        try:
+            resolved = output.resolve()
+            scoped = (private_root in resolved.parents and
+                      output.is_file() and not output.is_symlink() and
+                      output.stat().st_size <= 4096)
+            valid = (scoped and
+                     hashlib.sha256(output.read_bytes()).hexdigest() ==
+                     row["output_sha256"])
+        except OSError:
+            valid = False
+        obj["output_integrity"] = "MATCH" if valid else "CHANGED_OR_MISSING"
+        status = ("SYNTHETIC_JOB_COMPLETED_RECORDED" if valid
+                  else "SYNTHETIC_CHECKPOINT_ARTIFACT_MISMATCH")
     else:
         status = "SYNTHETIC_JOB_TERMINAL_RECORDED"
     return {"status": status, "job": obj,
@@ -151,6 +169,7 @@ def run_synthetic_in_host(settings: Settings, plan: dict) -> dict:
                       else "RECONCILIATION_REQUIRED_NO_AUTOMATIC_RESTART")
             return {"status": status, "job": _public(row),
                     "actual_synthetic_subprocess_executed": False,
+                    "artifact_integrity": "NOT_RECHECKED",
                     "execution_authorized": False}
         now = _utc()
         db.execute("""INSERT INTO synthetic_jobs (

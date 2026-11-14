@@ -60,6 +60,9 @@ active Task. Preflight returns \`execution_authorized=false\` even if ready.
   \`RECONCILIATION_REQUIRED_NO_AUTOMATIC_RESTART\` and require explicit
   operator-controlled reconciliation.
 - Failure/timeout are recorded as terminal; no automatic retries.
+- Read-only status rechecks the private result hash. A missing/changed
+  output is `SYNTHETIC_CHECKPOINT_ARTIFACT_MISMATCH`, never a valid
+  completion; the same operation is still not automatically rerun.
 - Output hashes are not scientific validation; no project, STATE, EVENTS or
   Run writes are performed.
 
