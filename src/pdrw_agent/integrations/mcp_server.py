@@ -30,6 +30,17 @@ def create_server(settings: Settings | None = None):
         return service.call("get_project_context", project_id=project_id)
 
     @mcp.tool()
+    def preflight_execution_plan(plan: dict[str, Any]) -> dict[str, Any]:
+        """Read-only fixed synthetic CPU plan check; never grants scientific execution."""
+        return service.call("preflight_execution_plan", plan=plan)
+
+    @mcp.tool()
+    def get_synthetic_job_status(project_id: str, operation_id: str) -> dict[str, Any]:
+        """Read-only private synthetic job checkpoint; no liveness/authorization claim."""
+        return service.call("get_synthetic_job_status",
+                            project_id=project_id, operation_id=operation_id)
+
+    @mcp.tool()
     def audit_project_state(project_id: str) -> dict[str, Any]:
         """Audit registered state, evidence coverage and version drift (read-only)."""
         return service.call("audit_project_state", project_id=project_id)

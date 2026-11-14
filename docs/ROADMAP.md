@@ -1,5 +1,19 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.7.0 execution foundation: fixed synthetic CPU only
+
+- Strict versioned plan schema, bounded CPU/timeout limits, explicit project
+  registry and STATE/EVENTS metadata preflight. No model-supplied approval.
+- Private SQLite checkpoint for one fixed synthetic subprocess; unique
+  project/operation/plan identity, no duplicate execution or blind retry.
+- RUNNING retained as UNKNOWN after interruption; private result hash
+  recorded only on verified synthetic completion, not a scientific Run.
+- MCP/CLI expose planning and checkpoint status only; internal self-test
+  executor accepts no commands, script paths, datasets, GPU or network.
+- Next gate: independent trusted host permission enforcement, real DEV
+  scheduler, OS-level process sandbox, liveness/heartbeat and integration
+  with original PD-RW Run recording. None are implemented by this stage.
+
 ## v0.6.3 source lineage and evidenced negative lessons
 
 - Parse only hash-bound linked Python source with bounded AST; identify
