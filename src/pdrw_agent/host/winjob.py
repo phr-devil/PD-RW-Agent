@@ -80,6 +80,22 @@ class PROCESS_INFORMATION(ctypes.Structure):
     ]
 
 
+def _cleanup_failed_launch(kernel, job, process, thread):
+    """Kill a suspended child even when Job assignment itself has failed.
+
+    Without TerminateProcess an unassigned suspended child could outlive
+    this host after AssignProcessToJobObject raises.
+    """
+    if process:
+        kernel.TerminateProcess(process, 1)
+    if thread:
+        kernel.CloseHandle(thread)
+    if process:
+        kernel.CloseHandle(process)
+    if job:
+        kernel.CloseHandle(job)
+
+
 class WinJobProcess:
     def __init__(self, process, job, pid: int, kernel):
         self._process = process
@@ -139,6 +155,8 @@ def launch_windows_job(argv: list[str], cwd: Path) -> WinJobProcess:
     kernel.GetExitCodeProcess.restype = wintypes.BOOL
     kernel.CloseHandle.argtypes = [wintypes.HANDLE]
     kernel.CloseHandle.restype = wintypes.BOOL
+    kernel.TerminateProcess.argtypes = [wintypes.HANDLE, wintypes.UINT]
+    kernel.TerminateProcess.restype = wintypes.BOOL
     job = kernel.CreateJobObjectW(None, None)
     if not job:
         raise AgentError("HOST_JOB_CREATE_FAILED", "Cannot create Windows Job Object")
@@ -170,10 +188,7 @@ def launch_windows_job(argv: list[str], cwd: Path) -> WinJobProcess:
         thread = None
         return WinJobProcess(process, job, int(pi.dwProcessId), kernel)
     except Exception:
-        # Releasing the configured job handle kills even suspended children.
-        kernel.CloseHandle(job)
-        if thread:
-            kernel.CloseHandle(thread)
-        if process:
-            kernel.CloseHandle(process)
+        # When Job assignment failed, KILL_ON_JOB_CLOSE does not apply to
+        # the newly created suspended process. Terminate it explicitly first.
+        _cleanup_failed_launch(kernel, job, process, thread)
         raise

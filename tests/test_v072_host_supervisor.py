@@ -229,6 +229,25 @@ class HostPilotTests(unittest.TestCase):
         self.assertFalse(isolated["execution_authorized"])
         self.assertFalse(isolated["dev_sealed_acl_verified"])
 
+    def test_windows_job_failed_assignment_cleans_up_suspended_child(self):
+        from pdrw_agent.host.winjob import _cleanup_failed_launch
+        class FakeKernel:
+            def __init__(self):
+                self.calls = []
+            def TerminateProcess(self, *args):
+                self.calls.append(("terminate", args))
+            def CloseHandle(self, handle):
+                self.calls.append(("close", handle))
+        api = FakeKernel()
+        _cleanup_failed_launch(api, 11, 22, 33)
+        self.assertEqual(api.calls, [
+            ("terminate", (22, 1)), ("close", 33),
+            ("close", 22), ("close", 11)])
+        # No child had been created before the failure:
+        api = FakeKernel()
+        _cleanup_failed_launch(api, 11, None, None)
+        self.assertEqual(api.calls, [("close", 11)])
+
     def test_registry_bytes_check_does_not_authorize_execution(self):
         registry = self.base / "operator-catalog"
         registry.mkdir()

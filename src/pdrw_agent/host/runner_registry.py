@@ -59,8 +59,18 @@ def inspect_registered_runner(settings: Settings, project_id: str,
         return {"status": "HOST_RUNNER_CATALOG_INVALID",
                 "execution_authorized": False}
     try:
-        source = under_root(root, item["entrypoint"], must_exist=True)
-        if source.is_symlink() or source.stat().st_size > 256 * 1024:
+        # Reject every lexical symlink component, not just the fully
+        # resolved target. A trusted catalog must reference immutable files.
+        rel = item["entrypoint"]
+        if not isinstance(rel, str):
+            raise AgentError("HOST_RUNNER_SOURCE_INVALID", "Runner path must be text")
+        cursor = root
+        for part in Path(rel).parts:
+            cursor = cursor / part
+            if cursor.is_symlink():
+                raise AgentError("HOST_RUNNER_SOURCE_INVALID", "Symlinked source forbidden")
+        source = under_root(root, rel, must_exist=True)
+        if source.stat().st_size > 256 * 1024:
             return {"status": "HOST_RUNNER_SOURCE_INVALID", "execution_authorized": False}
         h = hashlib.sha256()
         with source.open("rb") as stream:
