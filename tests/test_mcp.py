@@ -21,7 +21,7 @@ class MCPTests(unittest.TestCase):
                 (workflow / name).write_text("# minimal", encoding="utf-8")
             mapping = root / "project-map.json"
             mapping.write_text('{"schema_version":1,"projects":{}}', encoding="utf-8")
-            server = create_server(Settings.load(str(mapping), str(workflow)))
+            server = create_server(Settings.load(str(mapping), str(workflow)), profile="diagnostic")
 
             async def do_test():
                 async with Client(server) as client:
@@ -73,7 +73,7 @@ class MCPTests(unittest.TestCase):
             registry.write_text(json.dumps({
                 "schema_version": 1, "projects": {"37": {"root": str(project)}}
             }), encoding="utf-8")
-            server = create_server(Settings.load(str(registry), str(rule_root)))
+            server = create_server(Settings.load(str(registry), str(rule_root)), profile="diagnostic")
 
             async def exercise():
                 async with Client(server) as client:
@@ -180,7 +180,7 @@ class MCPTests(unittest.TestCase):
             settings = Settings.load(str(registry), str(rule_root))
 
             async def exercise():
-                server = create_server(settings)
+                server = create_server(settings, profile="diagnostic")
                 async with Client(server) as client:
                     began = await client.call_tool("begin_operation_receipt", {
                         "project_id": "demo", "operation_id": "op-wire",
