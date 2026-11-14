@@ -9,7 +9,7 @@ import sqlite3
 
 from ..schemas import AgentError
 
-CURRENT_RUNTIME_SCHEMA = 2
+CURRENT_RUNTIME_SCHEMA = 3
 
 
 def migrate_runtime_db(db: sqlite3.Connection) -> None:
@@ -39,3 +39,16 @@ def migrate_runtime_db(db: sqlite3.Connection) -> None:
         db.execute("""CREATE INDEX IF NOT EXISTS operation_attempts_lookup
                    ON operation_attempts(project_id, operation_id, updated_at)""")
         db.execute("PRAGMA user_version=2")
+    if version < 3:
+        db.execute("""CREATE TABLE IF NOT EXISTS host_jobs (
+            project_id TEXT NOT NULL, operation_id TEXT NOT NULL,
+            task_id TEXT NOT NULL, plan_sha256 TEXT NOT NULL,
+            attempt_id TEXT NOT NULL, phase TEXT NOT NULL,
+            pid INTEGER, start_token TEXT,
+            exit_code INTEGER, output_sha256 TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+            PRIMARY KEY(project_id, operation_id)
+        )""")
+        db.execute("""CREATE INDEX IF NOT EXISTS host_jobs_resume
+                   ON host_jobs(project_id, updated_at)""")
+        db.execute("PRAGMA user_version=3")

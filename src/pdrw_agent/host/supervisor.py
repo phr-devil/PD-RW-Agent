@@ -139,12 +139,50 @@ def get_host_diagnostic_status(settings: Settings, project_id: str,
             "synthetic_only": True}
 
 
+def _launch_worker(argv: list[str], scratch: Path):
+    if sys.platform == "win32":
+        from .winjob import launch_windows_job
+        return launch_windows_job(argv, scratch)
+    return subprocess.Popen(argv, cwd=str(scratch),
+                            start_new_session=True,
+                            stdin=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL)
+
+
+def _terminate_tree(proc) -> None:
+    """Terminate this host's known process group or Windows Job Object."""
+    if proc.poll() is not None:
+        return
+    if sys.platform == "win32":
+        proc.terminate()   # WinJobProcess uses TerminateJobObject.
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+
+def _reap_or_kill(proc) -> None:
+    """Escalate on POSIX; Windows Job close is kill-on-close."""
+    if sys.platform != "win32":
+        try:
+            proc.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait(timeout=1)
+
+
 class HostSupervisor:
     """A single live host instance; handles are not reconstructed from JSON."""
 
     def __init__(self, settings: Settings):
         self.settings = settings
         self._live: dict[tuple[str, str], object] = {}
+        self._cancelled: set[tuple[str, str]] = set()
         self._lock = threading.Lock()
 
     def cancel(self, project_id: str, operation_id: str) -> dict:
@@ -155,7 +193,9 @@ class HostSupervisor:
         if child is None:
             return {"status": "NOT_OWNED_BY_THIS_HOST", "cancelled": False}
         if child.poll() is None:
-            child.terminate()
+            with self._lock:
+                self._cancelled.add(key)
+            _terminate_tree(child)
             return {"status": "HOST_TERMINATION_REQUESTED", "cancelled": True}
         return {"status": "ALREADY_EXITED", "cancelled": False}
 
@@ -195,15 +235,7 @@ class HostSupervisor:
         try:
             argv = [sys.executable, "-I", "-B", "-c", WORKER, str(output),
                     str(spec["iterations"]), spec["scenario"], str(os.getpid())]
-            if sys.platform == "win32":
-                from .winjob import launch_windows_job
-                proc = launch_windows_job(argv, scratch)
-            else:
-                proc = subprocess.Popen(argv, cwd=str(scratch),
-                                        start_new_session=True,
-                                        stdin=subprocess.DEVNULL,
-                                        stdout=subprocess.DEVNULL,
-                                        stderr=subprocess.DEVNULL)
+            proc = _launch_worker(argv, scratch)
             observed = observe_process(proc.pid)
             with self._lock:
                 self._live[key] = proc
@@ -219,14 +251,18 @@ class HostSupervisor:
             while proc.poll() is None:
                 if time.monotonic() > deadline:
                     phase = "TIMED_OUT"
-                    proc.terminate()
+                    _terminate_tree(proc)
                     break
                 time.sleep(0.02)
             if proc.poll() is None:
                 time.sleep(0.05)
             exit_code = proc.poll()
+            with self._lock:
+                cancelled = key in self._cancelled
             if phase == "TIMED_OUT":
                 pass
+            elif cancelled:
+                phase = "CANCELLED"
             elif exit_code == 0 and output.is_file() and not output.is_symlink():
                 data = output.read_bytes()
                 if len(data) <= 4096:
@@ -246,13 +282,15 @@ class HostSupervisor:
             if proc is not None:
                 try:
                     if proc.poll() is None:
-                        proc.terminate()
-                except (OSError, AgentError):
+                        _terminate_tree(proc)
+                    _reap_or_kill(proc)
+                except (OSError, AgentError, subprocess.TimeoutExpired):
                     pass
                 if hasattr(proc, "close"):
                     proc.close()
                 with self._lock:
                     self._live.pop(key, None)
+                    self._cancelled.discard(key)
             with _open(dbpath) as db:
                 db.execute("BEGIN IMMEDIATE")
                 db.execute("""UPDATE host_jobs SET phase=?,exit_code=?,
