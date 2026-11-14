@@ -7,7 +7,7 @@ separately launched local OS process, but *it runs under the launching OS
 account*. It is not an authenticated service, protected grant store, secure
 network API, GPU scheduler, scientific ledger writer, or general Python
 sandbox. WorkBuddy/MCP cannot launch fixed host jobs through their exposed
-tool surface. Only the operator-side \`pdrw_agent.host.cli\` can run one
+tool surface. Only the operator-side `pdrw_agent.host.cli` can run one
 **package-defined, fixed CPU computation**, with no model-defined code/data
 path, subprocess args, imports, device, network or working directory.
 
@@ -25,12 +25,12 @@ From a separate trusted terminal/environment (PowerShell syntax):
     $env:PDRW_RUNTIME_DIR = "D:\PD-RW-Private\agent-runtime"
     .\.venv\Scripts\python.exe -m pdrw_agent.host.cli run-fixed-diagnostic --plan-file .\config\host-pilot-plan.example.json
 
-Edit the *example* plan's \`project_id\` and \`task_id\` to refer only to an
+Edit the *example* plan's `project_id` and `task_id` to refer only to an
 explicitly mapped, machine-consistent synthetic test project before running.
 The host tests require original STATE.json + EVENTS.jsonl consistency and
 a research-record snapshot, but that is not user authorization.
 
-Plan schema is the existing \`pdrw-exec-plan-v1\` fixed \`CPU_SELFTEST_V1\`.
+Plan schema is the existing `pdrw-exec-plan-v1` fixed `CPU_SELFTEST_V1`.
 Accepted scenarios: SUCCESS, EXIT_NONZERO, SLEEP. Timeout 1..5 seconds,
 iterations 1..100000; no GPU/network/custom scripts. SLEEP is intentional
 to exercise timeout and cancellation.
@@ -40,8 +40,8 @@ Read-only queries from operator terminal:
     .\.venv\Scripts\python.exe -m pdrw_agent.host.cli status --project-id demo --operation-id host-demo-1
     .\.venv\Scripts\python.exe -m pdrw_agent.cli host-status --project-id demo --operation-id host-demo-1
 
-The same \`get_host_diagnostic_status(project_id, operation_id)\` is exposed
-via MCP as **read-only**. \`get_resume_context\` includes the latest host
+The same `get_host_diagnostic_status(project_id, operation_id)` is exposed
+via MCP as **read-only**. `get_resume_context` includes the latest host
 diagnostic checkpoints and reports whether reconciliation is necessary.
 Status NEVER authorizes execution, proves a live process belongs to this
 host, or retries an uncertain attempt.
@@ -58,12 +58,12 @@ host, or retries an uncertain attempt.
   worker sets PR_SET_PDEATHSIG=SIGKILL and checks parent PID. Cancellation
   terminates the process group and escalates if required. These rules
   do not constitute a sandbox.
-- **SQLite:** \`user_version=3\` extends the existing independent private
-  runtime database with \`host_jobs\`. Original operation receipts and
+- **SQLite:** `user_version=3` extends the existing independent private
+  runtime database with `host_jobs`. Original operation receipts and
   scientific STATE/EVENTS are never rewritten. The host commits
   STARTING_UNVERIFIED *before* launching the child, then records PID,
   creation token, exit code, phase, and output SHA256.
-- Duplicate \`(project_id, operation_id)\` never relaunches a job, even
+- Duplicate `(project_id, operation_id)` never relaunches a job, even
   following host failure or partial completion; different plan hash returns
   HOST_PLAN_CONFLICT. After restart a matching PID+creation token is only
   OBSERVED; the host does not adopt or kill an unowned process.
@@ -73,16 +73,16 @@ host, or retries an uncertain attempt.
 
 ## Runner catalog: read-only integrity check
 
-\`host.runner_registry.inspect_registered_runner\` reads an optional
+`host.runner_registry.inspect_registered_runner` reads an optional
 operator-selected catalog **outside** the science project, workflow and
 project-map directory. It verifies a bounded Python source file hash and
 rejects protected or escaping paths. It never launches any catalog script.
 A matching hash does *not* authenticate a user grant, the catalog origin,
 actual imports or Windows ACL configuration.
 
-\`host.isolation.assess_host_isolation()\` only records the current UID/SID
+`host.isolation.assess_host_isolation()` only records the current UID/SID
 and always says HOST_OS_ISOLATION_NOT_ATTESTED. This is deliberate:
-\`approved: true\` in a prompt or an environment variable is not a grant.
+`approved: true` in a prompt or an environment variable is not a grant.
 
 ## Required independent Windows on-device acceptance before real DEV
 
