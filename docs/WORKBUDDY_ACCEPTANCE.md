@@ -1,7 +1,14 @@
-# WorkBuddy on-device acceptance (v0.7.1)
+# WorkBuddy on-device acceptance (v0.7.2)
+
+> v0.7.2 on-device scope is a **fixed CPU diagnostic** in a separately
+> launched host CLI, with real Windows Job Object cancellation and
+> kill-on-close. A successful Windows CI is not proof of restricted
+> operating-system identity, DEV/SEALED ACL isolation or original user
+> grants. Current MCP has **20 tools**. Real DEV remains disabled.
+> See [v0.7.2 host pilot](V072_HOST_PILOT.md).
 
 > The following v0.2-v0.5 sections are historical test procedures, not
-> an up-to-date tool count. Current MCP has 19 registered tools.
+> an up-to-date tool count. Current MCP has 20 registered tools.
 > New v0.7.1 acceptance: legacy Markdown-only project stays read-only;
 > complete original machine ledger without a separate SHA256 manifest
 > remains reviewable; conflicting machine/legacy identity blocks execution

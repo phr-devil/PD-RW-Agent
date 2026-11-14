@@ -1,5 +1,14 @@
 # PD-RW-Agent
 
+> **v0.7.2 supervised CPU pilot:** separate operator-launched host CLI,
+> Windows suspended child + Job Object kill-on-close (Linux session +
+> parent-death safeguard), persistent fixed CPU diagnostic, live
+> cancellation/timeout, plan-idempotent checkpoints and hash-verified
+> read-only MCP status. Operator runner-catalog source SHA checks and
+> OS-identity probes are diagnostic only. **No real DEV/GPU execution or
+> authenticated WorkBuddy permission is enabled.**
+> [Host contract](docs/V072_HOST_PILOT.md).
+
 > v0.7.1: Legacy/machine state diagnostics, advisory independent SHA manifests,
 > protected lexical paths, private DB migrations, bounded immutable DEV
 > proposal contracts, fail-closed host admission and read-only PID/start-token

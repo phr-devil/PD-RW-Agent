@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.7.1
+version: 0.7.2
 author: phr-devil
 ---
 
@@ -63,6 +63,14 @@ standalone SHA-256 manifests advisory. The internal DEV host contract is
 validation only; the host never accepts model-declared approval as permission.
 No authenticated DEV execution, GPU limits, OS isolation or scientific write
 is provided in this version.
+
+v0.7.2 adds read-only `get_host_diagnostic_status(project_id,
+operation_id)` and host-only fixed CPU child process supervision. The
+operator-launched `pdrw_agent.host.cli` can run only package-fixed CPU
+diagnostics: **no** WorkBuddy/MCP real DEV command, no authenticated user
+permission, no trusted OS user or SEALED ACL proof. Job Objects on Windows
+contain that fixed diagnostic subprocess only. Never infer a science Run or
+approval from a host checkpoint.
 
 v0.7 adds read-only `preflight_execution_plan(plan)` and
 `get_synthetic_job_status(project_id, operation_id)` for the fixed CPU

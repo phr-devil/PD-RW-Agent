@@ -21,6 +21,9 @@ def main() -> int:
     xs = sub.add_parser("synthetic-status")
     xs.add_argument("--project-id", required=True)
     xs.add_argument("--operation-id", required=True)
+    hs = sub.add_parser("host-status")
+    hs.add_argument("--project-id", required=True)
+    hs.add_argument("--operation-id", required=True)
     a = sub.add_parser("audit")
     a.add_argument("--project-id", required=True)
     history = sub.add_parser("history")
@@ -89,6 +92,10 @@ def main() -> int:
                                plan=read_json(Path(options.plan_file)))
         elif command == "synthetic-status":
             out = service.call("get_synthetic_job_status",
+                               project_id=options.project_id,
+                               operation_id=options.operation_id)
+        elif command == "host-status":
+            out = service.call("get_host_diagnostic_status",
                                project_id=options.project_id,
                                operation_id=options.operation_id)
         elif command == "audit":

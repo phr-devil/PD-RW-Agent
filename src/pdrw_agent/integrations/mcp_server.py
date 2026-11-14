@@ -41,6 +41,12 @@ def create_server(settings: Settings | None = None):
                             project_id=project_id, operation_id=operation_id)
 
     @mcp.tool()
+    def get_host_diagnostic_status(project_id: str, operation_id: str) -> dict[str, Any]:
+        """Read-only OS-supervised fixed CPU checkpoint, never a scientific permission."""
+        return service.call("get_host_diagnostic_status",
+                            project_id=project_id, operation_id=operation_id)
+
+    @mcp.tool()
     def audit_project_state(project_id: str) -> dict[str, Any]:
         """Audit registered state, evidence coverage and version drift (read-only)."""
         return service.call("audit_project_state", project_id=project_id)

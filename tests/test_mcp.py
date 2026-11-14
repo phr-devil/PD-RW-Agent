@@ -30,6 +30,7 @@ class MCPTests(unittest.TestCase):
                     self.assertEqual(names, {
                         "get_project_context", "audit_project_state", "get_applicable_rules",
                         "preflight_execution_plan", "get_synthetic_job_status",
+                        "get_host_diagnostic_status",
                         "reconstruct_project_history", "verify_run_evidence",
                         "audit_scientific_experiment", "review_evidenced_lesson",
                         "review_lesson_applicability",
@@ -81,6 +82,9 @@ class MCPTests(unittest.TestCase):
                     rules = await client.call_tool("get_applicable_rules", {"topic": "DEV"})
                     history = await client.call_tool(
                         "reconstruct_project_history", {"project_id": "37"})
+                    host_checkpoint = await client.call_tool(
+                        "get_host_diagnostic_status", {
+                            "project_id": "37", "operation_id": "dry-test-1"})
                     plan = await client.call_tool("preflight_execution_plan", {
                         "plan": {
                             "schema_version": "pdrw-exec-plan-v1",
@@ -116,7 +120,7 @@ class MCPTests(unittest.TestCase):
                                         "validity": "VALID_NEGATIVE",
                                         "evidence_refs": ["r1"]}]})
                     for response in (context, resume, rules, history, run, science,
-                                     evidenced, lessons, plan, checkpoint):
+                                     evidenced, lessons, plan, checkpoint, host_checkpoint):
                         self.assertFalse(response.is_error)
                     self.assertIn("INCOMPLETE_CONTEXT", str(context.structured_content or context.content))
                     self.assertIn("BLOCKED_INCOMPLETE_CONTEXT", str(resume.structured_content or resume.content))
@@ -128,6 +132,8 @@ class MCPTests(unittest.TestCase):
                                   str(plan.structured_content or plan.content))
                     self.assertIn("SYNTHETIC_JOB_NOT_FOUND",
                                   str(checkpoint.structured_content or checkpoint.content))
+                    self.assertIn("HOST_JOB_NOT_FOUND",
+                                  str(host_checkpoint.structured_content or host_checkpoint.content))
                     self.assertIn("RUN_HISTORY_NOT_ATTESTABLE",
                                   str(run.structured_content or run.content))
                     self.assertIn("AUDIT_PREREQUISITE_UNVERIFIED",

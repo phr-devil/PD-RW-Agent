@@ -20,6 +20,7 @@ from .science.validity import audit_scientific_experiment
 from .science.lesson_evidence import review_evidenced_lesson
 from .runtime.plan import preflight_execution_plan
 from .runtime.synthetic_executor import get_synthetic_job_status
+from .host.supervisor import get_host_diagnostic_status
 
 
 class ResearchService:
@@ -31,6 +32,7 @@ class ResearchService:
             "get_project_context": get_project_context,
             "preflight_execution_plan": preflight_execution_plan,
             "get_synthetic_job_status": get_synthetic_job_status,
+            "get_host_diagnostic_status": get_host_diagnostic_status,
             "audit_project_state": audit_project_state,
             "reconstruct_project_history": reconstruct_project_history,
             "verify_run_evidence": verify_run_evidence,

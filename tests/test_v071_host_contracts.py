@@ -197,13 +197,15 @@ class RuntimeMigrationTests(unittest.TestCase):
             with _open(path, write=False) as ro:
                 self.assertEqual(ro.execute("PRAGMA user_version").fetchone()[0], 0)
             with _open(path, write=True) as writable:
-                self.assertEqual(writable.execute("PRAGMA user_version").fetchone()[0], 2)
+                self.assertEqual(writable.execute("PRAGMA user_version").fetchone()[0], 3)
                 self.assertEqual(writable.execute(
                     "SELECT COUNT(*) FROM operation_attempts").fetchone()[0], 0)
                 self.assertEqual(writable.execute(
+                    "SELECT COUNT(*) FROM host_jobs").fetchone()[0], 0)
+                self.assertEqual(writable.execute(
                     "SELECT phase FROM operations").fetchone()[0], "PLANNED")
             with _open(path, write=False) as ro:
-                self.assertEqual(ro.execute("PRAGMA user_version").fetchone()[0], 2)
+                self.assertEqual(ro.execute("PRAGMA user_version").fetchone()[0], 3)
 
     def test_unknown_newer_schema_rejected_and_not_downgraded(self):
         with tempfile.TemporaryDirectory() as temp:
