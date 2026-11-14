@@ -1,6 +1,6 @@
 # Python Runtime + MCP — operator documentation (v0.7.5)
 
-> The current MCP surface now has **20 tools**, adding one read-only
+> The diagnostic MCP surface has **20 tools** (the default research profile has 17), including one read-only
 > host-diagnostic status endpoint. Host CPU selftests launch only via
 > operator's separate host CLI, not through MCP/WorkBuddy. Real scientific
 > DEV/GPU execution is not enabled. See [v0.7.2 pilot](V072_HOST_PILOT.md).
