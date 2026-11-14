@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.7.2
+version: 0.7.3
 author: phr-devil
 ---
 
@@ -112,6 +112,10 @@ python scripts/context.py delivery-review --workflow-root "D:/path/to/Problem-Da
 ```
 
 All JSON outputs are **locators, routing hints, or structural checks**, never original-user authorization or scientific verification. Trigger four kinds of targeted calibration only on evidence of need: new-session recovery, observed execution drift, restricted-effect gate, or material scientific-value change. No repetitive review prompts or new phases.
+
+v0.7.3 operator-only host ACL fixture probes and process snapshot checks
+do not authenticate DEV authorization or enable real DEV/GPU execution.
+Do not expose host CLI actions as WorkBuddy MCP execution tools.
 
 ## Load additional guidance only if necessary
 

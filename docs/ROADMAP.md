@@ -1,5 +1,18 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.7.3 host reliability, fixture ACL gate and remaining work
+
+- Distinguish Windows PID/birth-token identity from observed active process.
+- Record interrupted fixed diagnostic attempts explicitly; never auto-retry.
+- Operator-only synthetic DEV-read / denied-fixture probe with exit-code
+  failure for readable protected fixture. No actual SEALED files opened.
+- Still pending and **not claimed as complete**: independent restricted
+  Windows principal, authenticated original user grants, real OS filesystem
+  ACL enforcement, host IPC, registered DEV CPU runner and scientific Run
+  registration, GPU limits, and real WorkBuddy acceptance.
+- See [the bounded host acceptance contract](V073_HOST_RELIABILITY.md).
+
+
 ## v0.7.2 OS-supervised fixed CPU host pilot
 
 - The host-only `python -m pdrw_agent.host.cli` is a separate operator-

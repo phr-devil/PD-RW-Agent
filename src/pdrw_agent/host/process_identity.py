@@ -40,6 +40,9 @@ def observe_process(pid: int) -> dict:
             ctypes.POINTER(wintypes.FILETIME), ctypes.POINTER(wintypes.FILETIME),
             ctypes.POINTER(wintypes.FILETIME)]
         kernel.GetProcessTimes.restype = wintypes.BOOL
+        kernel.GetExitCodeProcess.argtypes = [
+            wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel.GetExitCodeProcess.restype = wintypes.BOOL
         kernel.CloseHandle.argtypes = [wintypes.HANDLE]
         kernel.CloseHandle.restype = wintypes.BOOL
         handle = kernel.OpenProcess(0x1000, False, pid)
@@ -51,10 +54,20 @@ def observe_process(pid: int) -> dict:
             if not ok:
                 return {**base, "reason": "PROCESS_TIMES_NOT_AVAILABLE"}
             birth = (values[0].dwHighDateTime << 32) | values[0].dwLowDateTime
-            return {**base, "status": "OBSERVED",
+            exit_code = wintypes.DWORD()
+            if not kernel.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                return {**base, "status": "UNKNOWN",
+                        "start_token": f"win-filetime:{birth}",
+                        "reason": "PROCESS_EXIT_STATUS_NOT_AVAILABLE"}
+            # Windows STILL_ACTIVE (259) is a snapshot rather than a
+            # durable ownership or liveness guarantee. Our fixed worker
+            # never chooses exit code 259.
+            running = exit_code.value == 259
+            return {**base, "status": "OBSERVED" if running else "EXITED",
                     "start_token": f"win-filetime:{birth}",
-                    "liveness_verified": False,
-                    "reason": "IDENTITY_OBSERVED_EXIT_STATUS_NOT_CHECKED"}
+                    "liveness_verified": running,
+                    "reason": ("PROCESS_RUNNING_SNAPSHOT" if running else
+                               "PROCESS_TERMINATED_SNAPSHOT")}
         finally:
             kernel.CloseHandle(handle)
     return {**base, "reason": "PROCESS_IDENTITY_PLATFORM_UNSUPPORTED"}
@@ -67,8 +80,10 @@ def compare_process_identity(pid: int, expected_start_token: str) -> dict:
                observed["start_token"] == expected_start_token)
     return {
         "pid": pid, "identity_matched": matched,
-        "status": "SAME_PID_AND_START_TOKEN_OBSERVED" if matched else
-                  "PROCESS_IDENTITY_NOT_ESTABLISHED",
+        "status": ("SAME_PROCESS_RUNNING_SNAPSHOT" if matched and
+                   observed["liveness_verified"] else
+                   "SAME_PROCESS_NOT_RUNNING_OR_UNVERIFIED" if matched else
+                   "PROCESS_IDENTITY_NOT_ESTABLISHED"),
         "liveness_verified": bool(matched and observed["liveness_verified"]),
         "host_ownership_verified": False,
         "execution_authorized": False,
