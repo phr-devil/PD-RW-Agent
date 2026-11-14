@@ -34,7 +34,7 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("audit_scientific_experiment(project_id, run_id)", text)
         self.assertIn("review_evidenced_lesson(project_id, run_id", text)
         self.assertIn("preflight_execution_plan(plan)", text)
-        self.assertIn("PDRW", "PDRW")  # the Skill does not clone PD-RW authority
+        self.assertIn("PD-RW", text)
 
     def test_references_are_real_and_opt_in(self):
         text = ENTRY.read_text(encoding="utf-8")
