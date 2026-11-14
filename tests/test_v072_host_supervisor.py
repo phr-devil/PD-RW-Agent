@@ -176,9 +176,13 @@ class HostPilotTests(unittest.TestCase):
     def test_private_old_schema_status_never_migrates(self):
         self.private.mkdir()
         dbpath = self.private / "runtime.sqlite"
-        with sqlite3.connect(dbpath) as db:
+        db = sqlite3.connect(dbpath)
+        try:
             db.execute("CREATE TABLE old_receipts (id TEXT)")
             db.execute("PRAGMA user_version=2")
+            db.commit()
+        finally:
+            db.close()
         before = dbpath.read_bytes()
         status = get_host_diagnostic_status(self.settings, "demo", "none")
         self.assertEqual(status["status"], "HOST_JOB_NOT_FOUND")
