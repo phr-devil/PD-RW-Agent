@@ -33,7 +33,7 @@ These are **actual WorkBuddy-client steps to perform**, distinct from GitHub CI.
 
 ## Prerequisite
 
-- An accessible WorkBuddy client with Skill import; Python 3.9+ and the two distinct checkouts.
+- An accessible WorkBuddy client with Skill import; Python 3.11+ and the two distinct checkouts.
 - Private `project-map.local.json` filled with *real verified* project root and existing state/record path.
 - Confirm original user instructions, protected data isolation, and existing DEV scope through original messages before any experiment.
 - No API key, new LLM, or extra GPU is necessary for these read-only tests.
