@@ -81,6 +81,16 @@ class MCPTests(unittest.TestCase):
                     rules = await client.call_tool("get_applicable_rules", {"topic": "DEV"})
                     history = await client.call_tool(
                         "reconstruct_project_history", {"project_id": "37"})
+                    plan = await client.call_tool("preflight_execution_plan", {
+                        "plan": {
+                            "schema_version": "pdrw-exec-plan-v1",
+                            "project_id": "37", "operation_id": "dry-test-1",
+                            "task_id": "selftest", "profile": "CPU_SELFTEST_V1",
+                            "scenario": "SUCCESS", "iterations": 10,
+                            "timeout_seconds": 2, "network": False, "gpu": False}})
+                    checkpoint = await client.call_tool(
+                        "get_synthetic_job_status", {
+                            "project_id": "37", "operation_id": "dry-test-1"})
                     run = await client.call_tool(
                         "verify_run_evidence", {"project_id": "37", "run_id": "r1"})
                     science = await client.call_tool(
@@ -105,7 +115,8 @@ class MCPTests(unittest.TestCase):
                             "lessons": [{"premise_id": "p1", "scope": scope,
                                         "validity": "VALID_NEGATIVE",
                                         "evidence_refs": ["r1"]}]})
-                    for response in (context, resume, rules, history, run, science, evidenced, lessons):
+                    for response in (context, resume, rules, history, run, science,
+                                     evidenced, lessons, plan, checkpoint):
                         self.assertFalse(response.is_error)
                     self.assertIn("INCOMPLETE_CONTEXT", str(context.structured_content or context.content))
                     self.assertIn("BLOCKED_INCOMPLETE_CONTEXT", str(resume.structured_content or resume.content))
@@ -113,6 +124,10 @@ class MCPTests(unittest.TestCase):
                     self.assertIn("EXPERIMENT_LOOP.md", str(rules.structured_content or rules.content))
                     self.assertIn("HISTORY_SOURCES_MISSING",
                                   str(history.structured_content or history.content))
+                    self.assertIn("BLOCKED_PROJECT_CONTEXT",
+                                  str(plan.structured_content or plan.content))
+                    self.assertIn("SYNTHETIC_JOB_NOT_FOUND",
+                                  str(checkpoint.structured_content or checkpoint.content))
                     self.assertIn("RUN_HISTORY_NOT_ATTESTABLE",
                                   str(run.structured_content or run.content))
                     self.assertIn("AUDIT_PREREQUISITE_UNVERIFIED",
