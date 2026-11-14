@@ -4,6 +4,7 @@ from ..config import Settings
 from ..projects import get_project_context
 from .receipts import execution_status
 from .history import reconstruct_project_history
+from .synthetic_executor import recent_synthetic_jobs
 
 def get_resume_context(settings: Settings, project_id: str) -> dict:
     project = get_project_context(settings, project_id)
@@ -30,6 +31,7 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
                 "read_only_next_actions": ["AUDIT_PROJECT_STATE",
                                            "REVIEW_RAW_EVENTS_NO_AUTO_REPAIR"]}
     operations = execution_status(settings, project_id, limit=6)
+    synthetic_runtime = recent_synthetic_jobs(settings, project_id, limit=6)
     unresolved = [r for r in operations["operations"] if
                   r["recovery_class"] in {"VERIFY_ACTUAL_EXECUTION",
                                            "NEEDS_ARTIFACT_RECONCILIATION"}]
@@ -55,6 +57,7 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
         "pending_scientific_review": pending_review[:6],
         "scientific_completion_verified": False,
         "receipt_status": operations["status"],
+        "synthetic_selftest_checkpoints": synthetic_runtime,
         "authorization_verified": False,
         "process_liveness_verified": False,
         "restart_permitted": False,

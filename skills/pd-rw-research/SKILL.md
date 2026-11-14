@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.6.3
+version: 0.7.0
 author: phr-devil
 ---
 
@@ -57,6 +57,12 @@ The MCP call executes the shared `pdrw_agent` Python service; WorkBuddy's own te
 - Use `get_applicable_rules(topic)` for relevant rule-file routing, then read the applicable **original PD-RW rule files**; `ROUTE_FOUND` is navigation, not policy attestation. Use `find_experiment_evidence` only for indexed evidence that matters; use `search_research_memory` only when useful and `check_duplicate_experiment` before a costly repeated Run.
 - If MCP is absent, disconnected, explicitly prohibited, unregistered or fails, record `MCP_NOT_USED` with the factual reason **once**, then use permitted original sources or the existing standalone `scripts/bridge.py` / `scripts/context.py` fallback. Do not invent an MCP call, repeatedly retry, or let a tool failure block unrelated legal read-only review.
 - In evaluation/hand-off reports, state the **actual MCP tool names and statuses**, or `MCP_NOT_USED`; distinguish MCP invocation from Skill loading, Python package installation, and WorkBuddy terminal commands. An MCP-connected status alone is not an actual call.
+
+v0.7 adds read-only `preflight_execution_plan(plan)` and
+`get_synthetic_job_status(project_id, operation_id)` for the fixed CPU
+engineering self-test. No arbitrary command/real DEV execution is enabled in
+MCP or CLI; preflight is not approval. The host-only Python self-test is
+not an OS sandbox or permission token.
 
 Only for a meaningful, already-authorized DEV operation, use `begin_operation_receipt` and at significant transitions `checkpoint_operation_receipt` to maintain **private operational metadata**, not science or permission. Before a proposed Run registration call `preview_experiment_record` (read-only). Use `prepare_handoff` when meaningful real file artifacts are delivered. **No MCP tool can register Run/Claim, repair STATE or authenticate original user permission.** Never treat `status`, `APPROVED`, receipt state, fingerprint, or hash match as scientific validity.
 

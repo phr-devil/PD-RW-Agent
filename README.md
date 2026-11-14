@@ -1,5 +1,12 @@
 # PD-RW-Agent
 
+> **v0.7.0 host execution foundation (synthetic CPU only):** strict execution
+> plans, source-bound preflight, private SQLite job checkpoints, idempotent
+> fixed-code synthetic subprocess and fail-closed recovery. MCP/CLI expose
+> **only read-only planning/status**, never arbitrary command execution.
+> Scientific DEV/GPU execution still requires a separately secured host.
+> See [v0.7 contract](docs/V070_HOST_EXECUTION.md).
+
 > **v0.6.3 source-lineage and evidenced-lessons increment:** bounded,
 > non-executing Python AST feature/split-fit risk detection and optional
 > linked content-hash overlap checks; original Run + science-audit + baseline
