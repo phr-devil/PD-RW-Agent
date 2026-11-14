@@ -1,5 +1,15 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.7.5 convergence gate — no expansion until measured
+
+- Expose additive scientific/operation/next-action resume views; MCP defaults to compact output. Keep full schema for backward compatibility.
+- Select MCP visibility profiles at startup: minimal 11, research 17 (default), diagnostic 20. Visibility is never a permission or sandbox.
+- Skill uses one compact resume call when genuinely resuming; original PD-RW authority and evidence remain primary.
+- Index matches remain evidence candidates with explicit UNKNOWN applicability; original Run checks must precede scientific reuse.
+- Freeze new host/scheduler/permission-platform expansion; resolve only demonstrable blocking defects.
+- Next: use the existing real WorkBuddy client to run frozen A/B/C cases and measure source fidelity, authorized DEV continuity, interventions and tokens. No measured quality improvement is yet claimed.
+- [v0.7.5 contract and upstream references](V075_CONVERGENCE.md).
+
 ## v0.7.4 first-pass runtime integration and resume correction
 
 - The current fixed host mirrors a new attempt into the existing

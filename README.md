@@ -1,5 +1,7 @@
 # PD-RW-Agent
 
+> **v0.7.5 WorkBuddy convergence (candidate):** compact, evidence-bounded resume hints coexist with the v0.7.4 full schema; the Skill prefers one resume call rather than repeating context reads. MCP profiles now expose `minimal` (11), `research` (17, default) or `diagnostic` (20) tools, without changing scientific authorization. Case-index search identifies review candidates but does not promote similarity to a scientifically validated lesson. Existing v0.7.4 host experiments remain intact and diagnostic-only. **Actual WorkBuddy A/B/C is still NOT_MEASURED.** [Design and acceptance](docs/V075_CONVERGENCE.md).
+
 > **v0.7.4 first-pass runtime integration:** fixed CPU host records now
 > mirror into the existing versioned operation-attempt ledger; duplicate
 > logical IDs between host jobs and operational receipts are rejected.
