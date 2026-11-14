@@ -1,5 +1,22 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.7.2 OS-supervised fixed CPU host pilot
+
+- The host-only `python -m pdrw_agent.host.cli` is a separate operator-
+  launched process, not a socket or MCP command executor. Only package-fixed
+  CPU selftests are runnable, without project data, custom scripts or GPU.
+- Windows child is created suspended, assigned to a kill-on-close Job
+  Object, then resumed; Linux child uses its own session and parent-death
+  signal. Supports cancellation, timeout, recovery diagnosis and no blind
+  replay after uncertain status. Output and source hashes are scoped only.
+- New read-only `get_host_diagnostic_status` MCP/CLI tool and host
+  resume summaries. Independent catalog source integrity and OS identity
+  probes are **not security attestations**.
+- Next release must provision distinct restricted Windows host account,
+  enforce DEV/SEALED ACL and network isolation, validate original author
+  grants, bind a trusted catalog to the host and test real permitted
+  DEV CPU execution. No such authority is inferred in v0.7.2.
+
 ## v0.7.1 source compatibility and trusted host admission foundation
 
 - No implicit legacy state migration; complete original STATE.json/EVENTS

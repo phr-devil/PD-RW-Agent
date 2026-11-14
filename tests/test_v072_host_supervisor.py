@@ -21,6 +21,7 @@ from pdrw_agent.host.isolation import assess_host_isolation, current_os_identity
 from pdrw_agent.host.runner_registry import inspect_registered_runner
 from pdrw_agent.host.supervisor import HostSupervisor, get_host_diagnostic_status
 from pdrw_agent.runtime.receipts import _open
+from pdrw_agent.service import ResearchService
 
 
 def plan(**kw):
@@ -85,6 +86,12 @@ class HostPilotTests(unittest.TestCase):
         persisted = get_host_diagnostic_status(self.settings, "demo", "host-test-1")
         self.assertEqual(persisted["status"], "HOST_COMPLETED_HASH_MATCHED_ONLY")
         self.assertEqual(persisted["job"]["output_integrity"], "MATCH")
+        resume = ResearchService(self.settings).call(
+            "get_resume_context", project_id="demo")
+        self.assertEqual(resume["host_fixed_cpu_checkpoints"]["status"],
+                         "HOST_DIAGNOSTICS_FOUND")
+        self.assertFalse(
+            resume["host_fixed_cpu_checkpoints"]["reconciliation_required"])
         self.assertEqual(before, self.snapshot())
         again = self.host.run_fixed_diagnostic(plan())
         self.assertEqual(again["status"], "HOST_ALREADY_RECORDED_NO_RELAUNCH")

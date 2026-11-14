@@ -1,0 +1,12 @@
+{
+  "schema_version": "pdrw-exec-plan-v1",
+  "project_id": "demo",
+  "operation_id": "host-demo-1",
+  "task_id": "task-a",
+  "profile": "CPU_SELFTEST_V1",
+  "scenario": "SUCCESS",
+  "iterations": 1000,
+  "timeout_seconds": 3,
+  "network": false,
+  "gpu": false
+}

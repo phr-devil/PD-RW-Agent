@@ -1,7 +1,12 @@
-# Python Runtime + MCP — operator documentation (v0.7.1)
+# Python Runtime + MCP — operator documentation (v0.7.2)
+
+> The current MCP surface now has **20 tools**, adding one read-only
+> host-diagnostic status endpoint. Host CPU selftests launch only via
+> operator's separate host CLI, not through MCP/WorkBuddy. Real scientific
+> DEV/GPU execution is not enabled. See [v0.7.2 pilot](V072_HOST_PILOT.md).
 
 > The legacy v0.4-v0.5 sections below are retained as historical
-> setup examples. Current MCP has 19 tools defined in the server and
+> setup examples. Current MCP has 20 tools defined in the server and
 > tested by tests/test_mcp.py. v0.7.1 adds Python-only internal host
 > validation and readiness diagnostics, not a new MCP execution tool.
 > See V071_HOST_READINESS.md. DEV/GPU execution is not yet enabled.

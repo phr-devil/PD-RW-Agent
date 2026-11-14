@@ -176,6 +176,33 @@ def _reap_or_kill(proc) -> None:
             proc.wait(timeout=1)
 
 
+def recent_host_diagnostics(settings: Settings, project_id: str,
+                            limit: int = 6) -> dict:
+    """Private read-only resume hints; no process adoption or automatic retry."""
+    path = _root(settings, project_id, create=False)
+    if path is None or not path.is_file():
+        return {"status": "NO_HOST_DIAGNOSTICS", "jobs": [],
+                "reconciliation_required": False}
+    try:
+        with _open(path, write=False) as db:
+            rows = db.execute(
+                """SELECT * FROM host_jobs WHERE project_id=?
+                   ORDER BY updated_at DESC, operation_id DESC LIMIT ?""",
+                (project_id, max(1, min(limit, 10)))).fetchall()
+    except sqlite3.OperationalError as exc:
+        if "no such table" in str(exc).lower():
+            return {"status": "NO_HOST_DIAGNOSTICS", "jobs": [],
+                    "reconciliation_required": False}
+        raise
+    jobs = [_public(row) for row in rows]
+    return {"status": "HOST_DIAGNOSTICS_FOUND" if jobs else "NO_HOST_DIAGNOSTICS",
+            "jobs": jobs,
+            "reconciliation_required": any(x["phase"] in {
+                "STARTING_UNVERIFIED", "RUNNING_UNVERIFIED"} for x in jobs),
+            "scientific_result": False, "execution_authorized": False,
+            "safe_to_auto_restart": False}
+
+
 class HostSupervisor:
     """A single live host instance; handles are not reconstructed from JSON."""
 
