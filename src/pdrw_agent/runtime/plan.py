@@ -13,6 +13,7 @@ from ..projects import get_project_context
 from ..runtime.history import reconstruct_project_history
 from ..schemas import AgentError
 from .receipts import _identifier
+from .readiness import inspect_project_readiness
 
 PROFILE = "CPU_SELFTEST_V1"
 REQUIRED = frozenset({
@@ -66,6 +67,10 @@ def preflight_execution_plan(settings: Settings, plan: dict) -> dict:
     if history["status"] != "METADATA_CHAIN_MATCHED_ONLY":
         return {**base, "status": "BLOCKED_PROJECT_HISTORY",
                 "history_status": history["status"]}
+    machine = inspect_project_readiness(settings, project_id)
+    if machine["status"] != "MACHINE_METADATA_READY":
+        return {**base, "status": "BLOCKED_MACHINE_READINESS",
+                "machine_readiness": machine["status"]}
     active = context["state_index"].get("active_task_id")
     if active and active != spec["task_id"]:
         return {**base, "status": "BLOCKED_TASK_MISMATCH",

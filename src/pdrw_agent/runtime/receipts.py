@@ -10,6 +10,7 @@ from pathlib import Path
 from ..config import Settings, under_root
 from ..schemas import AgentError
 from ..projects import get_project_context
+from .schema import migrate_runtime_db
 
 
 def _assert_context(settings: Settings, project_id: str, task_id: str | None = None) -> None:
@@ -96,6 +97,7 @@ def _open(path: Path, *, write: bool = True):
         """)
         if write:
             with connection:
+                migrate_runtime_db(connection)
                 yield connection
         else:
             yield connection
@@ -240,6 +242,14 @@ def execution_status(settings: Settings, project_id: str,
             item["artifact_integrity"] = "NOT_REPORTED"
         item["process_liveness_verified"] = False
         item["science_registration_verified"] = False
+        item["runtime_state"] = ("RUNNING" if row["phase"] == "RUNNING_DECLARED"
+                                 else "UNSTARTED" if row["phase"] == "PLANNED"
+                                 else "UNKNOWN")
+        item["evidence_state"] = ("NOT_REVIEWED" if not row["artifact_ref"]
+                                  else "INCOMPLETE" if item["artifact_integrity"] != "MATCH"
+                                  else "VERIFIED_SCOPED")
+        item["science_state"] = "NOT_REVIEWED"
+        item["authorization_state"] = "UNVERIFIED"
         # A matching checksum proves byte stability only. It can advance the
         # OPERATIONAL follow-up, but NEVER certifies experiment completion.
         if item["phase"] == "ARTIFACT_REPORTED":

@@ -23,12 +23,19 @@ def under_root(root: Path, value: str, *, must_exist: bool = False,
                protect_data: bool = True) -> Path:
     if not isinstance(value, str) or not value or Path(value).is_absolute():
         raise AgentError("INVALID_PROJECT_PATH", "Expected a relative project path")
+    root = root.resolve()
+    # The lexical path is protected too: a symlink named SEALED may resolve
+    # to an allowed location, but that does not make the name safe.
+    raw_parts = Path(value).parts
+    protected = {"sealed", "holdout", "confirmation"}
+    if protect_data and any(any(tag in part.casefold() for tag in protected)
+                            for part in raw_parts):
+        raise AgentError("PROTECTED_PROJECT_PATH", "Protected data subtree is not accessible")
     candidate = (root / value).resolve()
     if candidate != root and root not in candidate.parents:
         raise AgentError("PATH_OUTSIDE_PROJECT", "Mapped path is outside project root")
     # A model/registry must not turn a known holdout subtree into a normal
     # evidence lookup merely by selecting a file path explicitly.
-    protected = {"sealed", "holdout", "confirmation"}
     if protect_data and any(any(tag in part.casefold() for tag in protected)
                             for part in candidate.relative_to(root).parts):
         raise AgentError("PROTECTED_PROJECT_PATH", "Protected data subtree is not accessible by this adapter")
