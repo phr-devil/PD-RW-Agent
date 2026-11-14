@@ -31,12 +31,12 @@ class CoreConvergenceTests(unittest.TestCase):
             project.mkdir()
             (project / "STATE.json").write_text(json.dumps({
                 "schema_version": "1.4", "project_id": "source-id",
-                "active_task_id": "task-1", "latest_valid_run_id": None,
+                "active_task_id": None, "latest_valid_run_id": None,
                 "last_event_id": None, "evidence_refs": [],
             }), encoding="utf-8")
             (project / "EVENTS.jsonl").write_text("", encoding="utf-8")
             (project / "RESEARCH_RECORD.md").write_text(
-                "## 0. Snapshot\\nCurrent task\\n## 1. History\\n", encoding="utf-8")
+                "## 0. Snapshot\nCurrent task\n## 1. History\n", encoding="utf-8")
             registry = base / "map.json"
             registry.write_text(json.dumps({"schema_version": 1, "projects": {
                 "demo": {"root": str(project),
@@ -46,7 +46,7 @@ class CoreConvergenceTests(unittest.TestCase):
             full = get_resume_context(settings, "demo")
             compact = get_resume_context(settings, "demo", detail_level="compact")
             self.assertEqual(compact["status"], full["status"])
-            self.assertEqual(compact["scientific_context"]["active_task_id_declared"], "task-1")
+            self.assertIsNone(compact["scientific_context"]["active_task_id_declared"])
             self.assertFalse(compact["authorization_verified"])
             self.assertFalse(compact["restart_permitted"])
             self.assertFalse(compact["next_action_hint"]["execution_authorized"])
