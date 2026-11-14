@@ -1,6 +1,6 @@
-# Python Runtime + MCP — operator documentation (v0.7.2)
+# Python Runtime + MCP — operator documentation (v0.7.5)
 
-> The current MCP surface now has **20 tools**, adding one read-only
+> The diagnostic MCP surface has **20 tools** (the default research profile has 17), including one read-only
 > host-diagnostic status endpoint. Host CPU selftests launch only via
 > operator's separate host CLI, not through MCP/WorkBuddy. Real scientific
 > DEV/GPU execution is not enabled. See [v0.7.2 pilot](V072_HOST_PILOT.md).
@@ -10,6 +10,14 @@
 > tested by tests/test_mcp.py. v0.7.1 adds Python-only internal host
 > validation and readiness diagnostics, not a new MCP execution tool.
 > See V071_HOST_READINESS.md. DEV/GPU execution is not yet enabled.
+
+## v0.7.5 recommended WorkBuddy profile
+
+At MCP startup the environment variable `PDRW_MCP_PROFILE` may be `minimal` (11 tools), `research` (17, default), or `diagnostic` (20). A profile is **tool discovery visibility, not authorization**: the Python CLI and WorkBuddy's own external tools retain their independently configured capabilities.
+
+Add `"PDRW_MCP_PROFILE": "research"` under the MCP server `env` block and restart/reconnect the MCP connection. Import the updated Skill independently. For a fresh-session project recovery, the Skill calls `get_resume_context(project_id, detail_level="compact")` once. The CLI and Python code default to the backward-compatible full view.
+
+For previously installed broad-inventory integration tests use `profile="diagnostic"` explicitly. Only explicitly configured `diagnostic` exposes the fixed CPU host/selftest diagnostics. No profile grants real DEV/GPU execution or OS isolation.
 
 This is an adapter. PD-RW remains the one and only scientific-rule authority. Python and MCP **cannot** authorize operations, decide scientific merit, or read SEALED data by virtue of being installed.
 
@@ -115,6 +123,6 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For current use verify Python and installed Skill both report **0.7.1**, then restart/reconnect MCP and confirm the registered 19 tools. Historical frozen comparisons must instead install their originally tested versions and maintain matched tools. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For current use verify Python and installed Skill both report **0.7.5**, then restart/reconnect MCP and confirm **17 tools** with the default research profile (or 20 with diagnostic). Historical frozen comparisons must instead install their originally tested versions and maintain matched tools. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.

@@ -74,7 +74,14 @@ def search_research_memory(settings: Settings, query: str, limit: int = 5) -> di
             continue
         # A compact structured card avoids repeated consumption of whole rows
         # while keeping the specific declared scope and evidence caveats.
+        matched_terms = [term for term in terms
+                         if term in (identifier + " " + row["summary"].casefold()
+                                     + " " + row["declared_boundaries"].casefold()
+                                     + " " + row["source_declarations"].casefold())]
         hits.append({
+            "matched_terms": matched_terms,
+            "candidate_review": "OPEN_ORIGINAL_RUN_AND_COMPARE_PREMISE_SCOPE",
+            "scientific_applicability": "UNKNOWN",
             "line": lineno, "score": score, "case_id": row["case_id"],
             "excerpt": line.strip()[:360], "source_file": "LESSONS/CASE_REGISTRY.md",
             "declared_status_tags": row["declared_status_tags"],

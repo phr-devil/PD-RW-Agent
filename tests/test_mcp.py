@@ -21,7 +21,7 @@ class MCPTests(unittest.TestCase):
                 (workflow / name).write_text("# minimal", encoding="utf-8")
             mapping = root / "project-map.json"
             mapping.write_text('{"schema_version":1,"projects":{}}', encoding="utf-8")
-            server = create_server(Settings.load(str(mapping), str(workflow)))
+            server = create_server(Settings.load(str(mapping), str(workflow)), profile="diagnostic")
 
             async def do_test():
                 async with Client(server) as client:
@@ -49,6 +49,31 @@ class MCPTests(unittest.TestCase):
 
             asyncio.run(do_test())
 
+    def test_research_and_minimal_profiles_hide_unselected_wire_tools(self):
+        from mcp import Client
+        from pdrw_agent.integrations.mcp_server import create_server
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            rules = base / "rules"
+            rules.mkdir()
+            for name in ("AGENTS.md", "WORKFLOW.md"):
+                (rules / name).write_text("# original", encoding="utf-8")
+            mapping = base / "map.json"
+            mapping.write_text('{"schema_version":1,"projects":{}}', encoding="utf-8")
+            settings = Settings.load(str(mapping), str(rules))
+
+            async def check():
+                for profile, expected_count in (("minimal", 11), ("research", 17)):
+                    async with Client(create_server(settings, profile=profile)) as client:
+                        response = await client.list_tools()
+                        names = {t.name for t in response.tools}
+                        self.assertEqual(len(names), expected_count)
+                        self.assertIn("get_resume_context", names)
+                        self.assertNotIn("get_host_diagnostic_status", names)
+                        self.assertEqual("audit_scientific_experiment" in names,
+                                         profile == "research")
+            asyncio.run(check())
+
     def test_registered_incomplete_project_triad_is_read_only(self):
         """Wire-level Python/MCP preflight: incomplete project blocks resume, rules still route."""
         import json
@@ -73,7 +98,7 @@ class MCPTests(unittest.TestCase):
             registry.write_text(json.dumps({
                 "schema_version": 1, "projects": {"37": {"root": str(project)}}
             }), encoding="utf-8")
-            server = create_server(Settings.load(str(registry), str(rule_root)))
+            server = create_server(Settings.load(str(registry), str(rule_root)), profile="diagnostic")
 
             async def exercise():
                 async with Client(server) as client:
@@ -180,7 +205,7 @@ class MCPTests(unittest.TestCase):
             settings = Settings.load(str(registry), str(rule_root))
 
             async def exercise():
-                server = create_server(settings)
+                server = create_server(settings, profile="diagnostic")
                 async with Client(server) as client:
                     began = await client.call_tool("begin_operation_receipt", {
                         "project_id": "demo", "operation_id": "op-wire",

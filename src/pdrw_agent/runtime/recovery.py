@@ -8,7 +8,7 @@ from .synthetic_executor import recent_synthetic_jobs
 from .readiness import inspect_project_readiness
 from ..host.supervisor import recent_host_diagnostics
 
-def get_resume_context(settings: Settings, project_id: str) -> dict:
+def _raw_get_resume_context(settings: Settings, project_id: str) -> dict:
     project = get_project_context(settings, project_id)
     if project["status"] == "IDENTITY_CONFLICT":
         return {"status": "BLOCKED_PROJECT_IDENTITY", "project_id": project_id,
@@ -91,4 +91,71 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
         "read_only_next_actions": ["VERIFY_ACTUAL_PROCESS_AND_ARTIFACTS",
                                    "REVIEW_ORIGINAL_RUN_AND_AUTHORIZATION"],
         "next": next_hint,
+    }
+
+
+def get_resume_context(settings: Settings, project_id: str,
+                       detail_level: str = "full") -> dict:
+    """Resume hint, not execution authority. Keep legacy full result by default.
+
+    Compact mode is for token-bounded agent entry; it preserves blockers,
+    current declared scientific pointers and uncertainty while suppressing
+    verbose synthetic/host diagnostic objects. Both modes examine the same
+    sources and never restart operations.
+    """
+    if detail_level not in {"compact", "full"}:
+        raise ValueError("RESUME_DETAIL_INVALID: use compact or full")
+    result = _raw_get_resume_context(settings, project_id)
+    declared = result.get("state_index") or result.get("project", {}).get("state_index") or {}
+    scientific = {
+        "active_task_id_declared": declared.get("active_task_id") or declared.get("ACTIVE_TASK"),
+        "latest_valid_run_id_declared": declared.get("latest_valid_run_id") or declared.get("BEST_VALID_RUN"),
+        "source_status": result.get("project_status") or result.get("project", {}).get("status"),
+        "scientific_resume_status": result.get("scientific_resume_status", result["status"]),
+        "original_run_validated_here": False,
+    }
+    active = result.get("active_operations", [])
+    operation = {
+        "unresolved": [{"operation_id": r.get("operation_id"),
+                         "recovery_class": r.get("recovery_class")}
+                        for r in active[:6]],
+        "pending_scientific_review_count": len(result.get("pending_scientific_review", [])),
+        "operational_reconciliation_required": result.get("operational_reconciliation_required", False),
+        "host_reconciliation_required": result.get("host_reconciliation_required", False),
+        "old_job_restart_authorized": False,
+    }
+    status = result["status"]
+    if status.startswith("BLOCKED_"):
+        action = "RECONCILE_AFFECTED_ORIGINAL_SOURCES"
+    elif active or operation["operational_reconciliation_required"]:
+        action = "RECONCILE_UNCERTAIN_PRIOR_OPERATION"
+    else:
+        action = "REVIEW_ORIGINAL_SCOPE_THEN_CONTINUE_PERMITTED_DEV"
+    next_action = {
+        "action": action,
+        "source_hint": result.get("next"),
+        "original_authorization_verified": False,
+        "execution_authorized": False,
+        "unknown_old_job_restart_permitted": False,
+        "independent_permitted_read_only_review_allowed": True,
+        "note": "This is a planning hint only; verify original PD-RW user scope. "
+                "An uncertain prior job does not globally block independent permitted work.",
+    }
+    if detail_level == "full":
+        return {**result, "scientific_context": scientific,
+                "operation_context": operation, "next_action_hint": next_action}
+    return {
+        "status": status,
+        "scientific_resume_status": scientific["scientific_resume_status"],
+        "project_id": project_id,
+        "rule_commit_local_only": result.get("rule_commit_local_only"),
+        "state_index": declared,
+        "snapshot_excerpt": (result.get("snapshot_excerpt")
+                             or result.get("project", {}).get("snapshot_excerpt") or "")[:900],
+        "scientific_context": scientific,
+        "operation_context": operation,
+        "next_action_hint": next_action,
+        "authorization_verified": False,
+        "restart_permitted": False,
+        "missing": result.get("project", {}).get("missing", []),
     }
