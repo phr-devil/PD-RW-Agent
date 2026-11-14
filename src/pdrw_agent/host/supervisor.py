@@ -246,6 +246,14 @@ class HostSupervisor:
                 return {"status": ("HOST_PLAN_CONFLICT" if row["plan_sha256"] != plan_sha
                                    else "HOST_ALREADY_RECORDED_NO_RELAUNCH"),
                         "execute_performed": False, "execution_authorized": False}
+            # A logical operation identifier may not silently represent
+            # both a research receipt and a package-fixed diagnostic job.
+            occupied = db.execute(
+                "SELECT 1 FROM operations WHERE project_id=? AND operation_id=?",
+                (project_id, operation_id)).fetchone()
+            if occupied:
+                return {"status": "HOST_OPERATION_ID_RESERVED_BY_RECEIPT",
+                        "execute_performed": False, "execution_authorized": False}
             attempt = uuid.uuid4().hex
             now = _utc()
             db.execute("""INSERT INTO host_jobs

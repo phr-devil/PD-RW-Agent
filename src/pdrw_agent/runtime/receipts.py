@@ -130,6 +130,12 @@ def begin_operation(settings: Settings, project_id: str, operation_id: str,
                         "receipt": _public(existing), "execution_authorized": False}
             return {"status": "ALREADY_RECEIPTED", "receipt": _public(existing),
                     "execution_authorized": False}
+        occupied = db.execute(
+            "SELECT 1 FROM host_jobs WHERE project_id=? AND operation_id=?",
+            (project_id, operation_id)).fetchone()
+        if occupied:
+            return {"status": "RECEIPT_ID_RESERVED_BY_HOST_DIAGNOSTIC",
+                    "execution_authorized": False}
         _assert_context(settings, project_id, task_id)
         now = _utc()
         db.execute("""INSERT INTO operations(project_id,operation_id,task_id,action,

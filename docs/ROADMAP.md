@@ -1,5 +1,22 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.7.4 first-pass runtime integration and resume correction
+
+- The current fixed host mirrors a new attempt into the existing
+  versioned `operation_attempts` table transactionally with `host_jobs`.
+  Old host rows remain read-only and explicitly `LEGACY_UNLINKED`; no
+  blanket DB migration or synthetic history rewriting.
+- Project/operation IDs cannot be reused across *new* host fixed CPU
+  jobs and logical DEV operational receipts. Existing records remain intact.
+- Resume detects host STARTING/RUNNING uncertainty, completed diagnostic
+  output tamper, and new host/attempt mismatch. `scientific_resume_status`
+  remains separate and never promotes a diagnostic to scientific evidence.
+- Keep old synthetic selftest reports; no automatic job adoption or restart.
+- Next: original Run read-only end-to-end test and real WorkBuddy A/B/C;
+  actual DEV runner authorization and Windows ACL remains device-gated.
+- [Integration contract](V074_RUNTIME_INTEGRATION.md).
+
+
 ## v0.7.3 host reliability, fixture ACL gate and remaining work
 
 - Distinguish Windows PID/birth-token identity from observed active process.

@@ -54,11 +54,25 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
                  "VERIFY_REAL_PROCESS_AND_RUN_BEFORE_RESUMING" if unresolved else
                  "REVIEW_ORIGINAL_RUN_AND_SCOPE_NO_AUTO_RERUN" if pending_review else
                  "REVIEW_LATEST_SCIENTIFIC_EVIDENCE_AND_SCOPE")
-    status = ("NEEDS_RECONCILIATION" if unresolved else
-              "ARTIFACT_REVIEW_PENDING" if pending_review else
-              "SOURCE_REVIEW_REQUIRED")
+    scientific_status = ("NEEDS_RECONCILIATION" if unresolved else
+                         "ARTIFACT_REVIEW_PENDING" if pending_review else
+                         "SOURCE_REVIEW_REQUIRED")
+    host_review = bool(host_runtime.get("reconciliation_required"))
+    synthetic_review = bool(synthetic_runtime.get("reconciliation_required"))
+    # Preserve scientific status separately: fixed engineering diagnostics
+    # must never be promoted to a scientific finding. Still surface a host
+    # crash or corrupted output in the main resume decision.
+    status = ("NEEDS_OPERATIONAL_RECONCILIATION"
+              if host_review and scientific_status == "SOURCE_REVIEW_REQUIRED"
+              else scientific_status)
+    if host_review and not unresolved:
+        next_hint = "RECONCILE_FIXED_HOST_ATTEMPT_NO_AUTO_RESTART"
     return {
         "status": status,
+        "scientific_resume_status": scientific_status,
+        "operational_reconciliation_required": bool(host_review or synthetic_review),
+        "host_reconciliation_required": host_review,
+        "synthetic_reconciliation_required": synthetic_review,
         "project_id": project_id,
         "project_status": project["status"],
         "rule_commit_local_only": project["workflow_commit_local_only"],
