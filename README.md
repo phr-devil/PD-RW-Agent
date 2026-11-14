@@ -1,5 +1,10 @@
 # PD-RW-Agent
 
+> **v0.7.3 fixed-host reliability:** Windows process-exit observation,
+> explicit INTERRUPTED checkpoints and an operator-only synthetic ACL
+> fixture probe. This is diagnostic code, **not** a trusted production
+> DEV/GPU executor. See [v0.7.3 scope and backlog](docs/V073_HOST_RELIABILITY.md).
+
 > **v0.7.2 supervised CPU pilot:** separate operator-launched host CLI,
 > Windows suspended child + Job Object kill-on-close (Linux session +
 > parent-death safeguard), persistent fixed CPU diagnostic, live

@@ -129,9 +129,11 @@ def get_host_diagnostic_status(settings: Settings, project_id: str,
         observed = observe_process(row["pid"]) if row["pid"] else {}
         same = bool(row["start_token"] and
                     observed.get("start_token") == row["start_token"])
-        status = ("HOST_PROCESS_IDENTITY_OBSERVED_NOT_ADOPTED" if same
+        live_snapshot = same and observed.get("liveness_verified") is True
+        status = ("HOST_PROCESS_IDENTITY_OBSERVED_NOT_ADOPTED" if live_snapshot
                   else "HOST_RECONCILIATION_REQUIRED")
         obj["process_identity_matched"] = same
+        obj["running_snapshot_observed"] = live_snapshot
     return {"status": status, "job": obj,
             "scientific_result": False, "execution_authorized": False,
             "host_ownership_verified": False,
@@ -303,6 +305,12 @@ class HostSupervisor:
                         result_hash = hashlib.sha256(data).hexdigest()
             elif exit_code is not None:
                 phase = "FAILED_NONZERO_EXIT"
+        except (KeyboardInterrupt, SystemExit):
+            # An operator interruption is not scientific failure. Keep a
+            # distinct terminal checkpoint and clean up the owned process;
+            # a restart is never automatic.
+            phase = "INTERRUPTED"
+            raise
         except (OSError, ValueError, json.JSONDecodeError, AgentError):
             phase = "FAILED"
         finally:
