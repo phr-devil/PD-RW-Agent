@@ -30,7 +30,7 @@
 | `AGENTS.md` / `WORKFLOW.md` | PD-RW | Research Agent | Scientific routing and decision authority |
 | Run/protocol and original messages | Research project/user | Research Agent | Primary evidence and real authorization, independently checked |
 
-## What is not implemented in v0.4
+## What is not implemented in v0.4 (historical; see current v0.7.1 readiness contract)
 
 - No automatic syncing of PD-RW Git checkout, shell/task orchestration, or independent API model calls.
 - No writing of project state or claims by the supplied bridge.

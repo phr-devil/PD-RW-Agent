@@ -1,5 +1,11 @@
 # PD-RW-Agent
 
+> v0.7.1: Legacy/machine state diagnostics, advisory independent SHA manifests,
+> protected lexical paths, private DB migrations, bounded immutable DEV
+> proposal contracts, fail-closed host admission and read-only PID/start-token
+> observation. Real DEV/GPU execution is still disabled.
+> See docs/V071_HOST_READINESS.md for limitations and acceptance criteria.
+
 > **v0.7.0 host execution foundation (synthetic CPU only):** strict execution
 > plans, source-bound preflight, private SQLite job checkpoints, idempotent
 > fixed-code synthetic subprocess and fail-closed recovery. MCP/CLI expose

@@ -1,5 +1,20 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.7.1 source compatibility and trusted host admission foundation
+
+- No implicit legacy state migration; complete original STATE.json/EVENTS
+  consistency required for machine-ready diagnostics.
+- Optional standalone SHA256 manifests do not determine scientific validity.
+- Versioned private SQLite migration adds separate operation attempt table.
+- Bounded DEV plan contains only pre-registered runner ID and original source
+  fingerprints; not an execution grant. Default host denies ALL real DEV.
+- PID+birth token observed on Linux/Windows, but OS identity ownership,
+  liveness supervision, ACL/SEALED enforcement, real GPU limits, DEV run
+  registration and user-grant authenticity are NOT implemented.
+- Next: v0.7.2 separate OS-restricted trusted host process, ACL/Job Objects
+  on Windows, unforgeable source of user consent, real process containment,
+  and host-owned process/resource supervision. See V071_HOST_READINESS.md.
+
 ## v0.7.0 execution foundation: fixed synthetic CPU only
 
 - Strict versioned plan schema, bounded CPU/timeout limits, explicit project

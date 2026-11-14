@@ -18,7 +18,7 @@ class SkillContractTests(unittest.TestCase):
             self.assertRegex(front, rf"(?m)^{re.escape(key)}:")
         self.assertIn("name: pd-rw-research", front)
         self.assertLess(len(text.splitlines()), 160)
-        self.assertIn("version: 0.7.0", front)
+        self.assertIn("version: 0.7.1", front)
 
     def test_registered_project_requires_real_mcp_preflight_when_available(self):
         text = ENTRY.read_text(encoding="utf-8")

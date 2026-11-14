@@ -1,4 +1,10 @@
-# Python Runtime + MCP — operator documentation (v0.5)
+# Python Runtime + MCP — operator documentation (v0.7.1)
+
+> The legacy v0.4-v0.5 sections below are retained as historical
+> setup examples. Current MCP has 19 tools defined in the server and
+> tested by tests/test_mcp.py. v0.7.1 adds Python-only internal host
+> validation and readiness diagnostics, not a new MCP execution tool.
+> See V071_HOST_READINESS.md. DEV/GPU execution is not yet enabled.
 
 This is an adapter. PD-RW remains the one and only scientific-rule authority. Python and MCP **cannot** authorize operations, decide scientific merit, or read SEALED data by virtue of being installed.
 
@@ -46,7 +52,7 @@ MCP local stdio example (replace every path; do not publish real paths):
 
 Import the existing `skills/pd-rw-research/` Skill independently, or use its ZIP. WorkBuddy installation/configuration varies by edition. Check the client's own MCP UI/validation; do not assume importing a Skill alone installs the Python environment or starts MCP.
 
-## Five MCP tools (read-only)
+## First five MCP tools (historical snapshot, not current tool count)
 
 | Tool | Purpose | Important limitation |
 | --- | --- | --- |

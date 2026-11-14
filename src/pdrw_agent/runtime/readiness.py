@@ -17,7 +17,12 @@ _MD_ID = re.compile(r"(?m)^\s*(?:-\s*)?PROJECT_ID\s*:\s*([^\s#]+)")
 
 def inspect_project_readiness(settings: Settings, project_id: str) -> dict:
     root, item = settings.project(project_id)
-    context = get_project_context(settings, project_id)
+    try:
+        context = get_project_context(settings, project_id)
+    except (AgentError, OSError, UnicodeError):
+        # Corrupt STATE.json must be diagnosed, never silently reclassified as
+        # an eligible legacy project or an authenticated project identity.
+        context = {"status": "INCOMPLETE_CONTEXT"}
     state_json = under_root(root, "STATE.json")
     state_md = under_root(root, "STATE.md")
     events = under_root(root, "EVENTS.jsonl")
