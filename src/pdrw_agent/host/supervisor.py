@@ -112,6 +112,17 @@ def get_host_diagnostic_status(settings: Settings, project_id: str,
             row = db.execute(
                 "SELECT * FROM host_jobs WHERE project_id=? AND operation_id=?",
                 (project_id, operation_id)).fetchone()
+            linked = None
+            if row is not None:
+                try:
+                    linked = db.execute(
+                        """SELECT attempt_id, plan_sha256, runtime_phase
+                           FROM operation_attempts WHERE project_id=?
+                           AND operation_id=? AND attempt_id=?""",
+                        (project_id, operation_id, row["attempt_id"])).fetchone()
+                except sqlite3.OperationalError as missing:
+                    if "no such table" not in str(missing).lower():
+                        raise
     except sqlite3.OperationalError as exc:
         if "no such table" in str(exc).lower():
             return {"status": "HOST_JOB_NOT_FOUND", "execution_authorized": False}
@@ -120,6 +131,13 @@ def get_host_diagnostic_status(settings: Settings, project_id: str,
         return {"status": "HOST_JOB_NOT_FOUND", "execution_authorized": False}
     status = "HOST_TERMINAL_RECORDED"
     obj = _public(row)
+    if linked is None:
+        obj["attempt_link"] = "LEGACY_UNLINKED"
+    else:
+        consistent = (linked["runtime_phase"] == row["phase"] and
+                      linked["plan_sha256"] == row["plan_sha256"] and
+                      linked["attempt_id"] == row["attempt_id"])
+        obj["attempt_link"] = "MATCHED" if consistent else "CONFLICT"
     if row["phase"] == "COMPLETED":
         obj["output_integrity"] = _inspect_result(path, row)
         status = ("HOST_COMPLETED_HASH_MATCHED_ONLY" if obj["output_integrity"] == "MATCH"
@@ -191,16 +209,39 @@ def recent_host_diagnostics(settings: Settings, project_id: str,
                 """SELECT * FROM host_jobs WHERE project_id=?
                    ORDER BY updated_at DESC, operation_id DESC LIMIT ?""",
                 (project_id, max(1, min(limit, 10)))).fetchall()
+            try:
+                links = db.execute(
+                    """SELECT operation_id, attempt_id, runtime_phase, plan_sha256
+                       FROM operation_attempts WHERE project_id=?
+                       ORDER BY updated_at DESC LIMIT 40""",
+                    (project_id,)).fetchall()
+            except sqlite3.OperationalError as missing:
+                if "no such table" not in str(missing).lower():
+                    raise
+                links = []
     except sqlite3.OperationalError as exc:
         if "no such table" in str(exc).lower():
             return {"status": "NO_HOST_DIAGNOSTICS", "jobs": [],
                     "reconciliation_required": False}
         raise
-    jobs = [_public(row) for row in rows]
+    index = {(link["operation_id"], link["attempt_id"]): link for link in links}
+    jobs = []
+    for row in rows:
+        item = _public(row)
+        link = index.get((row["operation_id"], row["attempt_id"]))
+        item["attempt_link"] = (
+            "LEGACY_UNLINKED" if link is None else
+            "MATCHED" if link["runtime_phase"] == row["phase"] and
+            link["plan_sha256"] == row["plan_sha256"] else "CONFLICT")
+        if row["phase"] == "COMPLETED":
+            item["output_integrity"] = _inspect_result(path, row)
+        jobs.append(item)
+    pending = any(
+        item["phase"] in {"STARTING_UNVERIFIED", "RUNNING_UNVERIFIED"} or
+        item.get("output_integrity") in {"MISSING_OR_UNTRUSTED", "TAMPERED"} or
+        item["attempt_link"] == "CONFLICT" for item in jobs)
     return {"status": "HOST_DIAGNOSTICS_FOUND" if jobs else "NO_HOST_DIAGNOSTICS",
-            "jobs": jobs,
-            "reconciliation_required": any(x["phase"] in {
-                "STARTING_UNVERIFIED", "RUNNING_UNVERIFIED"} for x in jobs),
+            "jobs": jobs, "reconciliation_required": pending,
             "scientific_result": False, "execution_authorized": False,
             "safe_to_auto_restart": False}
 
@@ -246,6 +287,14 @@ class HostSupervisor:
                 return {"status": ("HOST_PLAN_CONFLICT" if row["plan_sha256"] != plan_sha
                                    else "HOST_ALREADY_RECORDED_NO_RELAUNCH"),
                         "execute_performed": False, "execution_authorized": False}
+            # A logical operation identifier must not simultaneously name
+            # a research receipt and a fixed engineering diagnostic.
+            occupied = db.execute(
+                "SELECT 1 FROM operations WHERE project_id=? AND operation_id=?",
+                (project_id, operation_id)).fetchone()
+            if occupied:
+                return {"status": "HOST_OPERATION_ID_RESERVED_BY_RECEIPT",
+                        "execute_performed": False, "execution_authorized": False}
             attempt = uuid.uuid4().hex
             now = _utc()
             db.execute("""INSERT INTO host_jobs
@@ -253,6 +302,11 @@ class HostSupervisor:
                 phase,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)""",
                (project_id, operation_id, spec["task_id"], plan_sha,
                 attempt, "STARTING_UNVERIFIED", now, now))
+            db.execute("""INSERT INTO operation_attempts (
+                project_id,operation_id,attempt_id,plan_sha256,runtime_phase,
+                created_at,updated_at) VALUES (?,?,?,?,?,?,?)""",
+                (project_id, operation_id, attempt, plan_sha,
+                 "STARTING_UNVERIFIED", now, now))
         # The durable STARTING record precedes any OS process launch.
         scratch = _scratch(dbpath.parent.resolve(), project_id, operation_id)
         output = scratch / "result.json"
@@ -274,6 +328,13 @@ class HostSupervisor:
                      SET phase='RUNNING_UNVERIFIED',pid=?,start_token=?,updated_at=?
                      WHERE project_id=? AND operation_id=? AND attempt_id=?
                      AND phase='STARTING_UNVERIFIED'""",
+                     (proc.pid, observed.get("start_token"), _utc(),
+                      project_id, operation_id, attempt))
+                db.execute("""UPDATE operation_attempts SET
+                     runtime_phase='RUNNING_UNVERIFIED',process_pid=?,
+                     process_start_token=?,updated_at=?
+                     WHERE project_id=? AND operation_id=? AND attempt_id=?
+                     AND runtime_phase='STARTING_UNVERIFIED'""",
                      (proc.pid, observed.get("start_token"), _utc(),
                       project_id, operation_id, attempt))
             deadline = time.monotonic() + spec["timeout_seconds"]
@@ -332,6 +393,13 @@ class HostSupervisor:
                      output_sha256=?,updated_at=? WHERE project_id=?
                      AND operation_id=? AND attempt_id=?
                      AND phase IN ('RUNNING_UNVERIFIED','STARTING_UNVERIFIED')""",
+                     (phase, exit_code, result_hash, _utc(),
+                      project_id, operation_id, attempt))
+                db.execute("""UPDATE operation_attempts SET runtime_phase=?,
+                     exit_code=?,output_sha256=?,updated_at=?
+                     WHERE project_id=? AND operation_id=? AND attempt_id=?
+                     AND runtime_phase IN ('RUNNING_UNVERIFIED',
+                                           'STARTING_UNVERIFIED')""",
                      (phase, exit_code, result_hash, _utc(),
                       project_id, operation_id, attempt))
         return {"status": ("HOST_DIAGNOSTIC_COMPLETED" if phase == "COMPLETED"

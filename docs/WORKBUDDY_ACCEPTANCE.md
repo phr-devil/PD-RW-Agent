@@ -1,4 +1,12 @@
-# WorkBuddy on-device acceptance (v0.7.2)
+# WorkBuddy on-device acceptance (v0.7.4)
+
+> v0.7.4 adds fixed-host execution-attempt linkage and a distinct
+> operational-reconciliation signal on resume. WorkBuddy read-only test:
+> on a synthetic host job with unfinished or altered output, call
+> `get_resume_context` and confirm `NEEDS_OPERATIONAL_RECONCILIATION`
+> and `restart_permitted=false`. On a valid host diagnostic, preserve
+> `scientific_resume_status=SOURCE_REVIEW_REQUIRED`, not VALID.
+> This does not authorize DEV execution. Historical test sections follow.
 
 > v0.7.2 on-device scope is a **fixed CPU diagnostic** in a separately
 > launched host CLI, with real Windows Job Object cancellation and

@@ -97,6 +97,95 @@ class HostPilotTests(unittest.TestCase):
         self.assertEqual(again["status"], "HOST_ALREADY_RECORDED_NO_RELAUNCH")
         self.assertFalse(again["execute_performed"])
 
+    def test_host_attempt_is_mirrored_to_existing_private_attempt_schema(self):
+        output = self.host.run_fixed_diagnostic(plan(operation_id="mirror-1"))
+        self.assertEqual(output["phase"], "COMPLETED", output)
+        with _open(self.private / "runtime.sqlite", write=False) as db:
+            rows = db.execute(
+                """SELECT * FROM operation_attempts
+                   WHERE project_id='demo' AND operation_id='mirror-1'"""
+            ).fetchall()
+            self.assertEqual(len(rows), 1)
+            attempt = rows[0]
+            self.assertEqual(attempt["attempt_id"], output["attempt_id"])
+            self.assertEqual(attempt["runtime_phase"], "COMPLETED")
+            self.assertEqual(attempt["output_sha256"], output["output_sha256"])
+            self.assertEqual(attempt["process_pid"], output["pid"])
+        status = get_host_diagnostic_status(self.settings, "demo", "mirror-1")
+        self.assertEqual(status["job"]["attempt_link"], "MATCHED")
+        self.assertEqual(status["job"]["output_integrity"], "MATCH")
+        resume = ResearchService(self.settings).call(
+            "get_resume_context", project_id="demo")
+        self.assertFalse(resume["operational_reconciliation_required"])
+
+    def test_legacy_host_records_remain_readable_without_fake_migration(self):
+        self.host.run_fixed_diagnostic(plan(operation_id="init"))
+        dbpath = self.private / "runtime.sqlite"
+        with _open(dbpath) as db:
+            db.execute("""INSERT INTO host_jobs
+               (project_id,operation_id,task_id,plan_sha256,attempt_id,
+                phase,created_at,updated_at) VALUES
+               ('demo','prior-legacy','task-a','a','old-attempt',
+                'STARTING_UNVERIFIED','t','t')""")
+        before = dbpath.read_bytes()
+        info = get_host_diagnostic_status(self.settings, "demo", "prior-legacy")
+        self.assertEqual(info["status"], "HOST_RECONCILIATION_REQUIRED")
+        self.assertEqual(info["job"]["attempt_link"], "LEGACY_UNLINKED")
+        resume = ResearchService(self.settings).call(
+            "get_resume_context", project_id="demo")
+        self.assertEqual(resume["status"], "NEEDS_OPERATIONAL_RECONCILIATION")
+        self.assertEqual(resume["scientific_resume_status"], "SOURCE_REVIEW_REQUIRED")
+        self.assertTrue(resume["host_reconciliation_required"])
+        self.assertEqual(resume["next"],
+                         "RECONCILE_FIXED_HOST_ATTEMPT_NO_AUTO_RESTART")
+        self.assertEqual(dbpath.read_bytes(), before)
+        self.assertFalse(resume["restart_permitted"])
+
+    def test_tampered_host_attempt_or_output_blocks_operational_resume(self):
+        self.host.run_fixed_diagnostic(plan(operation_id="tamper-1"))
+        dbpath = self.private / "runtime.sqlite"
+        with _open(dbpath) as db:
+            db.execute("""UPDATE operation_attempts SET
+               runtime_phase='FAILED'
+               WHERE project_id='demo' AND operation_id='tamper-1'""")
+        status = get_host_diagnostic_status(self.settings, "demo", "tamper-1")
+        self.assertEqual(status["job"]["attempt_link"], "CONFLICT")
+        resume = ResearchService(self.settings).call(
+            "get_resume_context", project_id="demo")
+        self.assertEqual(resume["status"], "NEEDS_OPERATIONAL_RECONCILIATION")
+        self.assertTrue(resume["host_reconciliation_required"])
+        self.assertEqual(resume["scientific_resume_status"], "SOURCE_REVIEW_REQUIRED")
+        with _open(dbpath) as db:
+            db.execute("""UPDATE operation_attempts SET
+               runtime_phase='COMPLETED'
+               WHERE project_id='demo' AND operation_id='tamper-1'""")
+        key = hashlib.sha256(b"demo").hexdigest()
+        result_file = self.private / "host_jobs" / key / "tamper-1" / "result.json"
+        result_file.write_text('{"corrupted":true}', encoding="utf-8")
+        resume = ResearchService(self.settings).call(
+            "get_resume_context", project_id="demo")
+        self.assertTrue(resume["host_reconciliation_required"])
+        jobs = resume["host_fixed_cpu_checkpoints"]["jobs"]
+        flagged = next(x for x in jobs if x["operation_id"] == "tamper-1")
+        self.assertEqual(flagged["attempt_link"], "MATCHED")
+        self.assertEqual(flagged["output_integrity"], "TAMPERED")
+
+    def test_operation_id_cannot_be_shared_by_receipt_and_fixed_host(self):
+        receipt = ResearchService(self.settings).call(
+            "begin_operation_receipt", project_id="demo", operation_id="receipt-1",
+            task_id="task-a", action="DEV_CODE")
+        self.assertEqual(receipt["status"], "RECEIPT_CREATED", receipt)
+        denied = self.host.run_fixed_diagnostic(plan(operation_id="receipt-1"))
+        self.assertEqual(denied["status"], "HOST_OPERATION_ID_RESERVED_BY_RECEIPT")
+        self.assertFalse(denied["execute_performed"])
+        self.host.run_fixed_diagnostic(plan(operation_id="host-1"))
+        denied_receipt = ResearchService(self.settings).call(
+            "begin_operation_receipt", project_id="demo", operation_id="host-1",
+            task_id="task-a", action="DEV_CODE")
+        self.assertEqual(denied_receipt["status"],
+                         "RECEIPT_ID_RESERVED_BY_HOST_DIAGNOSTIC")
+        self.assertFalse(denied_receipt["execution_authorized"])
+
     def test_real_parallel_requests_submit_exactly_one_child(self):
         p = plan(operation_id="multi-1")
         with ThreadPoolExecutor(max_workers=10) as pool:

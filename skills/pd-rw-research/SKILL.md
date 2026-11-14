@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.7.3
+version: 0.7.4
 author: phr-devil
 ---
 
@@ -116,6 +116,11 @@ All JSON outputs are **locators, routing hints, or structural checks**, never or
 v0.7.3 operator-only host ACL fixture probes and process snapshot checks
 do not authenticate DEV authorization or enable real DEV/GPU execution.
 Do not expose host CLI actions as WorkBuddy MCP execution tools.
+
+v0.7.4: resume status now includes private fixed-host attempt/receipt
+reconciliation and SHA mismatch diagnostics. These are operational hints;
+a completed CPU selftest still cannot certify scientific Run success,
+author permissions, or safe autonomous replay.
 
 ## Load additional guidance only if necessary
 

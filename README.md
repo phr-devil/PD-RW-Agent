@@ -1,5 +1,14 @@
 # PD-RW-Agent
 
+> **v0.7.4 first-pass runtime integration:** fixed CPU host records now
+> mirror into the existing versioned operation-attempt ledger; duplicate
+> logical IDs between host jobs and operational receipts are rejected.
+> Resume summaries surface unresolved host attempts, output tampering and
+> attempt-record conflicts, independently of scientific status. Existing
+> standalone synthetic selftests and prior host records remain readable.
+> No real DEV/GPU execution or original Run registration is enabled.
+> [Read the runtime integration scope](docs/V074_RUNTIME_INTEGRATION.md).
+
 > **v0.7.3 fixed-host reliability:** Windows process-exit observation,
 > explicit INTERRUPTED checkpoints and an operator-only synthetic ACL
 > fixture probe. This is diagnostic code, **not** a trusted production
