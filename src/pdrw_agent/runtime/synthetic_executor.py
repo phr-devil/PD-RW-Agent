@@ -139,6 +139,36 @@ def get_synthetic_job_status(settings: Settings, project_id: str,
             "next": "NO_AUTOMATIC_RESTART"}
 
 
+def recent_synthetic_jobs(settings: Settings, project_id: str,
+                          limit: int = 6) -> dict:
+    """Bounded read-only resume index for private engineering self-tests."""
+    db_path = _db_path(settings, project_id, create=False)
+    if db_path is None or not db_path.is_file():
+        return {"status": "NO_SYNTHETIC_JOBS", "jobs": [],
+                "reconciliation_required": False}
+    if db_path.is_symlink():
+        raise AgentError("RUNTIME_DB_SYMLINK", "Private runtime DB symlink forbidden")
+    try:
+        with _open(db_path, write=False) as db:
+            rows = db.execute(
+                """SELECT * FROM synthetic_jobs WHERE project_id=?
+                   ORDER BY updated_at DESC, operation_id DESC LIMIT ?""",
+                (project_id, max(1, min(limit, 10)))).fetchall()
+    except sqlite3.OperationalError as exc:
+        if "no such table" in str(exc).lower():
+            return {"status": "NO_SYNTHETIC_JOBS", "jobs": [],
+                    "reconciliation_required": False}
+        raise
+    jobs = [_public(row) for row in rows]
+    return {"status": "SYNTHETIC_JOBS_FOUND" if jobs else "NO_SYNTHETIC_JOBS",
+            "jobs": jobs,
+            "reconciliation_required": any(
+                x["phase"] == "RUNNING_UNVERIFIED" for x in jobs),
+            "execution_authorized": False,
+            "synthetic_only": True,
+            "process_liveness_verified": False}
+
+
 def run_synthetic_in_host(settings: Settings, plan: dict) -> dict:
     """One bounded fixed-profile execution. Never used by WorkBuddy MCP.
 

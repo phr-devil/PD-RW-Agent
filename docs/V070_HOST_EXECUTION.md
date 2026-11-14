@@ -63,6 +63,9 @@ active Task. Preflight returns \`execution_authorized=false\` even if ready.
 - Read-only status rechecks the private result hash. A missing/changed
   output is `SYNTHETIC_CHECKPOINT_ARTIFACT_MISMATCH`, never a valid
   completion; the same operation is still not automatically rerun.
+- Existing `get_resume_context` now reports a bounded
+  `synthetic_selftest_checkpoints` index for cross-session diagnosis.
+  These engineering-only jobs do not change scientific resume eligibility.
 - Output hashes are not scientific validation; no project, STATE, EVENTS or
   Run writes are performed.
 

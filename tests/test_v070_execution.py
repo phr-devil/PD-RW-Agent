@@ -121,6 +121,11 @@ class SyntheticHostTests(unittest.TestCase):
         status = get_synthetic_job_status(self.settings, "demo", "synthetic-op-1")
         self.assertEqual(status["job"]["attempt_count"], 1)
         self.assertEqual(status["job"]["output_integrity"], "MATCH")
+        resume = self.svc.call("get_resume_context", project_id="demo")
+        self.assertEqual(resume["synthetic_selftest_checkpoints"]["status"],
+                         "SYNTHETIC_JOBS_FOUND")
+        self.assertFalse(
+            resume["synthetic_selftest_checkpoints"]["reconciliation_required"])
         self.assertEqual(before, self.snapshot())  # no project science writes
         self.assertFalse((self.project / "Run.json").exists())
 
@@ -172,6 +177,12 @@ class SyntheticHostTests(unittest.TestCase):
         record = get_synthetic_job_status(self.settings, "demo", "crash-1")
         self.assertEqual(record["status"],
                          "RECONCILIATION_REQUIRED_NO_AUTOMATIC_RESTART")
+        resume = self.svc.call("get_resume_context", project_id="demo")
+        self.assertTrue(
+            resume["synthetic_selftest_checkpoints"]["reconciliation_required"])
+        # This engineering-only checkpoint does not block unrelated science
+        # or claim that the interrupted process is alive.
+        self.assertEqual(resume["status"], "SOURCE_REVIEW_REQUIRED")
         again = run_synthetic_in_host(
             self.settings, fixture_plan(operation_id="crash-1"))
         self.assertFalse(again["actual_synthetic_subprocess_executed"])
