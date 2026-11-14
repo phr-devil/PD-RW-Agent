@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.7.0
+version: 0.7.1
 author: phr-devil
 ---
 
@@ -57,6 +57,12 @@ The MCP call executes the shared `pdrw_agent` Python service; WorkBuddy's own te
 - Use `get_applicable_rules(topic)` for relevant rule-file routing, then read the applicable **original PD-RW rule files**; `ROUTE_FOUND` is navigation, not policy attestation. Use `find_experiment_evidence` only for indexed evidence that matters; use `search_research_memory` only when useful and `check_duplicate_experiment` before a costly repeated Run.
 - If MCP is absent, disconnected, explicitly prohibited, unregistered or fails, record `MCP_NOT_USED` with the factual reason **once**, then use permitted original sources or the existing standalone `scripts/bridge.py` / `scripts/context.py` fallback. Do not invent an MCP call, repeatedly retry, or let a tool failure block unrelated legal read-only review.
 - In evaluation/hand-off reports, state the **actual MCP tool names and statuses**, or `MCP_NOT_USED`; distinguish MCP invocation from Skill loading, Python package installation, and WorkBuddy terminal commands. An MCP-connected status alone is not an actual call.
+
+v0.7.1 separates machine STATE/EVENTS from legacy Markdown and makes optional
+standalone SHA-256 manifests advisory. The internal DEV host contract is
+validation only; the host never accepts model-declared approval as permission.
+No authenticated DEV execution, GPU limits, OS isolation or scientific write
+is provided in this version.
 
 v0.7 adds read-only `preflight_execution_plan(plan)` and
 `get_synthetic_job_status(project_id, operation_id)` for the fixed CPU

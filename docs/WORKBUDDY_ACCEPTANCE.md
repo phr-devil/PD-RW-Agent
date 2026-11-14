@@ -1,4 +1,14 @@
-# WorkBuddy on-device acceptance (v0.2)
+# WorkBuddy on-device acceptance (v0.7.1)
+
+> The following v0.2-v0.5 sections are historical test procedures, not
+> an up-to-date tool count. Current MCP has 19 registered tools.
+> New v0.7.1 acceptance: legacy Markdown-only project stays read-only;
+> complete original machine ledger without a separate SHA256 manifest
+> remains reviewable; conflicting machine/legacy identity blocks execution
+> admission; read-only DB inspection does not perform migration; synthetic
+> process PID+start-token is inspected on Windows without claiming privilege
+> or verified process ownership. No real DEV/GPU trial until the separate
+> OS-restricted host passes source-permission and isolation checks.
 
 These are **actual WorkBuddy-client steps to perform**, distinct from GitHub CI.
 

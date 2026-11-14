@@ -5,6 +5,7 @@ from ..projects import get_project_context
 from .receipts import execution_status
 from .history import reconstruct_project_history
 from .synthetic_executor import recent_synthetic_jobs
+from .readiness import inspect_project_readiness
 
 def get_resume_context(settings: Settings, project_id: str) -> dict:
     project = get_project_context(settings, project_id)
@@ -30,6 +31,14 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
                 "restart_permitted": False,
                 "read_only_next_actions": ["AUDIT_PROJECT_STATE",
                                            "REVIEW_RAW_EVENTS_NO_AUTO_REPAIR"]}
+    readiness = inspect_project_readiness(settings, project_id)
+    if readiness["status"] in {"STATE_IDENTITY_CONFLICT",
+                               "MACHINE_LEDGER_CONFLICT", "MACHINE_STATE_INVALID"}:
+        return {"status": "BLOCKED_MACHINE_READINESS",
+                "project_id": project_id, "machine_readiness": readiness,
+                "authorization_verified": False,
+                "restart_permitted": False,
+                "read_only_next_actions": ["REVIEW_ORIGINAL_STATE_AND_EVENTS"]}
     operations = execution_status(settings, project_id, limit=6)
     synthetic_runtime = recent_synthetic_jobs(settings, project_id, limit=6)
     unresolved = [r for r in operations["operations"] if
@@ -57,6 +66,7 @@ def get_resume_context(settings: Settings, project_id: str) -> dict:
         "pending_scientific_review": pending_review[:6],
         "scientific_completion_verified": False,
         "receipt_status": operations["status"],
+        "machine_readiness": readiness,
         "synthetic_selftest_checkpoints": synthetic_runtime,
         "authorization_verified": False,
         "process_liveness_verified": False,

@@ -9,6 +9,7 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
@@ -141,6 +142,27 @@ class SyntheticHostTests(unittest.TestCase):
         again = run_synthetic_in_host(self.settings, fixture_plan())
         self.assertFalse(again["actual_synthetic_subprocess_executed"])
         self.assertEqual(again["job"]["attempt_count"], 1)
+
+    def test_concurrent_duplicate_submissions_execute_at_most_once(self):
+        # Real threads reach the same private SQLite operation key. This is
+        # an engineering self-test only, not a distributed-job guarantee.
+        plan = fixture_plan(operation_id="concurrent-1")
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            outcomes = list(pool.map(
+                lambda _: run_synthetic_in_host(self.settings, plan),
+                range(8)))
+        executed = [r for r in outcomes
+                    if r.get("actual_synthetic_subprocess_executed") is True]
+        self.assertEqual(len(executed), 1, outcomes)
+        self.assertEqual(executed[0]["status"], "SYNTHETIC_EXECUTION_COMPLETED")
+        self.assertTrue(all(r["status"] in {
+            "SYNTHETIC_EXECUTION_COMPLETED",
+            "RECONCILIATION_REQUIRED_NO_AUTOMATIC_RESTART",
+            "ALREADY_COMPLETED_NO_REEXECUTION",
+        } for r in outcomes), outcomes)
+        final = get_synthetic_job_status(self.settings, "demo", "concurrent-1")
+        self.assertEqual(final["job"]["attempt_count"], 1)
+        self.assertEqual(final["job"]["output_integrity"], "MATCH")
 
     def test_same_operation_id_different_plan_is_conflict_not_reexecution(self):
         run_synthetic_in_host(self.settings, fixture_plan())

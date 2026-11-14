@@ -155,6 +155,7 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
     authority = _declared_version(settings.workflow_root / "WORKFLOW.md")
     version_discrepancy = bool(recorded and authority and recorded != authority)
     blockers = []
+    advisories = []
     if context["status"] == "IDENTITY_CONFLICT":
         blockers.append("PROJECT_IDENTITY_CONFLICT")
     if not availability["state"]:
@@ -169,7 +170,9 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
                                  "HISTORY_SOURCES_MISSING"}:
         blockers.append("STATE_EVENTS_METADATA_CONFLICT")
     if manifest["status"] == "NO_MANIFESTS":
-        blockers.append("EVIDENCE_MANIFEST_ABSENT")
+        # The original PD-RW ledger already has event hashes. A separate
+        # .sha256 manifest is optional and never a universal hard gate.
+        advisories.append("OPTIONAL_STANDALONE_MANIFEST_NOT_PRESENT")
     elif manifest["status"] in {"EVIDENCE_GAPS", "AUDIT_INCOMPLETE"}:
         blockers.append("EVIDENCE_COVERAGE_INCOMPLETE")
     return {
@@ -192,6 +195,9 @@ def audit_project_state(settings: Settings, project_id: str) -> dict:
                           "remote_freshness": "NOT_CHECKED",
                           "declared_mismatch": version_discrepancy},
         "blockers": blockers,
+        "advisories": advisories,
+        "standalone_manifest_required_for_execution": False,
+        "original_run_hashes_still_require_verification": True,
         "scientific_claims_verified": False,
         "original_authorization_verified": False,
         "event_chain_verified": history.get("event_chain_valid", False),
