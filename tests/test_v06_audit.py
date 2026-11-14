@@ -103,6 +103,9 @@ class V06AuditTests(unittest.TestCase):
         self.assertIn("INVALID_EXPERIMENT", item["matches"][0]["declared_status_tags"])
         self.assertFalse(item["matches"][0]["original_run_verified"])
         self.assertFalse(item["matches"][0]["premise_equivalence_verified"])
+        self.assertEqual(item["matches"][0]["scientific_applicability"], "UNKNOWN")
+        self.assertEqual(item["matches"][0]["candidate_review"],
+                         "OPEN_ORIGINAL_RUN_AND_COMPARE_PREMISE_SCOPE")
 
     def test_markdown_project_id_collision_is_not_ignored(self):
         (self.project / "STATE.md").write_text(
