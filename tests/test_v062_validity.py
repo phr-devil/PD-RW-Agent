@@ -200,6 +200,15 @@ class ScientificAuditTests(unittest.TestCase):
         self.assertEqual(check["declared_skip_count"], 1)
         self.assertFalse(check["original_plan_freeze_verified"])
 
+    def test_matrix_malformed_plan_fails_closed(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": [{"not": "an-id"}],
+                "arm_ids": ["A"]}
+        self._attach_matrix(plan, "fold_id,arm_id,status\\ns1,A,COMPLETED\\n")
+        out = self.audit()
+        self.assertEqual(out["checks"]["evaluation_matrix_coverage"]["status"], "FAIL")
+        self.assertIn("evaluation_matrix_coverage", out["failed_checks"])
+
     def test_matrix_sources_must_keep_original_run_link_hashes(self):
         plan = {"schema_version": "pdrw-evaluation-matrix-v1",
                 "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A"]}

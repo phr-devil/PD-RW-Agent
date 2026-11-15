@@ -29,8 +29,8 @@ def _result(status: str, detail: str, **kwargs) -> dict:
 
 def _identifiers(items: object) -> bool:
     return (isinstance(items, list) and 1 <= len(items) <= MAX_ITEMS
-            and len(set(items)) == len(items)
-            and all(isinstance(x, str) and ID.fullmatch(x) for x in items))
+            and all(isinstance(x, str) and ID.fullmatch(x) for x in items)
+            and len(set(items)) == len(items))
 
 
 def _read_matrix(root: Path, relative: str) -> list[dict]:
