@@ -18,8 +18,11 @@ class SkillContractTests(unittest.TestCase):
             self.assertRegex(front, rf"(?m)^{re.escape(key)}:")
         self.assertIn("name: pd-rw-research", front)
         self.assertLess(len(text.splitlines()), 160)
-        version = re.search(
-            r'(?m)^version = "([^"]+)"
+        expected = next(
+            line.split('"')[1] for line in
+            (ROOT / "pyproject.toml").read_text(encoding="utf-8").splitlines()
+            if line.startswith("version = "))
+        self.assertIn("version: " + expected, front)
 
     def test_registered_project_uses_compact_resume_without_redundant_context(self):
         text = ENTRY.read_text(encoding="utf-8")
