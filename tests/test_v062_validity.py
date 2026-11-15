@@ -146,8 +146,8 @@ class ScientificAuditTests(unittest.TestCase):
                 "run_id": "r-main", "fold_ids": ["s1", "s2"],
                 "arm_ids": ["A", "B"]}
         self._attach_matrix(plan,
-            "fold_id,arm_id,status\\ns1,A,COMPLETED\\ns1,B,COMPLETED\\n"
-            "s2,A,COMPLETED\\ns2,B,COMPLETED\\n")
+            "fold_id,arm_id,status\ns1,A,COMPLETED\ns1,B,COMPLETED\n"
+            "s2,A,COMPLETED\ns2,B,COMPLETED\n")
         result = self.audit()
         check = result["checks"]["evaluation_matrix_coverage"]
         self.assertEqual(check["status"], "PASS")
@@ -161,8 +161,8 @@ class ScientificAuditTests(unittest.TestCase):
                 "run_id": "r-main", "fold_ids": ["s1", "s2"],
                 "arm_ids": ["A", "B"]}
         self._attach_matrix(plan,
-            "fold_id,arm_id,status\\ns1,A,COMPLETED\\ns1,B,COMPLETED\\n"
-            "s2,A,COMPLETED\\n")
+            "fold_id,arm_id,status\ns1,A,COMPLETED\ns1,B,COMPLETED\n"
+            "s2,A,COMPLETED\n")
         result = self.audit()
         check = result["checks"]["evaluation_matrix_coverage"]
         self.assertEqual(check["status"], "REVIEW")
@@ -174,8 +174,8 @@ class ScientificAuditTests(unittest.TestCase):
         plan = {"schema_version": "pdrw-evaluation-matrix-v1",
                 "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A", "B"]}
         self._attach_matrix(plan,
-            "fold_id,arm_id,status\\ns1,A,COMPLETED\\ns1,A,COMPLETED\\n"
-            "s1,B,COMPLETED\\ns9,A,COMPLETED\\n")
+            "fold_id,arm_id,status\ns1,A,COMPLETED\ns1,A,COMPLETED\n"
+            "s1,B,COMPLETED\ns9,A,COMPLETED\n")
         check = self.audit()["checks"]["evaluation_matrix_coverage"]
         self.assertEqual(check["status"], "FAIL")
         self.assertEqual(check["duplicate_count"], 1)
@@ -184,7 +184,7 @@ class ScientificAuditTests(unittest.TestCase):
     def test_matrix_undeclared_skip_is_conflict(self):
         plan = {"schema_version": "pdrw-evaluation-matrix-v1",
                 "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A"]}
-        self._attach_matrix(plan, "fold_id,arm_id,status\\ns1,A,SKIPPED\\n")
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,SKIPPED\n")
         check = self.audit()["checks"]["evaluation_matrix_coverage"]
         self.assertEqual(check["status"], "FAIL")
         self.assertEqual(check["unplanned_skip_count"], 1)
@@ -194,7 +194,7 @@ class ScientificAuditTests(unittest.TestCase):
                 "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A"],
                 "declared_skips": [{"fold_id": "s1", "arm_id": "A",
                                     "reason": "predeclared-device-unavailable"}]}
-        self._attach_matrix(plan, "fold_id,arm_id,status\\ns1,A,SKIPPED\\n")
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,SKIPPED\n")
         check = self.audit()["checks"]["evaluation_matrix_coverage"]
         self.assertEqual(check["status"], "REVIEW")
         self.assertEqual(check["declared_skip_count"], 1)
@@ -204,7 +204,7 @@ class ScientificAuditTests(unittest.TestCase):
         plan = {"schema_version": "pdrw-evaluation-matrix-v1",
                 "run_id": "r-main", "fold_ids": [{"not": "an-id"}],
                 "arm_ids": ["A"]}
-        self._attach_matrix(plan, "fold_id,arm_id,status\\ns1,A,COMPLETED\\n")
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,COMPLETED\n")
         out = self.audit()
         self.assertEqual(out["checks"]["evaluation_matrix_coverage"]["status"], "FAIL")
         self.assertIn("evaluation_matrix_coverage", out["failed_checks"])
@@ -212,9 +212,9 @@ class ScientificAuditTests(unittest.TestCase):
     def test_matrix_sources_must_keep_original_run_link_hashes(self):
         plan = {"schema_version": "pdrw-evaluation-matrix-v1",
                 "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A"]}
-        self._attach_matrix(plan, "fold_id,arm_id,status\\ns1,A,COMPLETED\\n")
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,COMPLETED\n")
         path = self.root / self.info["r-main"][0]["artifact_refs"]["evaluation_results"]
-        path.write_text("fold_id,arm_id,status\\ns1,A,SKIPPED\\n", encoding="utf-8")
+        path.write_text("fold_id,arm_id,status\ns1,A,SKIPPED\n", encoding="utf-8")
         out = self.audit()
         self.assertEqual(out["status"], "AUDIT_PREREQUISITE_UNVERIFIED")
         self.assertEqual(out["run_evidence_status"], "RUN_LINK_HASH_MISMATCH")
