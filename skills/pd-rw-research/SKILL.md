@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 审查本次 DEV 实验与交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.5.3
+version: 0.5.5
 author: phr-devil
 ---
 
@@ -50,6 +50,31 @@ Importing this Skill does NOT install/start Python or MCP. An enabled MCP server
 5. **Execute within authority.** Classify a new user message as IDEA, explicit instruction or strategic choice. Author selects/delegates H6 core Task/strategy and H8 primary Claim changes; valid H7 / approved local nonpaid DEV is autonomous without repeated approvals. Continue related diagnosis, coding and targeted tests at useful work-unit granularity; reuse valid Run, avoid repeated false premises, stop when no distinct informative probe remains. For new download, payment, SEALED, confirmation, publication, external upload, writing, drawing or strategic changes, obey PD-RW's existing separate gates. A Skill or self-written JSON never grants permission.
 6. **Validate and persist.** Optional `scripts/context.py action-review` invokes PD-RW's declaration-only preflight; it is **not** a trusted tool interceptor. Verify original user authorization and actual Run/protocol independently. On significant scientific events update the **existing** research record/affected blueprint only; retain negative results and provenance. No new third ledger.
 7. **Deliver.** Use `prepare_handoff` when available, or run the existing PD-RW path-only delivery checker through `scripts/context.py delivery-review` **only when real file artifacts are being handed off**. Give one principal result with paths, checks actually run, scientific limits, and the next legal action (or required user choice). Avoid large log dumps and unsupported PASS claims.
+
+## Case-library decision reuse (on demand, not a new retrieval loop)
+
+When `CASE_LIBRARY` is configured (`PDRW_CASE_LIBRARY_ROOT` or `case_library_root`), call `case_gate_check(event)` at **five triggers, priority G1 > G2 > G3 > T1 > T2**. Ordinary DEV iteration does not trigger. The earlier four on-demand points — a **new Task**, a **significant anomaly**, a **planned large resource investment**, and the **end of an effective experiment** — are now covered by these five; do not re-run for every step. For unrelated general questions, do not load it.
+
+**Three mandatory checkpoints** (each must actually retrieve AND judge applicability; a `CASE_CHECK: COMPLETED` text is not proof):
+
+- **G1 · H2–H3 · before the core scientific question is fixed** (`milestone=QUESTION_SELECTION`): related success/failure cases and important counterexamples; check highly overlapping prior work, whether historical failure premises still hold, success key conditions, and whether a new scientific question is worth exploring. Historical failure must NOT auto-negate a new direction with different legal information conditions.
+- **G2 · H6–H7 · before the core experimental protocol is frozen** (`milestone=PROTOCOL_FREEZE`): legal inputs at prediction time and temporal causality, labels, group independence, evaluation unit, strong simple baseline, repeated invalid algorithm premises, cheaper/more discriminative designs. Convert only ADMISSIBLE experiences into concrete `next_minimal_check` items.
+- **G3 · H8–H10 · before a major conclusion, main Claim or staged closure** (`milestone=CLAIM_OR_CLOSURE`): similar explanations for positive/negative results, evidence for innovation/mechanism/law claims, usable success conditions, failure boundaries, alternative directions and candidate experiences for `extract_case_candidates`. **PD-RW H8 author strategic choice and separate paper-writing permission are unchanged.**
+
+**Two conditional triggers:**
+
+- **T1** important anomaly, core mechanism unsupported, severe evaluation problem, repeated ineffective attempts or consecutive valid negative results → first distinguish engineering error / invalid experiment / insufficient evidence / valid scientific negative, then suggest ONE next decisive action.
+- **T2** significant resource increase or change of core algorithm strategy, data scope, evaluation criterion or scientific question. Ordinary code changes, tuning, tests, plotting and same-scope DEV iteration do **not** trigger.
+
+`event` declares `h_stage`, `milestone`, `signals`, `task_id`, `hypothesis`, `protocol`, `task_profile` (mechanisms, legal_inputs, labels, grouping, evaluation_unit, baseline, boundaries, counterexamples, decision), `query`, `filters`. No matching cases may pass normally, but the tool must record retrieval scope/result and mark `UNKNOWN`. An inaccessible library reports the reason, never fakes a completed check and never blocks unrelated legal work.
+
+**Reuse & Token control:** `gate_fingerprint` covers Task, hypothesis, protocol, case-library `index.json` sha256 and trigger stage; unchanged conditions return the verified cached record (`cache_hit: true`) with **zero new retrieval**. The existing `query_fingerprint` is embedded in `retrieval_record`. Re-query only when a key premise, evidence, protocol or library content changes. Default `detail=compact` returns at most 3–5 cases; read full evidence via `detail=full` or the existing `search_research_memory` / `review_case_transfer`. No second science-state database.
+
+**Other tools:** `search_research_memory(query, ..., mechanism, domain, task_profile)` keeps the legacy PD-RW `CASE_REGISTRY.md` matches and adds one `case_library` object (`cases.results`, `case_review.comparisons`, `decision_experiences.experiences`, at most 3–5 impacts, both negative warnings and success transfers) plus `case_learning_summary`; old `(query, limit)` shape unchanged. `review_case_transfer` compares all 8 dimensions and returns `APPLICABILITY_RISK` / `CONDITIONS_DIFFER` / `USEFUL_ANALOGY` / `EVIDENCE_INSUFFICIENT` per case; declared-text triage, **not** scientific equivalence. `extract_case_candidates(project_id, observations, ...)` derives **CANDIDATE_ONLY** items from original Run evidence + existing `science.lessons` / `science.provenance` audit; never promoted, never writes STATE/Run/EVENTS.
+
+**Enforcement level (honest):** these are **Skill/tool-level advisory requests**, NOT a WorkBuddy host state-transition hard gate (`enforcement_level.hard_gate=false`). `verify_gate_record` rejects a bare `CASE_CHECK: COMPLETED`; check `retrieval_record` and `applicability_judgments`. A `cache_hit: true` result is the same evidence, not new information.
+
+**Hard limits:** keyword similarity != scientific premise equivalence; compare `premises`, `applicability.conditions/boundaries` and `counterexamples` line by line. Ignore `SECONDARY_ONLY`, `NOT_ACCESSED`, abstract-only, preprint and unverified-internal cases for decision-grade claims — they stay `candidates_only`. Check `evidence_grade` and `index_stale`; `APPLICABILITY_DIVERGENCE` forbids merging two cases into one conclusion. Missing cases, insufficient sources and `CONDITIONS_DIFFER` are `UNKNOWN`. These tools never output GO/STOP, never grant permission, never modify PD-RW rules, SEALED, STATE, Run or CASE_LIBRARY, and never fetch external URLs. Candidate extraction is not a scientific conclusion. See `references/execution.md`.
 
 ## Optional science check (only for a material research choice)
 

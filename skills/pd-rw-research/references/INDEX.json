@@ -23,9 +23,26 @@
         "task continuation",
         "experiment",
         "handoff",
-        "reconciliation"
+        "reconciliation",
+        "case library",
+        "case transfer review",
+        "new Task",
+        "significant anomaly",
+        "large resource investment",
+        "effective experiment end",
+        "candidate experience",
+        "case gate",
+        "G1 H2 H3 question selection",
+        "G2 H6 H7 protocol freeze",
+        "G3 H8 H10 claim closure",
+        "T1 anomaly negative result",
+        "T2 material decision change",
+        "gate fingerprint",
+        "cache invalidation",
+        "CASE_CHECK not proof",
+        "enforcement level"
       ],
-      "scope": "Safe operation flow, permission separation, output",
+      "scope": "Safe operation flow, permission separation, output, on-demand advisory case reuse and five case-application gates",
       "authority": "ADAPTER_GUIDANCE_ONLY"
     },
     {

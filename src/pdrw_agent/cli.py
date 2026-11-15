@@ -21,6 +21,32 @@ def main() -> int:
     m = sub.add_parser("memory")
     m.add_argument("--query", required=True)
     m.add_argument("--limit", type=int, default=5)
+    m.add_argument("--mechanism", default="")
+    m.add_argument("--domain", default="")
+    m.add_argument("--applicability", default="")
+    m.add_argument("--verdict", default="")
+    m.add_argument("--evidence-level", default="")
+    m.add_argument("--origin", default="")
+    m.add_argument("--keyword", default="")
+    m.add_argument("--max-experiences", type=int, default=5)
+    m.add_argument("--legacy-only", action="store_true")
+    m.add_argument("--task-profile-file", help="JSON file with the 8-dimension task profile")
+    cr = sub.add_parser("case-review")
+    cr.add_argument("--task-profile-file", required=True)
+    cr.add_argument("--query", default="case transfer review")
+    cr.add_argument("--limit", type=int, default=5)
+    cr.add_argument("--mechanism", default="")
+    cr.add_argument("--domain", default="")
+    cr.add_argument("--verdict", default="")
+    cr.add_argument("--evidence-level", default="")
+    cc = sub.add_parser("case-candidates")
+    cc.add_argument("--project-id", required=True)
+    cc.add_argument("--observations-file", required=True)
+    cc.add_argument("--evidence-root", default="")
+    cc.add_argument("--evidence-manifest", default="")
+    cg = sub.add_parser("case-gate")
+    cg.add_argument("--event-file", required=True)
+    cg.add_argument("--detail", choices=("compact", "full"), default="compact")
     e = sub.add_parser("evidence")
     e.add_argument("--project-id", required=True)
     e.add_argument("--task-id", default="")
@@ -64,7 +90,34 @@ def main() -> int:
         elif command == "rules":
             out = service.call("get_applicable_rules", topic=options.topic)
         elif command == "memory":
-            out = service.call("search_research_memory", query=options.query, limit=options.limit)
+            profile = (read_json(Path(options.task_profile_file))
+                       if options.task_profile_file else None)
+            out = service.call(
+                "search_research_memory", query=options.query, limit=options.limit,
+                mechanism=options.mechanism, domain=options.domain,
+                applicability=options.applicability, verdict=options.verdict,
+                evidence_level=options.evidence_level, origin=options.origin,
+                keyword=options.keyword, max_experiences=options.max_experiences,
+                include_cases=not options.legacy_only, task_profile=profile)
+        elif command == "case-review":
+            filters = {k: v for k, v in {
+                "mechanism": options.mechanism, "domain": options.domain,
+                "verdict": options.verdict,
+                "evidence_level": options.evidence_level}.items() if v}
+            out = service.call("review_case_transfer",
+                               task_profile=read_json(Path(options.task_profile_file)),
+                               filters=filters, query=options.query, limit=options.limit)
+        elif command == "case-candidates":
+            manifest = (read_json(Path(options.evidence_manifest))
+                        if options.evidence_manifest else None)
+            out = service.call("extract_case_candidates", project_id=options.project_id,
+                               observations=read_json(Path(options.observations_file))["observations"],
+                               evidence_root=options.evidence_root or None,
+                               evidence_manifest=manifest)
+        elif command == "case-gate":
+            packet = read_json(Path(options.event_file))
+            event = packet.get("event", packet) if isinstance(packet, dict) else packet
+            out = service.call("case_gate_check", event=event, detail=options.detail)
         elif command == "evidence":
             out = service.call("find_experiment_evidence", project_id=options.project_id,
                                task_id=options.task_id, run_id=options.run_id, limit=options.limit)

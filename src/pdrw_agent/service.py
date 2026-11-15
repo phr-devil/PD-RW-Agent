@@ -6,6 +6,7 @@ from .schemas import failure
 from .projects import get_project_context
 from .rules import get_applicable_rules
 from .memory import search_research_memory
+from . import case_learning, case_gates
 from .evidence import find_experiment_evidence
 from .experiments import check_duplicate_experiment
 from .runtime.receipts import begin_operation, checkpoint_operation, execution_status
@@ -23,6 +24,9 @@ class ResearchService:
             "get_project_context": get_project_context,
             "get_applicable_rules": get_applicable_rules,
             "search_research_memory": search_research_memory,
+            "review_case_transfer": case_learning.case_transfer_review,
+            "extract_case_candidates": case_learning.extract_candidates,
+            "case_gate_check": case_gates.case_gate_check,
             "find_experiment_evidence": find_experiment_evidence,
             "check_duplicate_experiment": check_duplicate_experiment,
             "get_resume_context": get_resume_context,

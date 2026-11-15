@@ -29,13 +29,16 @@ class MCPTests(unittest.TestCase):
                     names = {t.name for t in registered.tools}
                     self.assertEqual(names, {
                         "get_project_context", "get_applicable_rules",
-                        "search_research_memory", "find_experiment_evidence",
+                        "search_research_memory", "review_case_transfer",
+                        "extract_case_candidates", "case_gate_check",
+                        "find_experiment_evidence",
                         "check_duplicate_experiment",
                         "get_resume_context", "get_execution_status",
                         "begin_operation_receipt", "checkpoint_operation_receipt",
                         "preview_experiment_record", "prepare_handoff",
                     })
                     self.assertNotIn("record_experiment_result", names)
+                    self.assertNotIn("write_case_to_library", names)
                     response = await client.call_tool(
                         "get_project_context", {"project_id": "missing"})
                     self.assertFalse(response.is_error)

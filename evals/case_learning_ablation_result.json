@@ -1,0 +1,264 @@
+{
+  "arms": {
+    "OFF": "search_research_memory(include_cases=False)",
+    "ON": "search_research_memory(include_cases=True) + independent 8-dimension review"
+  },
+  "guardrails": {
+    "both_polarities_observed": true,
+    "case_arm_available": true,
+    "coherent_retained_case_set": true,
+    "dedup_fingerprint_stable": true,
+    "legacy_index_unaffected_in_all_scenarios": true,
+    "no_automatic_go_stop": true,
+    "no_writes_to_case_library": true
+  },
+  "interpretation": "ON surfaces bounded, source-verified negative/success candidates and applicability classifications. Whether that improves a real research decision is NOT measured here.",
+  "library": {
+    "digest_after": {
+      "files": 67,
+      "sha256": "6bd6c702fe6209aed5c7a9dc317078f56cd2b7020ddc8853c806c93cf023b8de"
+    },
+    "digest_before": {
+      "files": 67,
+      "sha256": "6bd6c702fe6209aed5c7a9dc317078f56cd2b7020ddc8853c806c93cf023b8de"
+    },
+    "root": "D:\\workbuddy-work\\CASE_LIBRARY"
+  },
+  "not_a_scientific_utility_measurement": true,
+  "not_measured": {
+    "blind_reviewer_grades": "NOT_MEASURED",
+    "human_turns_or_interventions": "NOT_MEASURED",
+    "input_output_token_delta": "NOT_MEASURED",
+    "reason": "No real WorkBuddy A/B/C replay was executed. A tool-output differential and unit tests cannot stand in for research benefit.",
+    "scientific_decision_correctness": "NOT_MEASURED",
+    "scientific_utility": "NOT_MEASURED",
+    "wall_time_delta": "NOT_MEASURED",
+    "workbuddy_task_completion": "NOT_MEASURED"
+  },
+  "report_sha256": "74af2858ffefcb925c4754a38be693024c3801f3019f6584181955ac268ca54f",
+  "report_type": "ENGINEERING_ADVISORY_FIELD_DIFFERENTIAL",
+  "scenarios": [
+    {
+      "legacy_matches_unchanged": true,
+      "off": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 0,
+        "case_library_status": null,
+        "distinct_local_evidence_paths": 0,
+        "keyword_similarity_flag": null,
+        "legacy_matches": 5,
+        "legacy_status": "MATCHES_FOUND",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {},
+        "success_transfers": 0
+      },
+      "on": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 3,
+        "case_library_status": "MATCHES_FOUND",
+        "distinct_local_evidence_paths": 3,
+        "keyword_similarity_flag": true,
+        "legacy_matches": 5,
+        "legacy_status": "MATCHES_FOUND",
+        "negative_warnings": 3,
+        "output_truncated": true,
+        "review_classification_counts": {
+          "APPLICABILITY_RISK": 3
+        },
+        "success_transfers": 0
+      },
+      "query": "HAR 分组 泄漏 窗口",
+      "repeat_cache_hit": true,
+      "same_query_fingerprint": true,
+      "scenario_id": "S1_HAR_GROUP_LEAKAGE"
+    },
+    {
+      "legacy_matches_unchanged": true,
+      "off": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 0,
+        "case_library_status": null,
+        "distinct_local_evidence_paths": 0,
+        "keyword_similarity_flag": null,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {},
+        "success_transfers": 0
+      },
+      "on": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 1,
+        "case_candidates_returned": 3,
+        "case_library_status": "MATCHES_FOUND",
+        "distinct_local_evidence_paths": 3,
+        "keyword_similarity_flag": true,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 2,
+        "output_truncated": false,
+        "review_classification_counts": {
+          "APPLICABILITY_RISK": 3
+        },
+        "success_transfers": 0
+      },
+      "query": "机器人示教 因果混淆 数据质量",
+      "repeat_cache_hit": true,
+      "same_query_fingerprint": true,
+      "scenario_id": "S2_ROBOT_DEMO_FAILURE"
+    },
+    {
+      "legacy_matches_unchanged": true,
+      "off": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 0,
+        "case_library_status": null,
+        "distinct_local_evidence_paths": 0,
+        "keyword_similarity_flag": null,
+        "legacy_matches": 5,
+        "legacy_status": "MATCHES_FOUND",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {},
+        "success_transfers": 0
+      },
+      "on": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 2,
+        "case_candidates_returned": 2,
+        "case_library_status": "MATCHES_FOUND",
+        "distinct_local_evidence_paths": 2,
+        "keyword_similarity_flag": true,
+        "legacy_matches": 5,
+        "legacy_status": "MATCHES_FOUND",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {
+          "APPLICABILITY_RISK": 2
+        },
+        "success_transfers": 0
+      },
+      "query": "跨传感器迁移 标定 成功",
+      "repeat_cache_hit": true,
+      "same_query_fingerprint": true,
+      "scenario_id": "S3_CROSS_SENSOR_SUCCESS"
+    },
+    {
+      "legacy_matches_unchanged": true,
+      "off": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 0,
+        "case_library_status": null,
+        "distinct_local_evidence_paths": 0,
+        "keyword_similarity_flag": null,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {},
+        "success_transfers": 0
+      },
+      "on": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 3,
+        "case_library_status": "MATCHES_FOUND",
+        "distinct_local_evidence_paths": 3,
+        "keyword_similarity_flag": true,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 3,
+        "output_truncated": true,
+        "review_classification_counts": {
+          "APPLICABILITY_RISK": 3
+        },
+        "success_transfers": 0
+      },
+      "query": "简单基线 复杂算法 增益归因",
+      "repeat_cache_hit": true,
+      "same_query_fingerprint": true,
+      "scenario_id": "S4_SIMPLE_BASELINE"
+    },
+    {
+      "legacy_matches_unchanged": true,
+      "off": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 0,
+        "case_library_status": null,
+        "distinct_local_evidence_paths": 0,
+        "keyword_similarity_flag": null,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {},
+        "success_transfers": 0
+      },
+      "on": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 1,
+        "case_candidates_returned": 3,
+        "case_library_status": "MATCHES_FOUND",
+        "distinct_local_evidence_paths": 3,
+        "keyword_similarity_flag": true,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 2,
+        "output_truncated": true,
+        "review_classification_counts": {
+          "APPLICABILITY_RISK": 3
+        },
+        "success_transfers": 0
+      },
+      "query": "错误标签 外部验证 模型版本",
+      "repeat_cache_hit": true,
+      "same_query_fingerprint": true,
+      "scenario_id": "S5_LABEL_ERROR_AND_VERSION"
+    },
+    {
+      "legacy_matches_unchanged": true,
+      "off": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 0,
+        "case_library_status": null,
+        "distinct_local_evidence_paths": 0,
+        "keyword_similarity_flag": null,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {},
+        "success_transfers": 0
+      },
+      "on": {
+        "automatic_go_stop_emitted": false,
+        "candidates_only_not_admitted": 0,
+        "case_candidates_returned": 1,
+        "case_library_status": "MATCHES_FOUND",
+        "distinct_local_evidence_paths": 1,
+        "keyword_similarity_flag": true,
+        "legacy_matches": 0,
+        "legacy_status": "NO_CASE_INDEX_MATCH",
+        "negative_warnings": 0,
+        "output_truncated": false,
+        "review_classification_counts": {
+          "APPLICABILITY_RISK": 1
+        },
+        "success_transfers": 1
+      },
+      "query": "跨机器人本体迁移 成功条件",
+      "repeat_cache_hit": true,
+      "same_query_fingerprint": true,
+      "scenario_id": "S6_CROSS_EMBODIMENT_SUCCESS"
+    }
+  ]
+}

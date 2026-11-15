@@ -35,6 +35,38 @@ v0.5 adds private SQLite operational receipts, read-only recovery, PD-RW Run reg
 
 Only at a consequential research fork, assemble a small local DEV proposal with exact premise/scope, at least two competing hypotheses, qualitative probe predictions and original source refs. Use `python -m pdrw_agent.science.cli decision --packet FILE.json` to compare stated distinctions. A matched prior negative is an **advisory candidate**, not automatic STOP. Missing evidence is UNKNOWN; no new approval step or research authority.
 
+## Case-library decision reuse (v0.5.4 local increment)
+
+At a **new Task**, a **significant anomaly**, a **planned large resource investment**, or the **end of an effective experiment**, call `search_research_memory` once with the mechanism filters and a declared `task_profile` (mechanisms, legal_inputs, labels, grouping, evaluation_unit, baseline, boundaries, counterexamples, decision). Read `decision_experiences` (≤5, both negative warnings and success transfers) and `case_review`; for an explicit second opinion use `review_case_transfer`.
+
+- Compare each case's `premises`, `applicability.conditions/boundaries` and `counterexamples` with the **actual** protocol. `USEFUL_ANALOGY` is a prompt to check, not a licence to transfer a conclusion. `APPLICABILITY_RISK` or `CONDITIONS_DIFFER` means do not reuse that result directly; `EVIDENCE_INSUFFICIENT` means mark it a candidate.
+- Check `source_verification.per_case.<id>.evidence_grade`; a `DECISION_GRADE` case is original/partial-text verified with a matching local card. `ABSTRACT_VERIFIED_ONLY`, `NON_DECISION_GRADE`, `+PREPRINT_NOT_PEER_REVIEWED`, `UNVERIFIED_CARD_MISSING_OR_ID_MISMATCH` and `INDEX_STALE_REBUILD_REQUIRED` stay `candidates_only`. `role_classes` separates original empirical work, independent replication/external validation, author/internal reports, opinion/review and unverified secondary claims.
+- Never emit GO/STOP from these tools; decisions stay with PD-RW and the author. Never write to CASE_LIBRARY, STATE, RESEARCH_RECORD, Run, EVENTS or SEALED. No second memory file or research-rule copy.
+- **Dedup:** keep `query_fingerprint`; do not repeat the same query+profile+index in one task. `cache_hit: true` is the same evidence, not new evidence. Re-query only when the declared conditions or the index fingerprint change.
+- At the end of an effective experiment, `extract_case_candidates` may produce `CANDIDATE_ONLY` items from original Run evidence plus the existing science audit. They are **not** verified scientific conclusions and are never auto-promoted; a later, separately authorized, independently verified review would be required to add a case card.
+
+## Case-application gates (v0.5.5 local increment)
+
+`case_gate_check(event, detail="compact")` is the **single** new MCP tool. It is an orchestrator only: it decides WHEN to retrieve, reuses the verified result, and verifies that a real retrieval happened. All retrieval/ranking/8-dimension review come from the existing `case_learning.case_search` -> `CASE_LIBRARY/scripts/search_cases.py`. No second retriever, no new science-state database.
+
+**Five triggers, priority G1 > G2 > G3 > T1 > T2**
+
+| Trigger | When | Declared event fields | Main output |
+| --- | --- | --- | --- |
+| G1 | H2–H3, before the core scientific question is fixed | `h_stage=H2/H3`, `milestone=QUESTION_SELECTION` | `selection_impact` |
+| G2 | H6–H7, before the core experimental protocol is frozen | `h_stage=H6/H7`, `milestone=PROTOCOL_FREEZE` | `concrete_checks`, `protocol_design_review` |
+| G3 | H8–H10, before a major conclusion / main Claim / staged closure | `h_stage=H8/H9/H10`, `milestone=CLAIM_OR_CLOSURE` | `contribution_review`, candidate hint |
+| T1 | anomaly, unsupported core mechanism, severe evaluation problem, repeated ineffective attempts, consecutive valid negatives | `signals` with a T1 code; `outcome_class`, `evidence_refs` | `anomaly_triage`, failure/repair experiences |
+| T2 | significant resource increase or change of core algorithm, data scope, evaluation criterion or scientific question | `signals` with a T2 code | `decision_change_review` |
+
+`CODE_CHANGE`, `HYPERPARAMETER_TUNING`, `TEST_ONLY`, `PLOTTING`, `SAME_SCOPE_DEV`, `BUG_FIX`, `DOCUMENTATION`, `REFACTOR` are DEV noise: with `milestone=NONE` they return `NO_CASE_RETRIEVAL_REQUIRED` and **zero retrieval**. Unknown declared signals/stages are recorded as `UNKNOWN`, never silently invented.
+
+**Mandatory checkpoints are evidence-checked.** The result carries `retrieval_record` (`retrieval_tool=case_learning.case_search`, `index_sha256`, `retrieval_scope`, `retrieved_case_ids`, `applicability_judgments`, `source_verification_present`) and `verification.status`. A bare `CASE_CHECK: COMPLETED` string is rejected by `verify_gate_record`. No-match still passes with `gate_status=UNKNOWN`, an explicit retrieval scope and result, and `may_proceed=true`. An inaccessible library returns `CASE_LIBRARY_UNAVAILABLE` with the reason, no fake completion and no blocking of unrelated legal work.
+
+**Fingerprint reuse.** `gate_fingerprint` hashes Task, hypothesis, protocol, `h_stage`, `milestone`, `task_profile`, `query`, `filters`, evidence declaration and the CASE_LIBRARY `index.json` sha256. Unchanged conditions return the **same verified record** with `cache_hit=true` and zero new retrieval; changing any key premise/evidence/protocol or rebuilding the index produces a new fingerprint and a fresh retrieval. The cache is a bounded in-process `OrderedDict`, not a project STATE/EVENTS store. `detail="compact"` defaults to ≤5 one-line cases; `detail="full"` or the existing `search_research_memory` / `review_case_transfer` tools supply full evidence.
+
+**Enforcement level.** `enforcement_level.actual = ADVISORY_SKILL_AND_TOOL_LEVEL`, `hard_gate=false`, `host_state_transition_interception=false`. WorkBuddy on this host has no trusted state-transition hook: the Skill requests the check, the tool executes it when actually called, but it cannot block a transition. Never report it as a hard gate. `automatic_go_stop=false` always; PD-RW H6/H8 author choices and separate writing permission are unchanged. T1 triage separates engineering error / invalid experiment / insufficient evidence / valid scientific negative before any suggested action. `evals/case_gate_eval.py` records actual calls, false/missed triggers and payload size; real decision quality and WorkBuddy tokens remain `NOT_MEASURED`.
+
 ## Minimal handoff
 
 `RESULT | EVIDENCE_PATHS | TESTS_ACTUALLY_RUN | LIMITS/UNKNOWN | NEXT_LEGAL_ACTION_OR_USER_CHOICE`
