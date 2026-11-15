@@ -129,6 +129,96 @@ class ScientificAuditTests(unittest.TestCase):
         return self.svc.call("audit_scientific_experiment",
                              project_id="demo", run_id="r-main", **kwargs)
 
+    def _attach_matrix(self, plan, csv_text):
+        run, event, _ = self.info["r-main"]
+        refs = run["artifact_refs"]
+        for name, contents in (("evaluation_plan", json.dumps(plan)),
+                               ("evaluation_results", csv_text)):
+            ref = self._write(self.root / "runs" / "r-main" /
+                              (name + (".json" if name == "evaluation_plan"
+                                       else ".csv")), contents)
+            refs[name] = ref
+            event["linked_sha256"][ref] = sha(self.root / ref)
+        self._rewrite_run("r-main")
+
+    def test_matrix_complete_declared_cells_still_not_scientific_proof(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": ["s1", "s2"],
+                "arm_ids": ["A", "B"]}
+        self._attach_matrix(plan,
+            "fold_id,arm_id,status\ns1,A,COMPLETED\ns1,B,COMPLETED\n"
+            "s2,A,COMPLETED\ns2,B,COMPLETED\n")
+        result = self.audit()
+        check = result["checks"]["evaluation_matrix_coverage"]
+        self.assertEqual(check["status"], "PASS")
+        self.assertEqual((check["expected_cells"], check["complete_count"]), (4, 4))
+        self.assertFalse(check["scientific_validity_verified"])
+        self.assertFalse(check["original_plan_freeze_verified"])
+        self.assertFalse(result["scientific_validity_verified"])
+
+    def test_matrix_missing_cell_requires_review_not_invented_failure(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": ["s1", "s2"],
+                "arm_ids": ["A", "B"]}
+        self._attach_matrix(plan,
+            "fold_id,arm_id,status\ns1,A,COMPLETED\ns1,B,COMPLETED\n"
+            "s2,A,COMPLETED\n")
+        result = self.audit()
+        check = result["checks"]["evaluation_matrix_coverage"]
+        self.assertEqual(check["status"], "REVIEW")
+        self.assertEqual(check["missing_count"], 1)
+        self.assertEqual(check["missing_cells"], [{"fold_id": "s2", "arm_id": "B"}])
+        self.assertIn("evaluation_matrix_coverage", result["review_checks"])
+
+    def test_matrix_duplicate_and_unexpected_are_conflicts(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A", "B"]}
+        self._attach_matrix(plan,
+            "fold_id,arm_id,status\ns1,A,COMPLETED\ns1,A,COMPLETED\n"
+            "s1,B,COMPLETED\ns9,A,COMPLETED\n")
+        check = self.audit()["checks"]["evaluation_matrix_coverage"]
+        self.assertEqual(check["status"], "FAIL")
+        self.assertEqual(check["duplicate_count"], 1)
+        self.assertEqual(check["unexpected_count"], 1)
+
+    def test_matrix_undeclared_skip_is_conflict(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A"]}
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,SKIPPED\n")
+        check = self.audit()["checks"]["evaluation_matrix_coverage"]
+        self.assertEqual(check["status"], "FAIL")
+        self.assertEqual(check["unplanned_skip_count"], 1)
+
+    def test_matrix_declared_skip_requires_review(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A"],
+                "declared_skips": [{"fold_id": "s1", "arm_id": "A",
+                                    "reason": "predeclared-device-unavailable"}]}
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,SKIPPED\n")
+        check = self.audit()["checks"]["evaluation_matrix_coverage"]
+        self.assertEqual(check["status"], "REVIEW")
+        self.assertEqual(check["declared_skip_count"], 1)
+        self.assertFalse(check["original_plan_freeze_verified"])
+
+    def test_matrix_malformed_plan_fails_closed(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": [{"not": "an-id"}],
+                "arm_ids": ["A"]}
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,COMPLETED\n")
+        out = self.audit()
+        self.assertEqual(out["checks"]["evaluation_matrix_coverage"]["status"], "FAIL")
+        self.assertIn("evaluation_matrix_coverage", out["failed_checks"])
+
+    def test_matrix_sources_must_keep_original_run_link_hashes(self):
+        plan = {"schema_version": "pdrw-evaluation-matrix-v1",
+                "run_id": "r-main", "fold_ids": ["s1"], "arm_ids": ["A"]}
+        self._attach_matrix(plan, "fold_id,arm_id,status\ns1,A,COMPLETED\n")
+        path = self.root / self.info["r-main"][0]["artifact_refs"]["evaluation_results"]
+        path.write_text("fold_id,arm_id,status\ns1,A,SKIPPED\n", encoding="utf-8")
+        out = self.audit()
+        self.assertEqual(out["status"], "AUDIT_PREREQUISITE_UNVERIFIED")
+        self.assertEqual(out["run_evidence_status"], "RUN_LINK_HASH_MISMATCH")
+
     def test_matched_sources_metric_baseline_and_split(self):
         result = self.audit()
         self.assertEqual(result["status"], "SCIENTIFIC_AUDIT_INCOMPLETE", result)
