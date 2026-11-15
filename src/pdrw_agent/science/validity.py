@@ -17,6 +17,7 @@ from ..config import Settings, read_json, under_root
 from ..evidence import _events
 from ..schemas import AgentError
 from .run_integrity import verify_run_evidence
+from .coverage import audit_matrix_coverage
 from .lineage import audit_python_code, audit_content_fingerprints
 
 MAX_CSV_BYTES = 8 * 1024 * 1024
@@ -234,6 +235,10 @@ def audit_scientific_experiment(settings: Settings, project_id: str,
     checks["evaluation_rows"] = _check(
         "PASS", "Bounded predictions have unique sample IDs and nonempty group IDs",
         n_samples=len(pred), n_groups=len({x["group_id"] for x in pred}))
+    # Optional coverage check only when the original hashed Run explicitly
+    # links a plan or observed matrix. Absence does not imply complete coverage.
+    if "evaluation_plan" in refs or "evaluation_results" in refs:
+        checks["evaluation_matrix_coverage"] = audit_matrix_coverage(root, run_id, refs)
     checks["source_code_lineage"] = audit_python_code(
         root, refs.get("code", ""), obj.get("legal_inputs", []))
     # The legacy sample_ids_hash is not defined to use one universal encoding.

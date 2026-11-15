@@ -1,4 +1,4 @@
-# WorkBuddy on-device acceptance (v0.7.5)
+# WorkBuddy on-device acceptance (v0.7.6)
 
 > Required next gate: run actual WorkBuddy comparisons with the same frozen sources and unchanged PD-RW authority. A=PD-RW only, B=PD-RW+Skill, C=PD-RW+Skill+Python/MCP. For C use the `research` profile and one compact resume call; verify real tool traces rather than assuming Skill import invokes MCP.
 > Record project/Task identity accuracy, original evidence fidelity, duplicate/unknown job re-execution, legal DEV continuity, unexpected approvals, unauthorized actions, model/tool tokens, and manual interventions. Public GitHub contains neither private runs nor user transcripts. **NOT_MEASURED** remains until raw client results are available.
@@ -28,6 +28,34 @@
 > process PID+start-token is inspected on Windows without claiming privilege
 > or verified process ownership. No real DEV/GPU trial until the separate
 > OS-restricted host passes source-permission and isolation checks.
+
+## v0.7.6 targeted 42/43/44 risk acceptance (NOT_MEASURED)
+
+- **Resume fidelity**: for verified identity conflict, missing sources, STATE/EVENTS mismatch and machine-readiness mismatch, compare `compact` and `full` outputs. Compact must keep the same blocker status, specific history/diagnostic reason where present and original read-only recovery routes; no permission inferred. Compact still reads the same underlying sources as full, so do **not** claim reduced I/O or real token savings without measurement.
+- **Project 44-style DEV Run matrix**: only when the original DEV/VAL Run has hash-bound `evaluation_plan` (JSON) and `evaluation_results` (CSV) artifact refs, `audit_scientific_experiment` reports `evaluation_matrix_coverage`. A declared `fold_ids × arm_ids` grid is a *plan assertion*, not proof it was frozen before results. Duplicate/unexpected cells and unplanned skips are conflicts; missing/incomplete and declared skips require review. The alleged 26×7 vs 169 discrepancy must be checked against the **real** original Run and its legitimate exclusions; do not infer 13 missing experiments without that evidence.
+- **Projects 42/43**: freeze distinct project roots/Task IDs/author grants before any replay. Classify stalled tasks as `AUTH_BLOCKED`, `DATA_BLOCKED`, `SOURCE_UNKNOWN` or `AGENT_DECISION_ERROR` from actual traces; no post-hoc guessing or illegal DEV replay.
+- **A/B/C on-device**: PD-RW alone, +Skill, +Skill/MCP under identical model, frozen source window and permissions. Collect raw calls, source/Run references, correctness, Token/wall-time and interventions. Repository has no private WorkBuddy traces: `NOT_MEASURED`.
+- Do not commit private project traces, SEALED data, user authorization messages or unredacted paths.
+
+### Optional Run-linked matrix file format
+
+`artifact_refs` may include `evaluation_plan` and `evaluation_results` on an original registered DEV/VAL Run, with both paths covered by its original `linked_sha256` evidence. Example plan and observation schema (illustrative only; not from project 44):
+
+```json
+{"schema_version":"pdrw-evaluation-matrix-v1","run_id":"run-id",
+ "fold_ids":["fold-A","fold-B"],"arm_ids":["baseline","ablation"],
+ "declared_skips":[]}
+```
+
+```csv
+fold_id,arm_id,status
+fold-A,baseline,COMPLETED
+fold-A,ablation,COMPLETED
+fold-B,baseline,COMPLETED
+fold-B,ablation,NOT_RUN
+```
+
+Allowed observation status: `COMPLETED`, `FAILED`, `NOT_RUN`, `INVALID`, `INCONCLUSIVE`, `SKIPPED`. A plan skip needs `{"fold_id":"...","arm_id":"...","reason":"..."}`. The tool checks only bounded manifest/count consistency; `COMPLETED` is *not* a scientific VALID Run and the original preregistration date is not attested. Missing refs are not proof of complete coverage. Do not edit or retroactively rehash the original Run simply to attach a plan.
 
 These are **actual WorkBuddy-client steps to perform**, distinct from GitHub CI.
 

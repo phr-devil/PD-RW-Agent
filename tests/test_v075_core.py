@@ -47,6 +47,8 @@ class CoreConvergenceTests(unittest.TestCase):
             compact = get_resume_context(settings, "demo", detail_level="compact")
             self.assertEqual(compact["status"], full["status"])
             self.assertIsNone(compact["scientific_context"]["active_task_id_declared"])
+            self.assertEqual(compact["read_only_next_actions"], full["read_only_next_actions"])
+            self.assertEqual(compact["receipt_status"], full.get("receipt_status"))
             self.assertFalse(compact["authorization_verified"])
             self.assertFalse(compact["restart_permitted"])
             self.assertFalse(compact["next_action_hint"]["execution_authorized"])
@@ -77,6 +79,39 @@ class CoreConvergenceTests(unittest.TestCase):
             self.assertTrue(out["next_action_hint"][
                 "independent_permitted_read_only_review_allowed"])
             self.assertFalse(out["next_action_hint"]["execution_authorized"])
+
+    def test_history_conflict_keeps_diagnostic_reason_and_action(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            rules = base / "rules"
+            rules.mkdir()
+            for name in ("AGENTS.md", "WORKFLOW.md"):
+                (rules / name).write_text("# rules", encoding="utf-8")
+            project = base / "project"
+            project.mkdir()
+            (project / "STATE.json").write_text(json.dumps({
+                "schema_version": "1.4", "project_id": "real-id",
+                "active_task_id": None, "latest_valid_run_id": None,
+                "last_event_id": "event-never-written", "evidence_refs": []
+            }), encoding="utf-8")
+            (project / "EVENTS.jsonl").write_text("", encoding="utf-8")
+            (project / "RESEARCH_RECORD.md").write_text(
+                "## 0. Snapshot\\n## 1. History\\n", encoding="utf-8")
+            config = base / "map.json"
+            config.write_text(json.dumps({"schema_version": 1, "projects": {
+                "demo": {"root": str(project),
+                         "expected_state_project_id": "real-id"}
+            }}), encoding="utf-8")
+            settings = Settings.load(str(config), str(rules))
+            full = get_resume_context(settings, "demo", detail_level="full")
+            compact = get_resume_context(settings, "demo", detail_level="compact")
+            self.assertEqual(full["status"], "BLOCKED_HISTORY_INCONSISTENT")
+            self.assertEqual(compact["history_status"], "STATE_EVENTS_MISMATCH")
+            self.assertEqual(compact["read_only_next_actions"],
+                             full["read_only_next_actions"])
+            self.assertFalse(compact["authorization_verified"])
+            self.assertFalse(compact["restart_permitted"])
+
 
 
 if __name__ == "__main__":

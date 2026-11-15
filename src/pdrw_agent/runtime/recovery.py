@@ -98,10 +98,9 @@ def get_resume_context(settings: Settings, project_id: str,
                        detail_level: str = "full") -> dict:
     """Resume hint, not execution authority. Keep legacy full result by default.
 
-    Compact mode is for token-bounded agent entry; it preserves blockers,
-    current declared scientific pointers and uncertainty while suppressing
-    verbose synthetic/host diagnostic objects. Both modes examine the same
-    sources and never restart operations.
+    Compact mode reduces returned tokens while preserving actionable blocker
+    reasons and original read-only recovery routes. Both modes inspect the
+    same sources (no internal I/O savings) and never restart operations.
     """
     if detail_level not in {"compact", "full"}:
         raise ValueError("RESUME_DETAIL_INVALID: use compact or full")
@@ -158,4 +157,13 @@ def get_resume_context(settings: Settings, project_id: str,
         "authorization_verified": False,
         "restart_permitted": False,
         "missing": result.get("project", {}).get("missing", []),
+        # Do not erase the *reason* for a blocked recovery while trimming
+        # large diagnostics. These are source-reported hints, not permissions.
+        "history_status": result.get("history_status"),
+        "read_only_next_actions": result.get("read_only_next_actions", []),
+        "machine_readiness_summary": ({
+            "status": result["machine_readiness"].get("status"),
+            "reason": result["machine_readiness"].get("reason"),
+        } if isinstance(result.get("machine_readiness"), dict) else None),
+        "receipt_status": result.get("receipt_status"),
     }

@@ -11,7 +11,7 @@ examples_zh:
   - "依据 PD-RW 检查实验并交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.7.5
+version: 0.7.6
 author: phr-devil
 ---
 
@@ -48,7 +48,7 @@ Use `audit_project_state(project_id)` and `reconstruct_project_history(project_i
 `verify_run_evidence(project_id, run_id)` for original Run integrity;
 `audit_scientific_experiment(project_id, run_id)` for bounded DEV/VAL leakage, metric and baseline checks;
 `review_evidenced_lesson(project_id, run_id, proposal)` for hash-linked prior negative evidence.
-Missing information => UNKNOWN, not PASS/FAIL or a new approval. Do not run every audit for every task.
+Missing information => UNKNOWN, not PASS/FAIL or a new approval. If original hash-linked DEV/VAL Run artifacts include an evaluation matrix, the scientific audit reports coverage; absence is not complete coverage. Do not run every audit for every task.
 Host CPU synthetic checks and `preflight_execution_plan(plan)` are diagnostic only and require the `diagnostic` profile; never interpret them as true research execution.
 
 ## Optional references (load only when triggered)
