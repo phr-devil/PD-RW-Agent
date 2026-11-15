@@ -2,7 +2,7 @@
 from __future__ import annotations
 import sqlite3
 from .config import Settings
-from .schemas import failure
+from .schemas import failure, classify_storage_error
 from .projects import get_project_context
 from .rules import get_applicable_rules
 from .memory import search_research_memory
@@ -41,5 +41,14 @@ class ResearchService:
             if handler is None:
                 return {"status": "ERROR", "error_code": "UNKNOWN_TOOL"}
             return handler(self.settings, **kwargs)
-        except (ValueError, OSError, UnicodeError, TypeError, sqlite3.Error) as exc:
+        except sqlite3.Error as exc:
+            # Storage failures are operational, never INVALID_INPUT. Keep the
+            # real SQLite class/message so a readonly or locked DB is visible.
+            return {"status": "ERROR",
+                    "error_code": classify_storage_error(exc),
+                    "detail": f"{type(exc).__name__}: {exc}"[:250],
+                    "storage_error_class": (type(exc).__module__ + "." +
+                                            type(exc).__qualname__),
+                    "authorization_verified": False}
+        except (ValueError, OSError, UnicodeError, TypeError) as exc:
             return failure(exc)

@@ -83,8 +83,8 @@ def _safe_history(root: Path, events: list[dict]) -> bool:
 def preview_experiment_record(settings: Settings, project_id: str,
                               artifact_ref: str) -> dict:
     context = get_project_context(settings, project_id)
-    if context["status"] == "IDENTITY_CONFLICT":
-        return {"status": "IDENTITY_CONFLICT", "project_id": project_id,
+    if context["status"] in {"IDENTITY_CONFLICT", "IDENTITY_UNKNOWN"}:
+        return {"status": context["status"], "project_id": project_id,
                 "write_authorized": False}
     root, _ = settings.project(project_id)
     path = under_root(root, artifact_ref, must_exist=True)

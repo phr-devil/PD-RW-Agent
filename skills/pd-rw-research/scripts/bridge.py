@@ -15,8 +15,46 @@ STATE_KEYS = (
     "WORKFLOW", "USER_SCOPE", "ACTIVE_TASK", "AUTH/BUDGET", "HOLDOUT",
     "BEST_VALID_RUN", "NEXT", "RESEARCH_RECORD_REF", "PAPER_BLUEPRINT_REF",
     "HUMAN_REVIEW_CURRENT", "NEXT_ACTION_OWNER", "MANUSCRIPT_WRITE_AUTH",
+    "PROJECT_ID",
 )
 REQUIRED_RULES = ("AGENTS.md", "WORKFLOW.md")
+
+# Controlled Markdown identity variants; keep in sync with
+# pdrw_agent.projects.markdown_project_id. Bounded ASCII identifier only.
+_ID_TOKEN = r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}"
+_MD_PROJECT_ID = re.compile(
+    r"(?<![A-Za-z0-9_])PROJECT_ID\s*(?:=|:|：|＝)\s*[`'\"]?\s*(" + _ID_TOKEN + r")",
+    re.IGNORECASE)
+_MD_PROJECT_CN = re.compile(
+    r"(?:项目身份|项目\s*ID|项目编号|项目标识)\s*[:：]\s*[`'\"]?\s*(" + _ID_TOKEN + r")",
+    re.IGNORECASE)
+
+
+def markdown_project_id(raw):
+    """Return (declared_id, basis) for controlled Markdown identity lines."""
+    if raw is None:
+        return None, "ABSENT"
+    found = set()
+    basis = "ABSENT"
+    for raw_line in raw.splitlines()[:40]:
+        line = raw_line.replace("**", "").replace("__", "").replace("`", "")
+        explicit = _MD_PROJECT_ID.search(line)
+        candidate = explicit.group(1) if explicit else None
+        line_basis = "EXPLICIT_PROJECT_ID" if explicit else None
+        if candidate is None:
+            cn = _MD_PROJECT_CN.search(line)
+            if cn:
+                candidate, line_basis = cn.group(1), "CONTROLLED_CN_VARIANT"
+        if candidate is None:
+            continue
+        found.add(candidate)
+        if basis == "ABSENT":
+            basis = line_basis or "ABSENT"
+    if len(found) > 1:
+        return None, "AMBIGUOUS"
+    if not found:
+        return None, basis
+    return next(iter(found)), basis
 
 
 def emit(payload, code=0):
@@ -136,6 +174,10 @@ def state_index(path):
         for key in STATE_KEYS:
             if value.startswith(key + ":"):
                 found[key] = value[len(key) + 1:].strip()[:500]
+    declared, basis = markdown_project_id(raw)
+    if declared:
+        found["project_id"] = declared
+    found["identity_basis"] = basis
     return found
 
 
@@ -149,18 +191,28 @@ def resume(workflow_root, project_map, project_id):
     state = state_index(files["state"])
     missing = [name for name in ("state", "research_record") if not paths[name]["exists"]]
     actual_id = state.get("project_id") if isinstance(state, dict) else None
+    basis = state.get("identity_basis", "ABSENT") if isinstance(state, dict) else "ABSENT"
     # A map is only a locator, not proof that a research line/dataset matches.
     mismatch = bool(expected and actual_id and expected != actual_id)
+    identity = ("DECLARED_ID_MISMATCH" if mismatch else
+                "DECLARED_ID_MATCH" if expected and actual_id else "UNKNOWN")
+    status = ("IDENTITY_CONFLICT" if mismatch else
+              "IDENTITY_UNKNOWN" if expected and identity == "UNKNOWN" else
+              "READY_FOR_SOURCE_REVIEW" if not missing and snapshot is not None
+              else "INCOMPLETE_CONTEXT")
     return {
-        "status": "IDENTITY_CONFLICT" if mismatch else
-                  ("READY_FOR_SOURCE_REVIEW" if not missing and snapshot is not None
-                   else "INCOMPLETE_CONTEXT"),
+        "status": status,
         "project_id": project_id,
         "expected_state_project_id": expected,
         "observed_state_project_id": actual_id,
+        "identity_basis": basis,
+        "identity_verified": False,
+        "cross_project_run_or_claim_reuse": "NOT_ATTESTED",
         "project_root": str(root),
-        "project_identity_status": "DECLARED_ID_MISMATCH" if mismatch
-                                   else "UNVERIFIED_REQUIRE_ORIGINAL_SOURCE",
+        # Legacy field kept for existing consumers; UNKNOWN is explicit here.
+        "project_identity_status": "DECLARED_ID_MISMATCH" if mismatch else (
+            "UNVERIFIED_REQUIRE_ORIGINAL_SOURCE" if identity == "DECLARED_ID_MATCH"
+            else "UNKNOWN"),
         "workflow": check,
         "paths": paths,
         "missing": missing,
@@ -169,7 +221,8 @@ def resume(workflow_root, project_map, project_id):
         "original_user_authorization": "UNVERIFIED",
         "state_integrity": "NOT_CHECKED_AGAINST_EVENTS_OR_RAW_RUN",
         "scientific_evidence": "UNVERIFIED_REQUIRE_RAW_ARTIFACTS",
-        "next": "VERIFY_IDENTITY_AUTH_AND_RAW_EVIDENCE_BEFORE_RESTRICTED_ACTION",
+        "next": ("RESTORE_ORIGINAL_PROJECT_ID_DECLARATION" if status == "IDENTITY_UNKNOWN"
+                 else "VERIFY_IDENTITY_AUTH_AND_RAW_EVIDENCE_BEFORE_RESTRICTED_ACTION"),
     }
 
 

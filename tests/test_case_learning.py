@@ -207,7 +207,13 @@ class CaseLearningTests(unittest.TestCase):
         try:
             (self.fx.root / "index.json").symlink_to(self.base / "outside.json")
         except (OSError, NotImplementedError):
-            self.skipTest("symlink not permitted on this host")
+            # Windows without Developer Mode / elevated privilege denies
+            # symlink creation. The non-symlink half of this test above still
+            # ran; path traversal and protected-root checks are covered by
+            # test_card_path_traversal_is_ignored. No product defect implied.
+            self.skipTest("SKIP: host OS denies symlink creation (Windows "
+                          "requires Developer Mode or elevated privilege); "
+                          "symlink branch is environment-dependent only")
         r = self.fx.service.call("search_research_memory", query="分组")
         self.assertIn(r["case_library"]["error_code"],
                       {"CASE_INDEX_MISSING", "CASE_LIBRARY_UNAVAILABLE",
