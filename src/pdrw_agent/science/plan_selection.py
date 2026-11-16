@@ -25,12 +25,15 @@ OPTION_FIELDS = frozenset({
     "id", "scientific_question", "core_task", "dataset_or_proof_path",
     "nearest_work_or_unknown", "truth_and_independence",
     "competing_explanation", "decisive_probe", "cost_and_risk",
-    "science_fit",
+    "science_fit", "primary_type", "route", "p_orientation",
 })
 PLAN_FIELDS = frozenset({
     "schema_version", "scope_ref", "options", "recommended_option_id",
     "recommendation_rationale",
 })
+TYPES = frozenset(f"C{i:02d}" for i in range(1, 13))
+ROUTES = frozenset(f"R{i}" for i in range(1, 7))
+ORIENTATIONS = frozenset(f"P{i}" for i in range(1, 6))
 CHOICE_FIELDS = frozenset({
     "schema_version", "plan_sha256", "kind", "original_user_message_ref",
     "selected_option_id", "allowed_option_ids", "delegated_scope",
@@ -68,6 +71,10 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
             _required(option[field], field, 1000)
         if not isinstance(option["science_fit"], str) or option["science_fit"] not in FIT:
             raise AgentError("H6_OPTION_INVALID", "Invalid science-fit evidence status")
+        for field, vocabulary in (("primary_type", TYPES), ("route", ROUTES),
+                                  ("p_orientation", ORIENTATIONS)):
+            if not isinstance(option[field], str) or option[field] not in vocabulary:
+                raise AgentError("H6_OPTION_INVALID", f"Invalid {field} classification")
     if plan["recommended_option_id"] not in seen:
         raise AgentError("H6_RECOMMENDATION_INVALID", "Recommended option not found")
     encoded = json.dumps(plan, ensure_ascii=False, sort_keys=True,
