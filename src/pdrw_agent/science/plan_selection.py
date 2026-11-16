@@ -31,6 +31,13 @@ PLAN_FIELDS = frozenset({
     "schema_version", "scope_ref", "options", "recommended_option_id",
     "recommendation_rationale",
 })
+# Rationale prose can change without invalidating an otherwise identical science scope.
+MATERIAL_OPTION_KEYS = (
+    "id", "scientific_question", "core_task", "dataset_or_proof_path",
+    "nearest_work_or_unknown", "truth_and_independence",
+    "competing_explanation", "decisive_probe", "cost_and_risk",
+    "science_fit", "primary_type", "route", "p_orientation",
+)
 TYPES = frozenset(f"C{i:02d}" for i in range(1, 13))
 ROUTES = frozenset(f"R{i}" for i in range(1, 7))
 ORIENTATIONS = frozenset(f"P{i}" for i in range(1, 6))
@@ -81,7 +88,14 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
                          separators=(",", ":")).encode("utf-8")
     if len(encoded) > 16000:
         raise AgentError("H6_PLAN_TOO_LARGE", "H6 option card exceeds size bound")
-    return plan, hashlib.sha256(encoded).hexdigest()
+    # Material science scope, not whitespace/explanatory recommendation prose.
+    material = {"schema_version": plan["schema_version"], "scope_ref": plan["scope_ref"],
+                "recommended_option_id": plan["recommended_option_id"],
+                "options": [{k: item[k] for k in MATERIAL_OPTION_KEYS}
+                            for item in options]}
+    canonical = json.dumps(material, ensure_ascii=False, sort_keys=True,
+                           separators=(",", ":")).encode("utf-8")
+    return plan, hashlib.sha256(canonical).hexdigest()
 
 
 def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
@@ -96,7 +110,16 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         "scientific_truth_verified": False,
         "execution_authorized": False,
         "writes_performed": False,
+        "next_user_interaction": "H6",
+        "science_risk_flags": [
+            {"option_id": opt["id"], "status": opt["science_fit"]}
+            for opt in card["options"] if opt["science_fit"] != "SUPPORTED_BY_METADATA"
+        ],
     }
+    if card["options"][[o["id"] for o in card["options"]].index(
+            card["recommended_option_id"])]["science_fit"] == "CONTRADICTED_FOR_CLAIM":
+        return {**base, "status": "RECOMMENDED_SCIENCE_CONTRADICTED",
+                "next": "REVISE_OR_NARROW_SCIENTIFIC_CLAIM_BEFORE_H6"}
     if choice is None:
         return {**base, "status": "AUTHOR_CHOICE_REQUIRED",
                 "next": "SHOW_CARD_AND_WAIT_FOR_SPECIFIC_USER_RESPONSE"}
@@ -132,7 +155,9 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         raise AgentError("H6_CHOICE_INVALID", "Only specific user choice/delegation is allowed")
     return {
         **base, "status": "DECLARED_CHOICE_UNAUTHENTICATED",
-        "selection": declared, "original_user_message_ref_declared":
+        "selection": declared, "choice_observed_declaration_only": True,
+        "next_user_interaction": None,
+        "original_user_message_ref_declared":
             choice["original_user_message_ref"],
         "next": "TRUSTED_HOST_MUST_VERIFY_ORIGINAL_MESSAGE_AND_PLAN_BINDING",
         "note": ("A model-authored choice packet cannot authenticate the user. "
