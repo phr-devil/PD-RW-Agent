@@ -106,6 +106,22 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     return plan, hashlib.sha256(fingerprint).hexdigest()
 
 
+def _declared_evidence_warnings(option: dict) -> list[str]:
+    """Hints from unverified proposal text, not a science-quality score."""
+    warnings = []
+    if option["science_fit"] != "SUPPORTED_BY_METADATA":
+        warnings.append("SCIENTIFIC_FIT_NEEDS_PROBE_OR_REFRAME")
+    if any(x in option["truth_and_independence"].upper()
+           for x in ("UNKNOWN", "NOT_VERIFIED", "UNVERIFIED", "MISSING")):
+        warnings.append("INDEPENDENT_TRUTH_OR_GROUPS_UNVERIFIED")
+    if any(x in option["nearest_work_or_unknown"].upper()
+           for x in ("UNKNOWN", "NOT_ACCESSED", "NOT_VERIFIED")):
+        warnings.append("NEAREST_WORK_NOT_FULLY_ACCESSED")
+    # These flags only prioritize a low-cost check; they cannot veto a novel
+    # scientific hypothesis or certify that metadata supports the claim.
+    return warnings
+
+
 def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
     """Read-only advisory review; NEVER returns an authenticated approval."""
     card, fingerprint = validate_h6_plan(plan)
@@ -120,9 +136,12 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         "writes_performed": False,
         "next_user_interaction": "H6",
         "science_risk_flags": [
-            {"option_id": opt["id"], "status": opt["science_fit"]}
-            for opt in card["options"] if opt["science_fit"] != "SUPPORTED_BY_METADATA"
+            {"option_id": opt["id"], "declared_fit": opt["science_fit"],
+             "warnings": _declared_evidence_warnings(opt),
+             "decisive_probe": opt["decisive_probe"]}
+            for opt in card["options"] if _declared_evidence_warnings(opt)
         ],
+        "science_risks_authoritatively_verified": False,
     }
     if card["options"][[o["id"] for o in card["options"]].index(
             card["recommended_option_id"])]["science_fit"] == "CONTRADICTED_FOR_CLAIM":
