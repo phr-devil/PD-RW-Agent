@@ -42,6 +42,7 @@ def sample_plan():
     return {
         "schema_version": "pdrw-h6-plan-v2",
         "scope_ref": "launch-message-1",
+        "research_line_ref": "new-line-unique-20261116",
         "options": [option("A", "UNKNOWN_NEEDS_PROBE"), b],
         "recommended_option_id": "B",
         "recommendation_rationale": "Better public evidence route, still uncertain",
@@ -149,9 +150,20 @@ class H6PlanChoiceTests(unittest.TestCase):
         out = review_h6_plan_choice(plan)
         self.assertEqual(out["available_option_ids"], ["A"])
 
+    def test_cross_project_h6_choice_cannot_reuse_plan_digest(self):
+        plan = sample_plan()
+        reply = sample_choice(plan)
+        other_line = copy.deepcopy(plan)
+        other_line["research_line_ref"] = "different-line"
+        out = review_h6_plan_choice(other_line, reply)
+        self.assertEqual(out["status"], "CHOICE_PLAN_MISMATCH")
+        self.assertEqual(out["research_line_ref_declared"], "different-line")
+        self.assertFalse(out["user_choice_authenticated"])
+
     def test_legacy_v1_digest_and_user_reply_are_preserved(self):
         legacy = sample_plan()
         legacy["schema_version"] = "pdrw-h6-plan-v1"
+        del legacy["research_line_ref"]
         expected = hashlib.sha256(json.dumps(
             legacy, ensure_ascii=False, sort_keys=True,
             separators=(",", ":")).encode("utf-8")).hexdigest()
