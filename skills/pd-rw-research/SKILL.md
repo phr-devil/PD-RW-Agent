@@ -2,16 +2,17 @@
 name: pd-rw-research
 display_name: PD-RW 科研 Agent
 display_name_en: PD-RW Research Agent
-description: Resume an existing PD-RW research project with original state and Run evidence, route authorized WorkBuddy DEV work, and deliver scoped results. Use only for explicitly PD-RW-governed tasks.
-description_zh: 恢复明确采用 PD-RW 的科研项目，按需读取规则、核对原始证据、连续推进已授权 DEV 工作。
+description: Start new PD-RW projects with one specific H6 plan choice or resume existing projects with evidence-aware, authorized DEV continuation.
+description_zh: 按用户启动配置自主筛选研究方案，在 H6 等待具体方案选择，并恢复已授权科研项目。
 description_en: Bounded PD-RW project recovery and evidence-aware execution routing.
 examples_zh:
+  - "按 PD-RW 启动新科研项目并提出 H6 科研方案"
   - "按 PD-RW 继续已存在的项目 19"
   - "恢复项目状态并继续已授权 DEV 工作"
   - "依据 PD-RW 检查实验并交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.7.6
+version: 0.7.7
 author: phr-devil
 ---
 
@@ -21,6 +22,14 @@ Invoke only for explicit PD-RW projects; never assume a project identity from a 
 PD-RW `WORKFLOW.md` owns scientific decisions and authorization, `AGENTS.md` owns routing.
 Original user grants, frozen protocols and project STATE/EVENTS/Run outrank the Skill,
 MCP responses, summaries and private operational SQLite receipts. No second research ledger.
+
+## New project: one H6 scientific-plan choice (no duplicate startup questionnaire)
+
+Use the original startup prompt as USER_SCOPE/H1-H2; never ask again for filled research goals, resources or exclusions. H3-H5 are Agent candidate investigation: compare 1-3 genuinely different scientific problems; check named prior work, official truth/independent groups, confounding, legal prediction-time inputs, a decisive inexpensive probe and the evidence path. UNKNOWN is not FAIL. No mandatory new datasets, training or project registration before the corresponding original permission.
+
+**H6 is a real interaction boundary:** show one short ranked plan card with an AI recommendation and alternatives, then **stop dependent new-mainline execution** until the user specifically chooses the displayed plan or explicitly delegates among displayed options. "Continue", silence, a broad startup delegation, a recommendation, an AI-created USER_CONFIRMED field, or an operation receipt is NOT a specific H6 choice. Do not freeze the selected Task/claim/evaluation or start the dependent new mainline before this choice. Independent authorized read-only work may continue. If one option is viable, say why alternatives were dropped rather than inventing three.
+
+When a local Python runtime is available, `python -m pdrw_agent.science.cli h6-review --plan PLAN.json` checks the bounded card. The optional `--choice CHOICE.json` only checks a **declared**, hash-bound reply and always returns unauthenticated status: it CANNOT grant execution. Only a trusted WorkBuddy host with access to the actual user reply may authenticate the H6 choice and enforce a new-mainline gate; the current MCP/CLI does not provide that host-level protection. Keep the exact original reply reference and option-card digest with the existing project research record, NOT a third ledger. Reuse a valid historical decision within unchanged scope; do not retroactively demand H6 for old legitimate DEV Runs. Ordinary model/feature/seed changes after H6 do not reopen it. Review [references/plan-selection.md](references/plan-selection.md) only for a new project's plan decision.
 
 ## MCP-first for a registered, permitted project
 
@@ -32,7 +41,7 @@ Report actual MCP tool names and statuses only for calls really made. A Skill im
 
 ## Execution lifecycle
 
-1. **Identify:** verify exact project root, dataset, Task ID and source version. Identity conflict blocks affected operations, not independent permitted read-only evidence review.
+1. **Identify:** for a new line, use the startup H1/H2 scope and pending H6 plan; for an existing line, verify exact project root, dataset, Task ID and source version. Identity conflict blocks affected operations, not independent permitted read-only evidence review.
 2. **Recover:** use compact resume and load only the current `STATE` snapshot, `RESEARCH_RECORD` pointer and relevant original Run. `next_action_hint` is advisory; `execution_authorized=false` never means all independent legitimate tasks are forbidden.
 3. **Route:** consult original PD-RW `AGENTS.md` and the one relevant scientific authority file; avoid loading all rules or this Skill's historical releases.
 4. **Choose:** compare candidate next DEV probe against original Task/Claim, baseline and relevant historical cases. Use `search_research_memory` as a secondary index only; where original DEV Run is available use `review_evidenced_lesson` and/or `review_lesson_applicability`. Keyword similarity cannot prove the same failure mechanism or justify an automatic STOP.
@@ -53,6 +62,7 @@ Host CPU synthetic checks and `preflight_execution_plan(plan)` are diagnostic on
 
 ## Optional references (load only when triggered)
 
+- [references/plan-selection.md](references/plan-selection.md): new-project H6 candidate card and explicit choice boundary
 - [references/integration.md](references/integration.md): installation, mapping, version or project-switch issues
 - [references/execution.md](references/execution.md): authorized DEV continuation, evidence handoff, interruption
 - [references/troubleshooting.md](references/troubleshooting.md): missing sources, identity or permission conflicts
