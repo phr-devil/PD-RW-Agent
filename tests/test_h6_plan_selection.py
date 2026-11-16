@@ -31,6 +31,7 @@ def sample_plan():
             "decisive_probe": "Independent-device and simple-baseline comparison",
             "cost_and_risk": "Small metadata/DEV probe; may fail identifiability",
             "science_fit": fit,
+            "primary_type": "C09", "route": "R4", "p_orientation": "P2",
         }
     return {
         "schema_version": "pdrw-h6-plan-v1",
@@ -116,6 +117,10 @@ class H6PlanChoiceTests(unittest.TestCase):
             validate_h6_plan(plan)
         plan = sample_plan()
         plan["options"][0]["truth_and_independence"] = ""
+        with self.assertRaises(AgentError):
+            validate_h6_plan(plan)
+        plan = sample_plan()
+        plan["options"][0]["route"] = "R7"
         with self.assertRaises(AgentError):
             validate_h6_plan(plan)
         plan = sample_plan()
