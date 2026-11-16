@@ -17,7 +17,8 @@ import re
 
 from ..schemas import AgentError
 
-PLAN_VERSION = "pdrw-h6-plan-v1"
+PLAN_VERSION = "pdrw-h6-plan-v2"
+LEGACY_PLAN_VERSION = "pdrw-h6-plan-v1"
 CHOICE_VERSION = "pdrw-h6-choice-v1"
 FIT = frozenset({"SUPPORTED_BY_METADATA", "UNKNOWN_NEEDS_PROBE",
                  "CONTRADICTED_FOR_CLAIM"})
@@ -28,9 +29,17 @@ OPTION_FIELDS = frozenset({
     "science_fit", "primary_type", "route", "p_orientation",
 })
 PLAN_FIELDS = frozenset({
-    "schema_version", "scope_ref", "options", "recommended_option_id",
-    "recommendation_rationale",
+    "schema_version", "scope_ref", "research_line_ref", "options",
+    "recommended_option_id", "recommendation_rationale",
 })
+LEGACY_PLAN_FIELDS = PLAN_FIELDS - {"research_line_ref"}
+# Rationale prose can change without invalidating an otherwise identical science scope.
+MATERIAL_OPTION_KEYS = (
+    "id", "scientific_question", "core_task", "dataset_or_proof_path",
+    "nearest_work_or_unknown", "truth_and_independence",
+    "competing_explanation", "decisive_probe", "cost_and_risk",
+    "science_fit", "primary_type", "route", "p_orientation",
+)
 TYPES = frozenset(f"C{i:02d}" for i in range(1, 13))
 ROUTES = frozenset(f"R{i}" for i in range(1, 7))
 ORIENTATIONS = frozenset(f"P{i}" for i in range(1, 6))
@@ -50,11 +59,17 @@ def _required(value: object, label: str, size: int = 500) -> str:
 
 def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     """Validate a compact option card and return its canonical SHA-256."""
-    if not isinstance(plan, dict) or set(plan) != PLAN_FIELDS:
-        raise AgentError("H6_PLAN_INVALID", "Missing or unexpected H6 plan fields")
-    if plan["schema_version"] != PLAN_VERSION:
+    if not isinstance(plan, dict):
+        raise AgentError("H6_PLAN_INVALID", "H6 plan must be an object")
+    version = plan.get("schema_version")
+    if version not in {PLAN_VERSION, LEGACY_PLAN_VERSION}:
         raise AgentError("H6_PLAN_VERSION_INVALID", "Unsupported plan version")
+    expected = LEGACY_PLAN_FIELDS if version == LEGACY_PLAN_VERSION else PLAN_FIELDS
+    if set(plan) != expected:
+        raise AgentError("H6_PLAN_INVALID", "Missing or unexpected versioned H6 plan fields")
     _required(plan["scope_ref"], "scope_ref", 240)
+    if version == PLAN_VERSION:
+        _required(plan["research_line_ref"], "research_line_ref", 240)
     _required(plan["recommendation_rationale"], "recommendation_rationale", 1000)
     options = plan["options"]
     if not isinstance(options, list) or not 1 <= len(options) <= 3:
@@ -75,13 +90,44 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
                                   ("p_orientation", ORIENTATIONS)):
             if not isinstance(option[field], str) or option[field] not in vocabulary:
                 raise AgentError("H6_OPTION_INVALID", f"Invalid {field} classification")
+    if len(options) > 1 and len({
+            (o["scientific_question"].strip(), o["competing_explanation"].strip())
+            for o in options}) < 2:
+        raise AgentError("H6_OPTIONS_NOT_DISTINCT", "Options must differ in science or failure premise")
     if plan["recommended_option_id"] not in seen:
         raise AgentError("H6_RECOMMENDATION_INVALID", "Recommended option not found")
     encoded = json.dumps(plan, ensure_ascii=False, sort_keys=True,
                          separators=(",", ":")).encode("utf-8")
     if len(encoded) > 16000:
         raise AgentError("H6_PLAN_TOO_LARGE", "H6 option card exceeds size bound")
-    return plan, hashlib.sha256(encoded).hexdigest()
+    # Material science scope, not whitespace/explanatory recommendation prose.
+    material = {"schema_version": plan["schema_version"], "scope_ref": plan["scope_ref"],
+                "research_line_ref": plan.get("research_line_ref"),
+                "recommended_option_id": plan["recommended_option_id"],
+                "options": [{k: item[k] for k in MATERIAL_OPTION_KEYS}
+                            for item in options]}
+    canonical = json.dumps(material, ensure_ascii=False, sort_keys=True,
+                           separators=(",", ":")).encode("utf-8")
+    # Backward compatibility: existing v1 choices were bound to the entire
+    # serialized card. Do not silently invalidate their recorded replies.
+    fingerprint = encoded if plan["schema_version"] == LEGACY_PLAN_VERSION else canonical
+    return plan, hashlib.sha256(fingerprint).hexdigest()
+
+
+def _declared_evidence_warnings(option: dict) -> list[str]:
+    """Hints from unverified proposal text, not a science-quality score."""
+    warnings = []
+    if option["science_fit"] != "SUPPORTED_BY_METADATA":
+        warnings.append("SCIENTIFIC_FIT_NEEDS_PROBE_OR_REFRAME")
+    if any(x in option["truth_and_independence"].upper()
+           for x in ("UNKNOWN", "NOT_VERIFIED", "UNVERIFIED", "MISSING")):
+        warnings.append("INDEPENDENT_TRUTH_OR_GROUPS_UNVERIFIED")
+    if any(x in option["nearest_work_or_unknown"].upper()
+           for x in ("UNKNOWN", "NOT_ACCESSED", "NOT_VERIFIED")):
+        warnings.append("NEAREST_WORK_NOT_FULLY_ACCESSED")
+    # These flags only prioritize a low-cost check; they cannot veto a novel
+    # scientific hypothesis or certify that metadata supports the claim.
+    return warnings
 
 
 def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
@@ -90,13 +136,26 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
     ids = [x["id"] for x in card["options"]]
     base = {
         "plan_sha256": fingerprint,
+        "research_line_ref_declared": card.get("research_line_ref"),
         "recommended_option_id": card["recommended_option_id"],
         "available_option_ids": ids,
         "user_choice_authenticated": False,
         "scientific_truth_verified": False,
         "execution_authorized": False,
         "writes_performed": False,
+        "next_user_interaction": "H6",
+        "science_risk_flags": [
+            {"option_id": opt["id"], "declared_fit": opt["science_fit"],
+             "warnings": _declared_evidence_warnings(opt),
+             "decisive_probe": opt["decisive_probe"]}
+            for opt in card["options"] if _declared_evidence_warnings(opt)
+        ],
+        "science_risks_authoritatively_verified": False,
     }
+    if card["options"][[o["id"] for o in card["options"]].index(
+            card["recommended_option_id"])]["science_fit"] == "CONTRADICTED_FOR_CLAIM":
+        return {**base, "status": "RECOMMENDED_SCIENCE_CONTRADICTED",
+                "next": "REVISE_OR_NARROW_SCIENTIFIC_CLAIM_BEFORE_H6"}
     if choice is None:
         return {**base, "status": "AUTHOR_CHOICE_REQUIRED",
                 "next": "SHOW_CARD_AND_WAIT_FOR_SPECIFIC_USER_RESPONSE"}
@@ -117,6 +176,9 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         if selected not in ids or choice["allowed_option_ids"] != [] or choice["delegated_scope"] is not None:
             return {**base, "status": "CHOICE_SCOPE_INVALID",
                     "next": "RECHECK_SPECIFIC_SELECTION"}
+        if next(o for o in card["options"] if o["id"] == selected)["science_fit"] == "CONTRADICTED_FOR_CLAIM":
+            return {**base, "status": "SELECTED_SCIENCE_CONTRADICTED",
+                    "next": "REVISE_CLAIM_BEFORE_RECORDING_H6"}
         declared = {"kind": kind, "selected_option_id": selected}
     elif kind == "USER_DELEGATED":
         allowed = choice["allowed_option_ids"]
@@ -127,12 +189,18 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
             return {**base, "status": "CHOICE_SCOPE_INVALID",
                     "next": "RECHECK_BOUNDED_DELEGATION"}
         _required(choice["delegated_scope"], "delegated_scope", 500)
+        if any(o["id"] in allowed and o["science_fit"] == "CONTRADICTED_FOR_CLAIM"
+               for o in card["options"]):
+            return {**base, "status": "DELEGATION_INCLUDES_CONTRADICTED_CLAIM",
+                    "next": "NARROW_OR_REFRAME_DELEGATED_OPTIONS"}
         declared = {"kind": kind, "allowed_option_ids": allowed}
     else:
         raise AgentError("H6_CHOICE_INVALID", "Only specific user choice/delegation is allowed")
     return {
         **base, "status": "DECLARED_CHOICE_UNAUTHENTICATED",
-        "selection": declared, "original_user_message_ref_declared":
+        "selection": declared, "choice_observed_declaration_only": True,
+        "next_user_interaction": None,
+        "original_user_message_ref_declared":
             choice["original_user_message_ref"],
         "next": "TRUSTED_HOST_MUST_VERIFY_ORIGINAL_MESSAGE_AND_PLAN_BINDING",
         "note": ("A model-authored choice packet cannot authenticate the user. "

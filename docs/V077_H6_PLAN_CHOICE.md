@@ -24,3 +24,9 @@ A trusted WorkBuddy host must obtain/authenticate the actual author reply, prove
 ## Verification
 
 Run python -m unittest discover -s tests -v and python tools/package_skill.py; new H6 tests cover missing response, generic continue, changed cards, wrong options, bounded delegation, UNKNOWN and read-only CLI. Real WorkBuddy H6 bypass testing, 42/43/44 historical replay and comparative token/scientific success improvements are NOT_MEASURED.
+
+## v0.7.8 follow-up
+
+H6 plan schema v2 fingerprints material option/scope dimensions rather than presentation-only recommendation rationale; legacy v1 full-card digest remains supported. The local H6 CLI returns exit code 3 for pending **and** declared-but-unauthenticated H6 packets and can emit a PD-RW activity-03 science-checkpoint mapping with --pd-rw-checkpoint. New-project H6 validation in PD-RW now requires option, plan digest and original-message reference consistency across H3-H6; a host-authenticated message is still NOT provided by this repository. After a specific direct user choice, avoid repeatedly re-asking H6 for ordinary in-scope DEV. See current PD-RW rules for trusted project context.
+
+**v0.7.8 identity binding:** New H6 v2 cards require a stable, declared `research_line_ref` and include it in the material digest; old v1 card fingerprints remain readable without the new field. A caller string is a locator only, not a trusted project registry or an authenticated message.
