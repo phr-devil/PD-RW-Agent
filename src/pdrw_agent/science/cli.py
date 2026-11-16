@@ -13,6 +13,7 @@ from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
 from .plan_selection import review_h6_plan_choice
+from .h6_bridge import to_pd_rw_h6_checkpoint
 from .lessons import compile_declared_lessons
 from .provenance import bind_frozen_evidence, bind_source_refs
 from .replay import validate_case, blind_responses
@@ -66,6 +67,7 @@ def main() -> int:
     h6 = sub.add_parser("h6-review", help="Review new-project H6 card / declared choice")
     h6.add_argument("--plan", type=Path, required=True)
     h6.add_argument("--choice", type=Path, help="Optional declared user choice; never proof of authorization")
+    h6.add_argument("--pd-rw-checkpoint", action="store_true", help="Emit advisory activity-03 checkpoint mapping")
     for cmd in ("replay-check", "replay-blind"):
         p = sub.add_parser(cmd)
         p.add_argument("--root", type=Path, required=True)
@@ -92,6 +94,8 @@ def main() -> int:
             plan = read_json(args.plan, limit=64 * 1024)
             choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
             result = review_h6_plan_choice(plan, choice)
+            if args.pd_rw_checkpoint:
+                result["pd_rw_checkpoint"] = to_pd_rw_h6_checkpoint(plan, choice)
         else:
             manifest = read_json(args.manifest, limit=128 * 1024)
             if args.action == "replay-check":
@@ -110,6 +114,10 @@ def main() -> int:
     print(json.dumps(result, ensure_ascii=False, indent=2))
     if result.get("status") == "ERROR":
         return 2
+    # H6 is never authenticated by this CLI: nonzero prevents shell wrappers
+    # from treating a valid declaration or a pending response as execution approval.
+    if args.action == "h6-review":
+        return 3
     return 3 if result.get("status") in {"NOT_REPLAYABLE", "EVIDENCE_BINDING_FAILED"} else 0
 
 
