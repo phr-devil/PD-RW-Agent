@@ -29,9 +29,10 @@ OPTION_FIELDS = frozenset({
     "science_fit", "primary_type", "route", "p_orientation",
 })
 PLAN_FIELDS = frozenset({
-    "schema_version", "scope_ref", "options", "recommended_option_id",
-    "recommendation_rationale",
+    "schema_version", "scope_ref", "research_line_ref", "options",
+    "recommended_option_id", "recommendation_rationale",
 })
+LEGACY_PLAN_FIELDS = PLAN_FIELDS - {"research_line_ref"}
 # Rationale prose can change without invalidating an otherwise identical science scope.
 MATERIAL_OPTION_KEYS = (
     "id", "scientific_question", "core_task", "dataset_or_proof_path",
@@ -58,11 +59,17 @@ def _required(value: object, label: str, size: int = 500) -> str:
 
 def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     """Validate a compact option card and return its canonical SHA-256."""
-    if not isinstance(plan, dict) or set(plan) != PLAN_FIELDS:
-        raise AgentError("H6_PLAN_INVALID", "Missing or unexpected H6 plan fields")
-    if plan["schema_version"] not in {PLAN_VERSION, LEGACY_PLAN_VERSION}:
+    if not isinstance(plan, dict):
+        raise AgentError("H6_PLAN_INVALID", "H6 plan must be an object")
+    version = plan.get("schema_version")
+    if version not in {PLAN_VERSION, LEGACY_PLAN_VERSION}:
         raise AgentError("H6_PLAN_VERSION_INVALID", "Unsupported plan version")
+    expected = LEGACY_PLAN_FIELDS if version == LEGACY_PLAN_VERSION else PLAN_FIELDS
+    if set(plan) != expected:
+        raise AgentError("H6_PLAN_INVALID", "Missing or unexpected versioned H6 plan fields")
     _required(plan["scope_ref"], "scope_ref", 240)
+    if version == PLAN_VERSION:
+        _required(plan["research_line_ref"], "research_line_ref", 240)
     _required(plan["recommendation_rationale"], "recommendation_rationale", 1000)
     options = plan["options"]
     if not isinstance(options, list) or not 1 <= len(options) <= 3:
@@ -95,6 +102,7 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
         raise AgentError("H6_PLAN_TOO_LARGE", "H6 option card exceeds size bound")
     # Material science scope, not whitespace/explanatory recommendation prose.
     material = {"schema_version": plan["schema_version"], "scope_ref": plan["scope_ref"],
+                "research_line_ref": plan.get("research_line_ref"),
                 "recommended_option_id": plan["recommended_option_id"],
                 "options": [{k: item[k] for k in MATERIAL_OPTION_KEYS}
                             for item in options]}
@@ -128,6 +136,7 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
     ids = [x["id"] for x in card["options"]]
     base = {
         "plan_sha256": fingerprint,
+        "research_line_ref_declared": card.get("research_line_ref"),
         "recommended_option_id": card["recommended_option_id"],
         "available_option_ids": ids,
         "user_choice_authenticated": False,
