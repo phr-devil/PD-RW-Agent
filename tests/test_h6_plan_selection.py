@@ -4,7 +4,8 @@ These fixtures verify structural protection only. They do NOT simulate a
 trusted WorkBuddy message source or permit real training.
 """
 import copy
-import hashlib
+import os
+import runpy
 import json
 import subprocess
 import sys
@@ -16,6 +17,7 @@ from pdrw_agent.science.plan_selection import (
     validate_h6_plan, review_h6_plan_choice,
 )
 from pdrw_agent.schemas import AgentError
+from pdrw_agent.science.h6_bridge import to_pd_rw_h6_checkpoint
 
 
 def sample_plan():
@@ -33,11 +35,13 @@ def sample_plan():
             "science_fit": fit,
             "primary_type": "C09", "route": "R4", "p_orientation": "P2",
         }
+    b = option("B", "SUPPORTED_BY_METADATA")
+    b["scientific_question"] = "Is the training label protocol independent of acquisition sessions?"
+    b["competing_explanation"] = "A session-specific shortcut dominates target class"
     return {
         "schema_version": "pdrw-h6-plan-v1",
         "scope_ref": "launch-message-1",
-        "options": [option("A", "UNKNOWN_NEEDS_PROBE"),
-                    option("B", "SUPPORTED_BY_METADATA")],
+        "options": [option("A", "UNKNOWN_NEEDS_PROBE"), b],
         "recommended_option_id": "B",
         "recommendation_rationale": "Better public evidence route, still uncertain",
     }
@@ -135,6 +139,65 @@ class H6PlanChoiceTests(unittest.TestCase):
         out = review_h6_plan_choice(plan)
         self.assertEqual(out["available_option_ids"], ["A"])
 
+    def test_rewording_recommendation_does_not_invalidate_science_scope(self):
+        plan = sample_plan()
+        choice = sample_choice(plan)
+        adjusted = copy.deepcopy(plan)
+        adjusted["recommendation_rationale"] += "  Updated editorial wording."
+        out = review_h6_plan_choice(adjusted, choice)
+        self.assertEqual(out["status"], "DECLARED_CHOICE_UNAUTHENTICATED")
+        self.assertFalse(out["execution_authorized"])
+
+    def test_contradicted_scientific_claim_cannot_be_selected(self):
+        plan = sample_plan()
+        plan["options"][1]["science_fit"] = "CONTRADICTED_FOR_CLAIM"
+        out = review_h6_plan_choice(plan)
+        self.assertEqual(out["status"], "RECOMMENDED_SCIENCE_CONTRADICTED")
+        plan["recommended_option_id"] = "A"
+        out = review_h6_plan_choice(plan, sample_choice(plan, selected_option_id="B"))
+        self.assertEqual(out["status"], "SELECTED_SCIENCE_CONTRADICTED")
+
+    def test_identical_option_premises_are_not_distinct(self):
+        plan = sample_plan()
+        plan["options"][1]["scientific_question"] = plan["options"][0]["scientific_question"]
+        plan["options"][1]["competing_explanation"] = plan["options"][0]["competing_explanation"]
+        with self.assertRaises(AgentError):
+            validate_h6_plan(plan)
+
+    def test_bridge_maps_to_real_pd_rw_checkpoint_without_authorization(self):
+        plan = sample_plan()
+        candidate = to_pd_rw_h6_checkpoint(plan)
+        selected = to_pd_rw_h6_checkpoint(plan, sample_choice(plan))
+        self.assertEqual(candidate["trigger"], "H6_TASK")
+        self.assertNotIn("selection", candidate["author_review"])
+        self.assertEqual(selected["author_review"]["selection"]["chosen_option_id"], "B")
+        self.assertFalse(selected["h6_user_message_authenticated"])
+        rule_root = os.environ.get("PDRW_TEST_RULE_ROOT")
+        if rule_root:
+            src = Path(rule_root) / "core" / "execution_preflight.py"
+            self.assertTrue(src.is_file())
+            science_checkpoint = runpy.run_path(str(src))["science_checkpoint"]
+            no_reply = science_checkpoint(candidate)
+            declared_reply = science_checkpoint(selected)
+            self.assertEqual(no_reply["result"], "AUTHOR_CHOICE_REQUIRED")
+            self.assertEqual(declared_reply["result"], "READY_FOR_SCIENTIFIC_REVIEW")
+            self.assertFalse(declared_reply["author_approval_authenticated"])
+
+    def test_cli_emits_checkable_pd_rw_contract_not_approval(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = root / "plan.json"
+            plan.write_text(json.dumps(sample_plan()), encoding="utf-8")
+            proc = subprocess.run([
+                sys.executable, "-m", "pdrw_agent.science.cli", "h6-review",
+                "--plan", str(plan), "--pd-rw-checkpoint"
+            ], capture_output=True, text=True, check=False)
+            self.assertEqual(proc.returncode, 3, proc.stderr)
+            output = json.loads(proc.stdout)
+            self.assertEqual(output["pd_rw_checkpoint"]["trigger"], "H6_TASK")
+            self.assertFalse(output["user_choice_authenticated"])
+            self.assertEqual(set(root.iterdir()), {plan})
+
     def test_cli_review_is_read_only(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -144,7 +207,7 @@ class H6PlanChoiceTests(unittest.TestCase):
                 [sys.executable, "-m", "pdrw_agent.science.cli",
                  "h6-review", "--plan", str(plan)],
                 capture_output=True, text=True, check=False)
-            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.returncode, 3, proc.stderr)
             data = json.loads(proc.stdout)
             self.assertEqual(data["status"], "AUTHOR_CHOICE_REQUIRED")
             self.assertEqual(set(root.iterdir()), {plan})
