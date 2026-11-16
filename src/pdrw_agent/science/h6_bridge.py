@@ -66,6 +66,7 @@ def to_pd_rw_h6_checkpoint(plan: dict, choice: dict | None = None) -> dict:
         "author_review": review,
         # Advisory metadata: PD-RW checker ignores unknown fields.
         "h6_card_sha256_declared": fingerprint,
+        "research_line_ref_declared": card.get("research_line_ref"),
         "h6_user_message_authenticated": False,
         "h6_packet_status": assessment["status"],
     }
