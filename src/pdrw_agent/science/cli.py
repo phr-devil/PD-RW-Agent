@@ -12,6 +12,7 @@ from pathlib import Path
 from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
+from .plan_selection import review_h6_plan_choice
 from .lessons import compile_declared_lessons
 from .provenance import bind_frozen_evidence, bind_source_refs
 from .replay import validate_case, blind_responses
@@ -62,6 +63,9 @@ def main() -> int:
         p = sub.add_parser(kind)
         p.add_argument("--packet", type=Path, required=True)
         _binding_options(p)
+    h6 = sub.add_parser("h6-review", help="Review new-project H6 card / declared choice")
+    h6.add_argument("--plan", type=Path, required=True)
+    h6.add_argument("--choice", type=Path, help="Optional declared user choice; never proof of authorization")
     for cmd in ("replay-check", "replay-blind"):
         p = sub.add_parser(cmd)
         p.add_argument("--root", type=Path, required=True)
@@ -84,6 +88,10 @@ def main() -> int:
                           "assessment_not_authorized": True}
             else:
                 result["source_binding"] = binding
+        elif args.action == "h6-review":
+            plan = read_json(args.plan, limit=64 * 1024)
+            choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
+            result = review_h6_plan_choice(plan, choice)
         else:
             manifest = read_json(args.manifest, limit=128 * 1024)
             if args.action == "replay-check":
