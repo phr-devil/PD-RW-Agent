@@ -17,7 +17,8 @@ import re
 
 from ..schemas import AgentError
 
-PLAN_VERSION = "pdrw-h6-plan-v1"
+PLAN_VERSION = "pdrw-h6-plan-v2"
+LEGACY_PLAN_VERSION = "pdrw-h6-plan-v1"
 CHOICE_VERSION = "pdrw-h6-choice-v1"
 FIT = frozenset({"SUPPORTED_BY_METADATA", "UNKNOWN_NEEDS_PROBE",
                  "CONTRADICTED_FOR_CLAIM"})
@@ -59,7 +60,7 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     """Validate a compact option card and return its canonical SHA-256."""
     if not isinstance(plan, dict) or set(plan) != PLAN_FIELDS:
         raise AgentError("H6_PLAN_INVALID", "Missing or unexpected H6 plan fields")
-    if plan["schema_version"] != PLAN_VERSION:
+    if plan["schema_version"] not in {PLAN_VERSION, LEGACY_PLAN_VERSION}:
         raise AgentError("H6_PLAN_VERSION_INVALID", "Unsupported plan version")
     _required(plan["scope_ref"], "scope_ref", 240)
     _required(plan["recommendation_rationale"], "recommendation_rationale", 1000)
@@ -99,7 +100,10 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
                             for item in options]}
     canonical = json.dumps(material, ensure_ascii=False, sort_keys=True,
                            separators=(",", ":")).encode("utf-8")
-    return plan, hashlib.sha256(canonical).hexdigest()
+    # Backward compatibility: existing v1 choices were bound to the entire
+    # serialized card. Do not silently invalidate their recorded replies.
+    fingerprint = encoded if plan["schema_version"] == LEGACY_PLAN_VERSION else canonical
+    return plan, hashlib.sha256(fingerprint).hexdigest()
 
 
 def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
