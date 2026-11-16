@@ -30,6 +30,8 @@ def main() -> int:
     m.add_argument("--keyword", default="")
     m.add_argument("--max-experiences", type=int, default=5)
     m.add_argument("--legacy-only", action="store_true")
+    m.add_argument("--case-scope", choices=("auto", "force", "off"), default="auto",
+                   help="auto = skip full CASE_LIBRARY for general lookups")
     m.add_argument("--task-profile-file", help="JSON file with the 8-dimension task profile")
     cr = sub.add_parser("case-review")
     cr.add_argument("--task-profile-file", required=True)
@@ -98,7 +100,8 @@ def main() -> int:
                 applicability=options.applicability, verdict=options.verdict,
                 evidence_level=options.evidence_level, origin=options.origin,
                 keyword=options.keyword, max_experiences=options.max_experiences,
-                include_cases=not options.legacy_only, task_profile=profile)
+                include_cases=not options.legacy_only,
+                case_scope=options.case_scope, task_profile=profile)
         elif command == "case-review":
             filters = {k: v for k, v in {
                 "mechanism": options.mechanism, "domain": options.domain,

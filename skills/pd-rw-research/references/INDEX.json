@@ -35,14 +35,20 @@
         "G1 H2 H3 question selection",
         "G2 H6 H7 protocol freeze",
         "G3 H8 H10 claim closure",
+        "H9 confirmation protocol recheck",
         "T1 anomaly negative result",
         "T2 material decision change",
         "gate fingerprint",
         "cache invalidation",
+        "index stale declaration conflict",
         "CASE_CHECK not proof",
-        "enforcement level"
+        "enforcement level",
+        "next actions decision pipeline",
+        "exploratory lead evidence tier",
+        "execution evidence recheck",
+        "case scope auto skip"
       ],
-      "scope": "Safe operation flow, permission separation, output, on-demand advisory case reuse and five case-application gates",
+      "scope": "Safe operation flow, permission separation, output, on-demand advisory case reuse, five case-application gates and the case-to-next-action pipeline",
       "authority": "ADAPTER_GUIDANCE_ONLY"
     },
     {

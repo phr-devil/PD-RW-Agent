@@ -22,17 +22,20 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import sqlite3
 from collections import OrderedDict
 
 from . import case_learning
 from .schemas import AgentError
 
-CASE_GATES_VERSION = "1.0"
+CASE_GATES_VERSION = "1.1"
 GATE_CACHE_SIZE = 32
-MAX_EVENT_FIELDS = 16
+MAX_EVENT_FIELDS = 20
 MAX_TEXT_CHARS = 1200
 MAX_SIGNALS = 12
 MAX_CASES = 5
+MAX_NEXT_ACTIONS = 3
+MAX_EXECUTION_REFS = 6
 
 # --- The five triggers -----------------------------------------------------
 # Mandatory checkpoints are tied to PD-RW H stages + the decision milestone
@@ -54,12 +57,24 @@ CHECKPOINTS = {
     },
     "G3": {
         "kind": "MANDATORY_CHECKPOINT", "priority": 3,
-        "h_stages": ("H8", "H9", "H10"), "milestone": "CLAIM_OR_CLOSURE",
+        "h_stages": ("H8", "H10"), "milestone": "CLAIM_OR_CLOSURE",
         "focus": ("正负结果是否已有类似解释", "证据是否支持算法创新/机制/规律主张",
                   "成功经验、失败边界与替代方向", "可进入候选区的新经验"),
         "output_key": "contribution_review",
     },
 }
+# PD-RW stage/milestone cross-validation. H9 is NOT a claim checkpoint: a
+# substantive change to the formal confirmation protocol re-opens G2 instead.
+EXPECTED_STAGES = {
+    "QUESTION_SELECTION": frozenset({"H2", "H3"}),
+    "PROTOCOL_FREEZE": frozenset({"H6", "H7"}),
+    "PROTOCOL_RECHECK": frozenset({"H9"}),
+    "CLAIM_OR_CLOSURE": frozenset({"H8", "H10"}),
+}
+H9_RECHECK_SIGNALS = frozenset({
+    "CONFIRMATION_PROTOCOL_CHANGED", "PROTOCOL_SUBSTANTIVE_CHANGE",
+    "HOLDOUT_PROTOCOL_CHANGED", "EVALUATION_CRITERION_CHANGE",
+})
 CONDITIONAL = {
     "T1": {
         "kind": "CONDITIONAL_TRIGGER", "priority": 4,
@@ -89,9 +104,9 @@ DEV_SIGNALS = frozenset({
     "CODE_CHANGE", "HYPERPARAMETER_TUNING", "TEST_ONLY", "PLOTTING",
     "SAME_SCOPE_DEV", "BUG_FIX", "DOCUMENTATION", "REFACTOR",
 })
-KNOWN_SIGNALS = T1_SIGNALS | T2_SIGNALS | DEV_SIGNALS
+KNOWN_SIGNALS = T1_SIGNALS | T2_SIGNALS | DEV_SIGNALS | H9_RECHECK_SIGNALS
 MILESTONES = frozenset({"QUESTION_SELECTION", "PROTOCOL_FREEZE",
-                        "CLAIM_OR_CLOSURE", "NONE", ""})
+                        "PROTOCOL_RECHECK", "CLAIM_OR_CLOSURE", "NONE", ""})
 H_STAGES = frozenset({"H1", "H2", "H3", "H4", "H5", "H6", "H7",
                       "H8", "H9", "H10", "DEV", ""})
 OUTCOME_CLASSES = {
@@ -161,50 +176,92 @@ def _digest(obj) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _returned_chars(obj: dict) -> int:
+    """Size of the ACTUAL returned payload, not the private cached copy."""
+    return len(json.dumps(
+        {k: v for k, v in obj.items()
+         if k not in {"_full_payload", "token_budget"}},
+        ensure_ascii=False))
+
+
 # --- 1. Trigger determination (Python, deterministic) ---------------------
+def _declared_project_stage(event: dict) -> str:
+    """A caller may declare the project's known stage for cross-checking."""
+    raw = event.get("known_h_stage") or event.get("known_project_state") or ""
+    if isinstance(raw, dict):
+        raw = raw.get("h_stage") or raw.get("stage") or ""
+    return str(raw).strip().upper()
+
+
 def determine_trigger(event) -> dict:
-    """Decide which of the five triggers fires; never guess from prose.
+    """Decide which trigger fires; cross-validate stage, milestone and state.
 
     Mandatory checkpoints outrank conditional triggers. Ordinary DEV signals
-    are explicitly suppressed. Unknown declared signals are reported as
-    UNKNOWN instead of being silently dropped or invented.
+    are suppressed. H9 with a substantive confirmation-protocol change re-opens
+    G2 instead of pretending to be a claim checkpoint. Contradictory caller
+    declarations are reported explicitly so the caller can never be told the
+    checkpoint was "verified" on the strength of a conflicting declaration.
     """
     e = _canonical_event(event)
     stage = str(e.get("h_stage") or "").strip().upper()
     milestone = str(e.get("milestone") or "").strip().upper()
+    known_stage = _declared_project_stage(e)
     signals = [str(s).strip().upper() for s in (e.get("signals") or [])]
     unknown_signals = sorted(set(signals) - KNOWN_SIGNALS)
     t1 = sorted(set(signals) & T1_SIGNALS)
     t2 = sorted(set(signals) & T2_SIGNALS)
     dev = sorted(set(signals) & DEV_SIGNALS)
+    h9 = sorted(set(signals) & H9_RECHECK_SIGNALS)
 
     matched = []
     for gid, spec in CHECKPOINTS.items():
         if milestone == spec["milestone"]:
             matched.append((spec["priority"], gid))
+    # H9 recheck is a G2-class event: the protocol/checks must be re-derived.
+    recheck = bool(h9 and stage == "H9") or milestone == "PROTOCOL_RECHECK"
+    if recheck and not any(g == "G2" for _, g in matched):
+        matched.append((CHECKPOINTS["G2"]["priority"], "G2"))
     if t1:
         matched.append((CONDITIONAL["T1"]["priority"], "T1"))
     if t2:
         matched.append((CONDITIONAL["T2"]["priority"], "T2"))
     matched.sort()
 
-    reasons = []
+    reasons: list[str] = []
+    conflicts: list[str] = []
     if stage not in H_STAGES:
         reasons.append("UNKNOWN_H_STAGE:" + _clip(stage, 40))
+        conflicts.append("DECLARED_H_STAGE_NOT_IN_PD_RW_RANGE")
     if milestone not in MILESTONES:
         reasons.append("UNKNOWN_MILESTONE:" + _clip(milestone, 40))
+        conflicts.append("DECLARED_MILESTONE_NOT_IN_CONTROLLED_SET")
     if unknown_signals:
         reasons.append("UNKNOWN_DECLARED_SIGNALS:" + ",".join(unknown_signals))
+    expected = EXPECTED_STAGES.get(milestone)
+    if expected and stage not in expected:
+        conflicts.append("H_STAGE_MILESTONE_MISMATCH:" + stage + "/" + milestone)
+    if known_stage and known_stage not in H_STAGES:
+        conflicts.append("KNOWN_PROJECT_STAGE_UNRECOGNISED:" + _clip(known_stage, 40))
+    elif known_stage and stage and known_stage != stage:
+        conflicts.append("DECLARED_STAGE_DISAGREES_WITH_KNOWN_PROJECT_STATE:"
+                         + stage + "/" + known_stage)
+    # A claimed checkpoint must not be "verified" when the caller declares a
+    # materially different project stage from an independent field.
+    conflicts = list(dict.fromkeys(conflicts))
 
     base = {
         "evaluated_priority_order": list(TRIGGER_PRIORITY),
         "declared_h_stage": stage, "declared_milestone": milestone,
-        "matched_signals": {"T1": t1, "T2": t2, "DEV": dev},
+        "known_project_stage_declared": known_stage or None,
+        "matched_signals": {"T1": t1, "T2": t2, "DEV": dev, "H9_RECHECK": h9},
         "suppressed_dev_signals": dev,
         "unknown_declared_signals": unknown_signals,
         "other_matched_triggers": [g for _, g in matched[1:]],
         "reasons": reasons,
-        "decision": _clip(e.get("decision", "")),
+        "declaration_conflicts": conflicts,
+        "protocol_recheck": ("H9_CONFIRMATION_PROTOCOL_CHANGED_REOPENS_G2"
+                             if recheck else None),
+        "decision": _clip(str(e.get("decision", "")), 240),
     }
     if not matched:
         return {"status": "NO_TRIGGER", "trigger": "NO_TRIGGER",
@@ -260,11 +317,13 @@ def triage_anomaly(event) -> dict:
 
 
 # --- 2. Fingerprint + retrieval-record verification ------------------------
-def gate_fingerprint(event, trigger: str, index_sha256: str) -> tuple[str, dict]:
-    """Same Task + hypothesis + protocol + library version + trigger stage.
+def gate_fingerprint(event, trigger: str, index_sha256: str,
+                     *, index_stale: bool = False) -> tuple[str, dict]:
+    """Same Task + decision + hypothesis + protocol + library version + stage.
 
-    Key premises (task_profile), evidence declarations and query/filters are
-    included so a material change invalidates the cache.
+    A material change to the decision, declared evidence, project stage,
+    confirmation-protocol recheck, or a STALE case index must invalidate the
+    cached "verified" advisory. No duplicate second fingerprint is emitted.
     """
     e = _canonical_event(event)
     parts = {
@@ -273,19 +332,24 @@ def gate_fingerprint(event, trigger: str, index_sha256: str) -> tuple[str, dict]
         "trigger": trigger,
         "project_id": str(e.get("project_id") or ""),
         "task_id": str(e.get("task_id") or ""),
+        "decision": _clip(_text(e.get("decision")), 400),
         "hypothesis": _clip(_text(e.get("hypothesis")), 600),
         "protocol": _clip(_text(e.get("protocol")), 600),
         "case_library_version": str(e.get("case_library_version") or ""),
         "case_library_index_sha256": index_sha256,
+        "case_library_index_stale": bool(index_stale),
         "h_stage": str(e.get("h_stage") or "").upper(),
         "milestone": str(e.get("milestone") or "").upper(),
+        "known_project_stage": _declared_project_stage(e),
         "query": _clip(str(e.get("query") or ""), 300),
         "filters": e.get("filters") or {},
         "task_profile": e.get("task_profile") or {},
         "evidence_declaration": _clip(_text({
             "outcome_class": e.get("outcome_class"),
             "evidence_refs": e.get("evidence_refs"),
-            "signals": e.get("signals")}), 400),
+            "execution_evidence_refs": e.get("execution_evidence_refs"),
+            "signals": e.get("signals"),
+            "known_project_state": e.get("known_project_state")}), 500),
     }
     return _digest(parts), parts
 
@@ -337,48 +401,67 @@ def verify_gate_record(record, expected_index_sha256: str | None = None) -> dict
 
 # --- 3. Build the compact advisory from the EXISTING case_search result ----
 def _advisory_from_case_search(cl: dict, index_sha256: str, trigger: str) -> dict:
+    """Grade evidence, compare premises, then build a compact advisory.
+
+    Evidence is tiered with ``case_learning.evidence_tier`` so a success case
+    with preprint / internal-report / abstract-only provenance is retained as
+    an EXPLICITLY LABELLED exploratory lead instead of being silently dropped.
+    A case whose declared scope excludes the current task is never transferred
+    as an active negative warning against a different new direction.
+    """
     cases = cl.get("cases") or {}
     results = cases.get("results") or []
     per_case = (cases.get("source_verification") or {}).get("per_case") or {}
-    judgements = {c["case_id"]: c["classification"]
+    judgements = {c["case_id"]: c
                   for c in ((cl.get("case_review") or {}).get("comparisons") or [])}
     experiences = (cl.get("decision_experiences") or {}).get("experiences") or []
     polarity = {e["case_id"]: e["polarity"] for e in experiences}
 
-    admissibility = {}
-    unknown_reasons = []
+    admissibility: dict[str, str] = {}
+    evidence_tiers: dict[str, str] = {}
+    unknown_reasons: list[str] = []
     compact_cases = []
     concrete_checks = []
     for r in results:
         cid = r["case_id"]
-        grade = per_case.get(cid, {}).get("evidence_grade", "UNVERIFIED")
-        judgement = judgements.get(cid, "NOT_REVIEWED")
+        info = per_case.get(cid, {})
+        grade = info.get("evidence_grade", "UNVERIFIED")
+        tier, _ = case_learning.evidence_tier(info)
+        review = judgements.get(cid) or {}
+        judgement = review.get("classification", "NOT_REVIEWED")
         if judgement == "CONDITIONS_DIFFER":
             state = "UNKNOWN_CONDITIONS_DIFFER"
-        elif grade != "DECISION_GRADE":
+        elif tier == "CANDIDATE_ONLY":
             state = "UNKNOWN_SOURCE_INSUFFICIENT"
         elif judgement == "EVIDENCE_INSUFFICIENT":
             state = "UNKNOWN_EVIDENCE_INSUFFICIENT"
+        elif tier == "EXPLORATORY_LEAD":
+            state = "EXPLORATORY_LEAD_ONLY"
         elif judgement == "APPLICABILITY_RISK":
             state = "ADMISSIBLE_WITH_RISK"
         else:
             state = "ADMISSIBLE_ADVISORY"
         admissibility[cid] = state
-        if state.startswith("UNKNOWN"):
+        evidence_tiers[cid] = tier
+        if not state.startswith("ADMISSIBLE"):
             unknown_reasons.append(f"{cid}:{state}")
         compact_cases.append({
             "case_id": cid, "verdict": r["verdict"],
             "evidence_class": r["evidence_class"], "evidence_grade": grade,
+            "evidence_tier": tier,
             "applicability": judgement, "admissibility": state,
             "polarity": polarity.get(cid, "NOT_ADMITTED"),
             "mechanisms": list(r.get("all_mechanisms") or [])[:3],
             "one_line_impact": _clip(
-                (r.get("transferable_lesson") or r.get("premises") or [""])[0], 180),
+                r.get("transferable_lesson") or
+                (r.get("premises") or [""])[0] or "未声明可迁移经验", 180),
             "evidence_paths": list(r.get("evidence_paths") or [])[:2],
+            "dimension_status": dict(review.get("dimension_status") or {}),
         })
         if state.startswith("ADMISSIBLE"):
             for check in (r.get("next_minimal_check") or [])[:1]:
-                concrete_checks.append({"case_id": cid, "check": _clip(check, 180)})
+                concrete_checks.append({"case_id": cid, "check": _clip(check, 180),
+                                        "evidence_tier": tier})
 
     no_match = cases.get("status") == "NO_CASE_MATCH" or not results
     if no_match:
@@ -387,25 +470,33 @@ def _advisory_from_case_search(cl: dict, index_sha256: str, trigger: str) -> dic
     gate_status = "ADVISORY_AVAILABLE" if admissible else "UNKNOWN"
     if gate_status == "UNKNOWN" and not unknown_reasons:
         unknown_reasons.append("NO_ADMISSIBLE_DECISION_GRADE_CASE")
-    # A case whose declared scope EXCLUDES the current task must not reach the
-    # active advisory as a negative warning: that would wrongly negate a new
-    # direction with different legal information conditions.
     conditions_differ = [cid for cid, state in admissibility.items()
                          if state == "UNKNOWN_CONDITIONS_DIFFER"]
-    active_experiences = [e for e in experiences
-                          if e["case_id"] not in set(conditions_differ)]
+    excluded = set(conditions_differ)
+    active_experiences = []
+    for e in experiences:
+        if e["case_id"] in excluded:
+            continue
+        item = {
+            "case_id": e["case_id"], "polarity": e["polarity"],
+            "concrete_impact": _clip(e.get("concrete_impact", ""), 220),
+            "transfer_classification": e.get("transfer_classification"),
+            "evidence_tier": e.get("evidence_tier", "UNVERIFIED"),
+            "exploratory_lead_only": bool(e.get("exploratory_lead_only")),
+            "evidence_paths": list(e.get("evidence_paths") or [])[:2],
+        }
+        if e.get("success_transfer"):
+            item["success_transfer"] = e["success_transfer"]
+        active_experiences.append(item)
     return {
         "gate_status": gate_status,
         "unknown_reasons": unknown_reasons[:6],
         "case_admissibility": admissibility,
+        "evidence_tiers": evidence_tiers,
         "conditions_differ_not_transferred": conditions_differ,
         "compact_cases": compact_cases[:MAX_CASES],
         "concrete_checks": concrete_checks[:MAX_CASES],
-        "experiences": [
-            {"case_id": e["case_id"], "polarity": e["polarity"],
-             "concrete_impact": _clip(e.get("concrete_impact", ""), 220),
-             "transfer_classification": e.get("transfer_classification")}
-            for e in active_experiences[:MAX_CASES]],
+        "experiences": active_experiences[:MAX_CASES],
         "no_match": bool(no_match),
         "retrieval_scope": {
             "query": cases.get("query"), "filters": cases.get("filters"),
@@ -418,51 +509,415 @@ def _advisory_from_case_search(cl: dict, index_sha256: str, trigger: str) -> dic
     }
 
 
+# --- 3b. Decision pipeline: case -> next action -> execution evidence ----
+DECISION_PIPELINE = ("RETRIEVE", "GRADE_EVIDENCE", "COMPARE_PREMISES",
+                     "EXTRACT_RISK_OR_SUCCESS_CONDITIONS", "PROPOSE_NEXT_ACTION",
+                     "EXECUTION_EVIDENCE_RECHECK")
+PREMISE_KEYS = ("decision", "mechanisms", "legal_inputs", "labels", "grouping",
+                "evaluation_unit", "baseline", "boundaries", "counterexamples")
+CORE_PREMISE_KEYS = ("legal_inputs", "labels", "grouping",
+                     "evaluation_unit", "baseline")
+
+
+def verify_execution_evidence(settings, event: dict) -> dict:
+    """Read-only recheck of DECLARED Task/Run/receipt references.
+
+    Producing a recommendation is never execution. Only a reference actually
+    found in the EXISTING EVENTS.jsonl / private receipt store can be reported;
+    even then this is a tool-level record check, not scientific validation.
+    No new state, database, Run or receipt is created here.
+    """
+    raw = event.get("execution_evidence_refs") or []
+    if not isinstance(raw, (list, tuple)):
+        raw = []
+    refs = [str(x).strip()[:120] for x in raw[:MAX_EXECUTION_REFS]
+            if isinstance(x, str) and x.strip()]
+    if not refs:
+        return {"status": "NO_EXECUTION_EVIDENCE_DECLARED",
+                "checked_refs": [], "records_checked": [], "matched": [],
+                "no_writes": True,
+                "note": "建议生成不等于行动完成；执行后请在 event 中声明 run_id / operation_id 再回查。"}
+    project_id = str(event.get("project_id") or "")
+    matched: list[dict] = []
+    checked: list[str] = []
+    if project_id:
+        try:
+            from .evidence import find_experiment_evidence
+            ev = find_experiment_evidence(settings, project_id=project_id, limit=10)
+            checked.append("find_experiment_evidence:" + str(ev.get("status")))
+            for m in ev.get("matches", []):
+                rid, tid = str(m.get("run_id") or ""), str(m.get("task_id") or "")
+                if any(r in rid or r in tid or rid in r or tid in r for r in refs):
+                    matched.append({"record": "INDEXED_RUN", "run_id": rid,
+                                    "task_id": tid})
+        except (AgentError, OSError, ValueError, TypeError) as exc:
+            checked.append("find_experiment_evidence:UNAVAILABLE:" +
+                           getattr(exc, "code", type(exc).__name__))
+        try:
+            from .runtime.receipts import execution_status
+            st = execution_status(settings, project_id, limit=10)
+            checked.append("execution_status:" + str(st.get("status")))
+            for op in st.get("operations", []):
+                oid = str(op.get("operation_id") or "")
+                aref = str(op.get("artifact_ref") or "")
+                if any(r in oid or r in aref or oid in r for r in refs):
+                    matched.append({"record": "OPERATION_RECEIPT",
+                                    "operation_id": oid, "artifact_ref": aref})
+        except (AgentError, OSError, ValueError, TypeError, sqlite3.Error) as exc:
+            checked.append("execution_status:UNAVAILABLE:" +
+                           getattr(exc, "code", type(exc).__name__))
+    else:
+        checked.append("PROJECT_ID_NOT_DECLARED_NO_RECORD_LOOKUP")
+    return {
+        "status": ("EXECUTION_REF_FOUND_IN_EXISTING_RECORD" if matched else
+                   "DECLARED_REFS_NOT_FOUND_IN_EXISTING_RECORDS"),
+        "checked_refs": refs, "records_checked": checked,
+        "matched": matched[:4], "no_writes": True,
+        "verification": "TOOL_LEVEL_RECORD_CHECK_NOT_SCIENTIFIC_VALIDATION",
+        "note": "仅回查既有 Task/Run/receipt 引用；不建立第二套科研状态库，不把建议视为已完成行动。",
+    }
+
+
+def _declared_premises(event: dict) -> dict:
+    p = event.get("task_profile") or {}
+    if not isinstance(p, dict):
+        return {}
+    return {k: _clip(str(p.get(k, "")), 110) for k in PREMISE_KEYS if p.get(k)}
+
+
+def _applicability_basis(cid: str, exp: dict, case: dict, reviews: dict) -> dict:
+    review = reviews.get(cid) or {}
+    dims = review.get("dimension_status") or {}
+    app = case.get("applicability") or {}
+    return {
+        "transfer_classification": exp.get("transfer_classification"),
+        "classification_reasons": [_clip(x, 90) for x in
+                                   list(review.get("reasons") or [])[:2]],
+        "core_dimension_status": {k: dims[k] for k in CORE_PREMISE_KEYS if k in dims},
+        "case_conditions": [_clip(x, 90) for x in
+                            list(app.get("conditions") or [])[:2]],
+        "case_boundaries": [_clip(x, 90) for x in
+                            list(app.get("boundaries") or [])[:2]],
+        "method": "DECLARED_TEXT_TRIAGE_NOT_EQUIVALENCE_VERIFIED",
+        "scientific_equivalence_verified": False,
+    }
+
+
+def _action_type(exp: dict, case: dict, premises: dict) -> str:
+    """Choose the action from the case MECHANISM, not incidental keywords."""
+    if exp.get("polarity") == "SUCCESS_TRANSFER":
+        return "SUCCESS_CONDITION_TO_PRESERVE"
+    mechanisms = {str(m).upper() for m in (case.get("all_mechanisms") or [])}
+    # Only a task that is actually claiming a gain over a baseline needs the
+    # paired decisive experiment; a grouping/leakage checkpoint needs the
+    # concrete protocol check instead.
+    decision_text = (_text(premises.get("decision")) + " " +
+                     _text(premises.get("mechanisms"))).casefold()
+    gain_attribution = any(w in decision_text for w in
+                           ("基线", "baseline", "增益", "创新", "调参", "等预算"))
+    if "COMPLEX_VS_SIMPLE_BASELINE" in mechanisms and gain_attribution:
+        return "DECISIVE_EXPERIMENT"
+    return "CONCRETE_CHECK"
+
+
+def _action_text(kind: str, cid: str, case: dict, exp: dict,
+                 premises: dict) -> tuple[str, str, str]:
+    check = (case.get("next_minimal_check") or ["核对案例适用条件与当前任务前提"])[0]
+    mechs = ",".join(list(case.get("matched_mechanisms") or
+                          case.get("all_mechanisms") or [])[:2]) or "未标注机制"
+    lesson = _clip(case.get("transferable_lesson") or
+                   (case.get("premises") or [""])[0], 150)
+    grouping = premises.get("grouping", "当前任务未声明分组")
+    unit = premises.get("evaluation_unit", "当前任务未声明评价单位")
+    if kind == "SUCCESS_CONDITION_TO_PRESERVE":
+        st = exp.get("success_transfer") or {}
+        conds = "；".join(st.get("success_key_conditions") or []) or "案例卡未声明成功条件"
+        minimal = st.get("minimal_validation_experiment") or check
+        rec = (f"保留「{mechs}」这条有条件成立的有效路线，但先核对成功关键条件"
+               f"「{_clip(conds, 150)}」在本任务是否成立，再决定是否沿用；"
+               f"最小验证：{_clip(str(minimal), 170)}。")
+    elif kind == "DECISIVE_EXPERIMENT":
+        rec = (f"在同一数据划分（{_clip(grouping, 80)}）、同一评价单位（{_clip(unit, 80)}）"
+               f"与同一调参预算下，成对运行强简单基线与拟用复杂模型；"
+               f"先复现案例 {cid} 的检查「{_clip(str(check), 120)}」，再判断差值"
+               f"是否越过其失败边界，而不是直接宣称算法创新。")
+        minimal = (f"固定分组与评价单位后，做一次配对基线对照实验并保留原始 Run；"
+                   f"检查「{_clip(str(check), 120)}」。")
+    else:
+        rec = (f"在冻结协议前执行「{_clip(str(check), 140)}」；把当前任务的分组"
+               f"（{_clip(grouping, 70)}）与评价单位（{_clip(unit, 70)}）"
+               f"同案例 {cid} 的前提逐项对照，记录一致与不同条件后再决定是否改动。")
+        minimal = _clip(str(check), 170)
+    why = (f"案例 {cid}（{case.get('verdict')}，"
+           f"{exp.get('evidence_tier', 'UNVERIFIED')}）在前提「{_clip(lesson, 130)}」"
+           f"下得到该经验；适用性 {exp.get('transfer_classification')}；"
+           f"仅为声明文本比对，未验证科学等价性。")
+    return _clip(rec, 330), _clip(why, 260), _clip(minimal, 220)
+
+
+def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
+                       execution_evidence: dict) -> dict:
+    """检索 -> 证据分级 -> 前提比对 -> 风险/成功条件 -> 1–3 项下一行动.
+
+    Every action cites a concrete case, the declared current-task premises and
+    an applicability basis. Weak evidence is only a labelled exploratory lead.
+    When nothing admissible exists the result is UNKNOWN, never a fabricated
+    confident recommendation.
+    """
+    results = ((cl.get("cases") or {}).get("results") or [])
+    by_id = {c["case_id"]: c for c in results}
+    reviews = {c["case_id"]: c
+               for c in ((cl.get("case_review") or {}).get("comparisons") or [])}
+    per_case = (((cl.get("cases") or {}).get("source_verification") or {})
+                .get("per_case") or {})
+    experiences = (cl.get("decision_experiences") or {}).get("experiences") or []
+    premises = _declared_premises(event)
+    states = advisory["case_admissibility"]
+    excluded = set(advisory["conditions_differ_not_transferred"])
+    ranked = []
+    for exp in experiences:
+        cid = exp["case_id"]
+        case = by_id.get(cid)
+        if not case or cid in excluded:
+            continue
+        state = states.get(cid, "")
+        if state.startswith("ADMISSIBLE"):
+            rank = 0
+        elif state == "EXPLORATORY_LEAD_ONLY":
+            rank = 2
+        else:
+            continue
+        ranked.append((rank, 0 if exp.get("polarity") == "NEGATIVE_WARNING" else 1,
+                       exp, case))
+    ranked.sort(key=lambda x: (x[0], x[1]))
+
+    actions: list[dict] = []
+    leads: list[dict] = []
+    for rank, _, exp, case in ranked:
+        cid = exp["case_id"]
+        if len(actions) >= MAX_NEXT_ACTIONS:
+            break
+        exploratory_only = rank == 2
+        if exploratory_only:
+            # A preprint / internal / abstract-only SUCCESS case can still be
+            # a useful technical route, but only as an explicitly labelled
+            # lead with a minimal validation experiment -- never a confirmed
+            # scientific conclusion and never an active negative warning.
+            if exp.get("polarity") != "SUCCESS_TRANSFER" or actions:
+                leads.append({"case_id": cid,
+                              "reason": "EXPLORATORY_LEAD_ONLY_NOT_INDEPENDENTLY_CONFIRMED",
+                              "note": "仅可作为明确标注的探索线索，不升级为独立确认的科学结论"})
+                continue
+        kind = _action_type(exp, case, premises)
+        recommendation, why, minimal = _action_text(kind, cid, case, exp, premises)
+        info = per_case.get(cid, {})
+        actions.append({
+            "action_id": f"NA-{len(actions) + 1}",
+            "action_type": kind,
+            "linked_case_id": cid,
+            "case_source": {
+                "evidence_paths": list(case.get("evidence_paths") or [])[:2],
+                "evidence_grade": info.get("evidence_grade", "UNVERIFIED"),
+                "evidence_tier": exp.get("evidence_tier", "UNVERIFIED"),
+                "independent_confirmation": exp.get("independent_confirmation",
+                                                    "NOT_ESTABLISHED"),
+            },
+            "task_premises_ref": "next_actions.task_premises",
+            "applicability_basis": _applicability_basis(cid, exp, case, reviews),
+            "recommendation": (("【探索线索·非独立确认结论】" + recommendation)
+                               if exploratory_only else recommendation),
+            "why_this_case_applies": why,
+            "minimal_validation": minimal,
+            "exploratory_lead_only": exploratory_only,
+            "independent_confirmation": ("NOT_ESTABLISHED" if exploratory_only
+                                         else "SOURCE_VERIFIED_NOT_SCIENTIFIC_PROOF"),
+            "status": "PROPOSED_NOT_EXECUTED",
+            "execution_evidence_status": (
+                "NO_EXECUTION_EVIDENCE_DECLARED"
+                if execution_evidence["status"] == "NO_EXECUTION_EVIDENCE_DECLARED"
+                else execution_evidence["status"]),
+            "author_decision_required": False,
+            "decision_authority": "PD-RW_WORKFLOW_AND_AUTHOR_ONLY",
+            "automatic_go_stop": False,
+            "no_writes": True,
+        })
+
+    # At most one core strategy option is escalated to the author, and only
+    # when the checkpoint is about claims/strategy AND a real risk exists.
+    risk = [cid for cid, s in states.items()
+            if s == "ADMISSIBLE_WITH_RISK" and cid not in excluded]
+    if trigger in {"G3", "T2"} and risk and actions and len(actions) < MAX_NEXT_ACTIONS:
+        cid = risk[0]
+        case = by_id.get(cid) or {}
+        actions.append({
+            "action_id": f"NA-{len(actions) + 1}",
+            "action_type": "AUTHOR_STRATEGY_OPTION",
+            "linked_case_id": cid,
+            "case_source": {"evidence_paths": list(case.get("evidence_paths") or [])[:2],
+                            "evidence_tier": advisory["evidence_tiers"].get(cid)},
+            "task_premises_ref": "next_actions.task_premises",
+            "applicability_basis": _applicability_basis(
+                cid, {"transfer_classification": "APPLICABILITY_RISK"},
+                case, reviews),
+            "recommendation": _clip(
+                f"提交作者决定：案例 {cid} 的机制前提与当前声明存在适用风险，"
+                f"是否调整 H6 核心策略或 H8 主 Claim 的表述范围？"
+                f"本工具不选择策略、不升级结论。", 260),
+            "why_this_case_applies": _clip(
+                f"case_admissibility[{cid}] = ADMISSIBLE_WITH_RISK；"
+                f"仍需原始 Run 与原文边界逐行核对。", 180),
+            "minimal_validation": "由作者核对原始 Run/协议后再决定；不自动执行",
+            "status": "PROPOSED_NOT_EXECUTED",
+            "execution_evidence_status": "AUTHOR_DECISION_PENDING",
+            "author_decision_required": True,
+            "decision_authority": "PD-RW_WORKFLOW_AND_AUTHOR_ONLY",
+            "automatic_go_stop": False,
+            "no_writes": True,
+        })
+
+    return {
+        "status": ("ACTIONS_PROPOSED_NOT_EXECUTED" if actions else
+                   "UNKNOWN_NO_ACTIONABLE_ADMISSIBLE_CASE"),
+        "returned": len(actions), "max_actions": MAX_NEXT_ACTIONS,
+        "exploratory_only_result": bool(actions) and all(
+            a.get("exploratory_lead_only") for a in actions),
+        "pipeline": list(DECISION_PIPELINE),
+        "task_premises": premises,
+        "execution_evidence": execution_evidence,
+        "actions": actions,
+        "exploratory_leads_not_promoted": leads[:3],
+        "unknown_reasons": ([] if actions else
+                            ["NO_ADMISSIBLE_CASE_WITH_DECLARED_TASK_PREMISES"] +
+                            advisory["unknown_reasons"][:3]),
+        "automatic_go_stop": False, "no_writes": True,
+        "not_a_scientific_conclusion": True,
+    }
+
+
 def _checkpoint_outputs(trigger: str, advisory: dict, event: dict,
-                        cl: dict, triage: dict | None) -> dict:
+                        cl: dict, triage: dict | None,
+                        next_actions: dict | None = None) -> dict:
     out = {}
+    actions = (next_actions or {}).get("actions") or []
+    action_ids = [a["action_id"] for a in actions]
+    task_premises = (next_actions or {}).get("task_premises") or {}
+    exps = advisory["experiences"]
+    # Compact projection: the full experience (incl. success_transfer detail)
+    # already lives once in the top-level decision_experiences / next_actions.
+    key_exps = [{"case_id": e["case_id"], "polarity": e["polarity"],
+                 "evidence_tier": e["evidence_tier"],
+                 "concrete_impact": e["concrete_impact"]}
+                for e in exps]
+    admitted = {c["case_id"]: c for c in advisory["compact_cases"]
+                if c["admissibility"].startswith("ADMISSIBLE")}
+    success_conditions = [
+        {"case_id": e["case_id"],
+         "key_conditions": (e.get("success_transfer") or {}).get(
+             "success_key_conditions") or [],
+         "minimal_validation": (e.get("success_transfer") or {}).get(
+             "minimal_validation_experiment")}
+        for e in exps if e["polarity"] == "SUCCESS_TRANSFER"][:3]
+
     if trigger == "G1":
+        overlap = [
+            {"case_id": cid, "mechanisms": c["mechanisms"],
+             "basis": c["applicability"],
+             "status": "SAME_DECLARED_PREMISE_CANDIDATE_VERIFY_ORIGINAL_TEXT"}
+            for cid, c in admitted.items()
+            if c["applicability"] in {"USEFUL_ANALOGY", "APPLICABILITY_RISK"}][:3]
+        premise_check = []
+        for cid, c in admitted.items():
+            dims = c["dimension_status"]
+            core = [dims.get(k) for k in CORE_PREMISE_KEYS if dims.get(k)]
+            if core and all(x == "TEXT_OVERLAP_SIMILARITY_ONLY" for x in core):
+                premise_check.append({"case_id": cid,
+                                      "status": "ALL_DECLARED_CORE_PREMISES_TEXTUALLY_OVERLAP",
+                                      "meaning": "历史失败前提可能仍成立，需逐行核对原文后确认"})
+            elif core:
+                premise_check.append({"case_id": cid,
+                                      "status": "CORE_PREMISES_DECLARED_BUT_DIVERGENT_OR_UNDECLARED",
+                                      "meaning": "信息条件可能不同，不得据此否定新方向"})
+        questions = [
+            {"case_id": a["linked_case_id"],
+             "question": _clip(
+                 f"在「{task_premises.get('legal_inputs', '当前合法输入')}」"
+                 f"条件下，{a['action_type']} 是否能区分案例的历史前提与本任务？", 200)}
+            for a in actions if a["action_type"] in
+            {"DECISIVE_EXPERIMENT", "CONCRETE_CHECK"}][:2]
         out["selection_impact"] = {
-            "key_experiences": advisory["experiences"][:MAX_CASES],
-            "highly_overlapping_research": "UNKNOWN_REQUIRES_LINE_BY_LINE_PREMISE_COMPARISON",
-            "historical_failure_premises_still_hold": "UNKNOWN_REQUIRES_LINE_BY_LINE_PREMISE_COMPARISON",
-            "success_key_conditions": [
-                _clip(c, 160) for r in advisory["compact_cases"]
-                if r["verdict"] == "SUCCESS"
-                for c in ([r["one_line_impact"]] if r["admissibility"].startswith("ADMISSIBLE") else [])][:3],
-            "new_scientific_questions": "UNKNOWN_NOT_INFERRED_FROM_CASE_CARDS",
+            "key_experiences": key_exps[:MAX_CASES],
+            "highly_overlapping_research": overlap or
+                "UNKNOWN_NO_ADMISSIBLE_CASE_WITH_COMPARABLE_DECLARED_PREMISES",
+            "historical_failure_premises_still_hold": premise_check or
+                "UNKNOWN_NO_DECLARED_CORE_PREMISE_COMPARISON_AVAILABLE",
+            "success_key_conditions": success_conditions or
+                "UNKNOWN_NO_ADMISSIBLE_SUCCESS_CASE",
+            "new_scientific_questions": questions or
+                "UNKNOWN_NOT_INFERRED_WITHOUT_ADMISSIBLE_CASE",
+            "next_action_ids": action_ids,
+            "next_actions_ref": "top-level next_actions",
             "new_direction_not_negated_by_historical_failure": True,
+            "verification": "DECLARED_TEXT_TRIAGE_NOT_EQUIVALENCE_VERIFIED",
             "note": "历史失败只提供风险与检查项，不得自动否定具有不同合法信息条件的新方向。",
         }
     elif trigger == "G2":
-        out["concrete_checks"] = advisory["concrete_checks"]
+        checks = []
+        by_action = {a["linked_case_id"]: a["action_id"] for a in actions}
+        for c in advisory["concrete_checks"]:
+            checks.append({**c, "next_action_id": by_action.get(c["case_id"]),
+                           "promoted_to_next_action": c["case_id"] in by_action})
+        out["concrete_checks"] = checks
         out["protocol_design_review"] = {
             "declared_8_dimensions": sorted((event.get("task_profile") or {}).keys()),
-            "applicable_checks": advisory["concrete_checks"][:MAX_CASES],
-            "design_improvement": "ADVISORY_ONLY：仅将 ADMISSIBLE 案例的 next_minimal_check 转为具体协议检查；不自动改动实验或授权",
+            "applicable_checks": checks[:MAX_CASES],
+            "actionable_next_action_ids": [a["action_id"] for a in actions
+                                           if a["action_type"] in
+                                           {"CONCRETE_CHECK", "DECISIVE_EXPERIMENT"}],
+            "design_improvement": ("ADVISORY_ONLY：ADMISSIBLE 案例的 next_minimal_check "
+                                   "已转化为带案例来源与前提比对的 next_actions；"
+                                   "不自动改动实验或授权"),
             "unknown_when_no_admissible_case": advisory["gate_status"] == "UNKNOWN",
         }
     elif trigger == "G3":
+        claim_support = []
+        for cid, c in admitted.items():
+            dims = c["dimension_status"]
+            weak = [k for k in CORE_PREMISE_KEYS
+                    if dims.get(k) in {"NO_TEXT_OVERLAP", "NOT_IN_CASE", "UNDECLARED"}]
+            claim_support.append({
+                "case_id": cid,
+                "status": ("ORIGINAL_RUN_REQUIRED_PREMISES_DIVERGENT_OR_UNDECLARED"
+                           if weak else "DECLARED_PREMISES_TEXTUALLY_OVERLAP_ONLY"),
+                "dimensions_requiring_verification": weak})
         out["contribution_review"] = {
-            "similar_explanations": advisory["experiences"][:MAX_CASES],
-            "evidence_supports_algorithm_innovation_or_mechanism_claim": "UNKNOWN_VERIFY_ORIGINAL_RUN",
+            "similar_explanations": key_exps[:MAX_CASES],
+            "evidence_supports_algorithm_innovation_or_mechanism_claim":
+                claim_support or "UNKNOWN_VERIFY_ORIGINAL_RUN",
             "failure_boundaries_and_alternatives": [
-                {"case_id": c["case_id"], "admissibility": c["admissibility"]}
+                {"case_id": c["case_id"], "admissibility": c["admissibility"],
+                 "evidence_tier": c["evidence_tier"]}
                 for c in advisory["compact_cases"]][:MAX_CASES],
+            "usable_success_conditions": success_conditions or
+                "UNKNOWN_NO_ADMISSIBLE_SUCCESS_CASE",
+            "next_action_ids": action_ids,
+            "next_actions_ref": "top-level next_actions",
             "candidate_experiences_hint": {
                 "tool": "extract_case_candidates",
                 "status": "CANDIDATE_ONLY_NOT_FORMAL_CASE",
                 "note": "仅从原始 Run 与既有科学审计提取候选，不写 STATE/Run/EVENTS/CASE_LIBRARY"},
             "author_strategy_required": True,
+            "verification": "DECLARED_TEXT_TRIAGE_NOT_EQUIVALENCE_VERIFIED",
             "note": "H8 主 Claim 与重大升级仍由作者选择/明确委托；正式论文写作另行授权，本工具不改变 PD-RW 权限。",
         }
     elif trigger == "T1":
         out["anomaly_triage"] = triage
-        out["failure_and_repair_experiences"] = advisory["experiences"][:MAX_CASES]
+        out["failure_and_repair_experiences"] = key_exps[:MAX_CASES]
+        out["next_action_ids"] = action_ids
     elif trigger == "T2":
         out["decision_change_review"] = {
             "declared_material_changes": (determine_trigger(event)["matched_signals"]["T2"]),
-            "potentially_decision_changing_experiences": advisory["experiences"][:MAX_CASES],
+            "potentially_decision_changing_experiences": key_exps[:MAX_CASES],
+            "next_action_ids": action_ids,
             "fingerprint_invalidation": "TASK_OR_SCOPE_CHANGE_PRODUCES_NEW_GATE_FINGERPRINT",
             "note": "普通代码修改、调参、测试、绘图及同范围 DEV 不触发；重大变化才请求检索。",
         }
@@ -547,10 +1002,19 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
         }
 
     sha = bundle["sha256"]
-    key, parts = gate_fingerprint(e, trig["trigger"], sha)
-    if key in _GATE_CACHE:
+    stale = bool(bundle["index_stale"])
+    conflicts = list(trig.get("declaration_conflicts") or [])
+    key, _ = gate_fingerprint(e, trig["trigger"], sha, index_stale=stale)
+    # A stale index or a contradictory caller declaration must never reuse a
+    # previously "verified" conclusion. Both are also part of the fingerprint.
+    use_cache = not stale and not conflicts
+    if use_cache and key in _GATE_CACHE:
         _GATE_CACHE.move_to_end(key)
         cached = copy.deepcopy(_GATE_CACHE[key])
+        if detail == "full" and cached.get("_full_payload") is not None:
+            cached["full_case_payload"] = cached.pop("_full_payload")
+        else:
+            cached.pop("_full_payload", None)
         cached["cache_hit"] = True
         cached["reused_verified_record"] = True
         cached["retrieval_executed_this_call"] = False
@@ -558,13 +1022,9 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
             cached.get("retrieval_record"), sha)
         cached["token_budget"] = {
             "detail": detail, "cache_hit": True,
-            "payload_chars": len(json.dumps(cached, ensure_ascii=False)),
+            "payload_chars": _returned_chars(cached),
             "new_retrieval_calls": 0,
         }
-        if detail == "full" and cached.get("_full_payload") is not None:
-            cached["full_case_payload"] = cached.pop("_full_payload")
-        else:
-            cached.pop("_full_payload", None)
         return cached
 
     query = str(e.get("query") or "").strip() or _default_query(trig["trigger"])
@@ -605,6 +1065,9 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
 
     advisory = _advisory_from_case_search(cl, sha, trig["trigger"])
     triage = triage_anomaly(e) if trig["trigger"] == "T1" else None
+    execution_evidence = verify_execution_evidence(settings, e)
+    next_actions = build_next_actions(trig["trigger"], e, cl, advisory,
+                                      execution_evidence)
     record = {
         "retrieval_executed": True,
         "retrieval_tool": "case_learning.case_search",
@@ -620,33 +1083,62 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
             (cl.get("cases") or {}).get("source_verification")),
         "no_match": advisory["no_match"],
     }
+    verification = verify_gate_record(record, sha)
+    downgrade = []
+    if conflicts:
+        downgrade += ["DECLARATION_CONFLICT:" + c for c in conflicts]
+    if stale:
+        downgrade.append("INDEX_STALE_REBUILD_REQUIRED")
+    if downgrade:
+        # Still return the useful advisory, but NEVER call it "verified".
+        verification = {"status": "UNKNOWN", "unknown_reasons": downgrade,
+                        "verified_fields": verification.get("verified_fields", []),
+                        "note": "声明矛盾或索引过期：检索仍可执行，但不得复用旧的已验证结论。"}
+    if conflicts:
+        status = ("CHECKPOINT_ADVISORY_DECLARATION_CONFLICT"
+                  if trig["trigger_kind"] == "MANDATORY_CHECKPOINT"
+                  else "TRIGGER_ADVISORY_DECLARATION_CONFLICT")
+    elif stale:
+        status = ("CHECKPOINT_ADVISORY_INDEX_STALE"
+                  if trig["trigger_kind"] == "MANDATORY_CHECKPOINT"
+                  else "TRIGGER_ADVISORY_INDEX_STALE")
+    else:
+        status = ("CHECKPOINT_RETRIEVAL_VERIFIED"
+                  if trig["trigger_kind"] == "MANDATORY_CHECKPOINT"
+                  else "TRIGGER_RETRIEVAL_VERIFIED")
     out = {
-        "status": ("CHECKPOINT_RETRIEVAL_VERIFIED"
-                   if trig["trigger_kind"] == "MANDATORY_CHECKPOINT"
-                   else "TRIGGER_RETRIEVAL_VERIFIED"),
+        "status": status,
+        "checkpoint_verified": (verification["status"] ==
+                                "RETRIEVAL_AND_APPLICABILITY_VERIFIED"),
         "gate_status": advisory["gate_status"],
         "checkpoint_focus": trig.get("focus"),
         "h_stage_declared": trig["declared_h_stage"],
         "milestone": trig["declared_milestone"],
         "stage_in_expected_range": trig.get("stage_in_expected_range"),
+        "known_project_stage_declared": trig["known_project_stage_declared"],
+        "declaration_conflicts": conflicts,
+        "protocol_recheck": trig["protocol_recheck"],
+        "index_stale": stale,
         "matched_signals": trig["matched_signals"],
         "unknown_declared_signals": trig["unknown_declared_signals"],
-        "unknown_reasons": advisory["unknown_reasons"] + trig["reasons"],
+        "unknown_reasons": (advisory["unknown_reasons"] + trig["reasons"] +
+                            downgrade)[:8],
         "retrieval_executed": True,
         "retrieval_executed_this_call": True,
         "cache_hit": False,
+        "reused_verified_record": False,
         "gate_fingerprint": key,
-        "fingerprint_inputs": sorted(parts.keys()),
-        "invalidation_keys": ["task_id", "hypothesis", "protocol", "h_stage",
-                              "milestone", "task_profile", "query", "filters",
-                              "case_library_index_sha256"],
         "retrieval_record": record,
-        "verification": verify_gate_record(record, sha),
-        "case_candidates": advisory["compact_cases"],
+        "verification": verification,
+        "case_candidates": [
+            {k: v for k, v in c.items() if k != "dimension_status"}
+            for c in advisory["compact_cases"]],
         "case_admissibility": advisory["case_admissibility"],
+        "evidence_tiers": advisory["evidence_tiers"],
         "conditions_differ_not_transferred": advisory["conditions_differ_not_transferred"],
         "concrete_checks": advisory["concrete_checks"],
         "decision_experiences": advisory["experiences"],
+        "next_actions": next_actions,
         "full_evidence_at": {
             "tools": ["search_research_memory", "review_case_transfer"],
             "note": ("需要完整证据时复用这两个既有 MCP 工具或 detail='full'，"
@@ -656,7 +1148,8 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
         "detail": detail,
         **common,
     }
-    out.update(_checkpoint_outputs(trig["trigger"], advisory, e, cl, triage))
+    out.update(_checkpoint_outputs(trig["trigger"], advisory, e, cl, triage,
+                                   next_actions))
     if detail == "full":
         out["full_case_payload"] = cl
     out["_full_payload"] = cl
@@ -664,18 +1157,18 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
         "detail": detail, "cache_hit": False,
         "max_cases": MAX_CASES,
         "returned_cases": len(advisory["compact_cases"]),
-        "payload_chars": len(json.dumps(
-            {k: v for k, v in out.items() if k not in {"_full_payload", "full_case_payload"}},
-            ensure_ascii=False)),
+        "payload_chars": _returned_chars(out),
         "new_retrieval_calls": 0 if cl.get("cache_hit") else 1,
     }
+    out["token_budget"]["payload_chars"] = _returned_chars(out)
 
     stored = {k: v for k, v in out.items()
               if k not in {"cache_hit", "retrieval_executed_this_call",
                            "verification", "full_case_payload", "token_budget"}}
-    _GATE_CACHE[key] = stored
-    while len(_GATE_CACHE) > GATE_CACHE_SIZE:
-        _GATE_CACHE.popitem(last=False)
+    if use_cache:
+        _GATE_CACHE[key] = stored
+        while len(_GATE_CACHE) > GATE_CACHE_SIZE:
+            _GATE_CACHE.popitem(last=False)
     out.pop("_full_payload", None)
     return out
 

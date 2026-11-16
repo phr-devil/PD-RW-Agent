@@ -17,6 +17,29 @@ from .config import Settings
 from .schemas import AgentError
 from . import case_learning
 
+# A legacy CASE_REGISTRY lookup for project state / rules should not pull the
+# whole 65-card advisory into the conversation. Only a call that is actually
+# about cases, mechanisms or a declared migration review does that.
+CASE_INTENT = re.compile(
+    r"(案例|经验|失败|成功|反例|复现|泄漏|标签|分组|基线|泛化|标定|捷径|"
+    r"评价|适用|迁移|对照|负结果|传感器|机制|基线|实验协议|"
+    r"case|leak|label|group|baseline|reproduc|negative|transfer|shortcut|"
+    r"calibration|generaliz|har|esm|split)", re.I)
+CASE_SCOPES = ("auto", "force", "off")
+
+
+def _case_scope_reason(query: str, filters: dict, task_profile: dict | None,
+                       legacy_hits: list) -> tuple[bool, str]:
+    if task_profile:
+        return True, "TASK_PROFILE_DECLARED"
+    if filters:
+        return True, "CASE_FILTERS_DECLARED"
+    if legacy_hits:
+        return True, "LEGACY_CASE_INDEX_MATCH"
+    if CASE_INTENT.search(query):
+        return True, "CASE_INTENT_TERMS_IN_QUERY"
+    return False, "NO_CASE_SCOPE_SIGNAL_GENERAL_LOOKUP"
+
 
 def search_research_memory(settings: Settings, query: str, limit: int = 5,
                            *, mechanism: str = "", domain: str = "",
@@ -24,7 +47,16 @@ def search_research_memory(settings: Settings, query: str, limit: int = 5,
                            evidence_level: str = "", origin: str = "",
                            keyword: str = "", task_profile: dict | None = None,
                            max_experiences: int = 5,
-                           include_cases: bool = True) -> dict:
+                           include_cases: bool = True,
+                           case_scope: str = "auto") -> dict:
+    """Legacy index plus opt-in CASE_LIBRARY retrieval.
+
+    ``case_scope='auto'`` (default) skips the full case library for general
+    lookups; ``'force'`` always retrieves and ``'off'`` never does. The legacy
+    keys keep their exact shape in every mode.
+    """
+    if case_scope not in CASE_SCOPES:
+        raise AgentError("CASE_SCOPE_INVALID", "case_scope must be auto, force or off")
     if type(limit) is not int or limit < 1:
         raise AgentError("LIMIT_INVALID", "limit must be a positive integer")
     if not isinstance(query, str) or len(query.strip()) < 2:
@@ -56,14 +88,33 @@ def search_research_memory(settings: Settings, query: str, limit: int = 5,
               "truncated": len(hits) > cap,
               "limitations": "Index only; verify case scope, original project Run and updated evidence before reuse"}
 
-    if not include_cases:
-        return result
-
     filters = {"mechanism": mechanism, "domain": domain,
                "applicability": applicability, "verdict": verdict,
                "evidence_level": evidence_level, "origin": origin,
                "keyword": keyword}
     filters = {k: v for k, v in filters.items() if v}
+    relevant, reason = _case_scope_reason(query, filters, task_profile,
+                                          result["matches"])
+    if not include_cases:
+        # Exact legacy shape for the pre-0.5.4 contract: no additive keys.
+        return result
+    if case_scope == "off" or (case_scope == "auto" and not relevant):
+        skipped = {
+            "status": "CASE_LIBRARY_RETRIEVAL_SKIPPED",
+            "reason": "CASE_SCOPE_OFF" if case_scope == "off" else reason,
+            "legacy_memory_still_available": True,
+            "automatic_go_stop": False, "no_writes": True,
+            "on_demand": ["case_gate_check(event)",
+                          "review_case_transfer(task_profile=...)",
+                          "search_research_memory(case_scope='force')"],
+        }
+        result["case_library"] = skipped
+        result["case_learning_summary"] = {
+            "status": skipped["status"], "case_hits": 0,
+            "case_retrieval_executed": False, "reason": skipped["reason"],
+        }
+        return result
+
     try:
         cl = case_learning.case_search(
             settings, query, filters, limit=limit,
@@ -82,6 +133,9 @@ def search_research_memory(settings: Settings, query: str, limit: int = 5,
         "review_status": (cl.get("case_review") or {}).get("status"),
         "classification_counts": (cl.get("case_review") or {}).get("classification_counts"),
         "experience_count": (cl.get("decision_experiences") or {}).get("returned", 0),
+        "case_retrieval_executed": cl.get("status") not in
+            {"CASE_LIBRARY_NOT_CONFIGURED", "CASE_LIBRARY_UNAVAILABLE"},
+        "case_scope": case_scope,
         "cache_hit": cl.get("cache_hit"),
         "query_fingerprint": cl.get("query_fingerprint"),
         "paths": {"cases": "case_library.cases.results",

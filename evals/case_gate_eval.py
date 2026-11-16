@@ -84,8 +84,10 @@ def scenarios() -> list[dict]:
         ("E03", "G3", event_for(
             s["S6_CROSS_EMBODIMENT_SUCCESS"], trigger="G3", stage="H8",
             milestone="CLAIM_OR_CLOSURE", signals=[], task_id="E03")),
+        # v1/v2 claim review belongs to H8, not H9. H9 is a confirmation-
+        # protocol recheck and re-opens G2 (see E12).
         ("E04", "G3", event_for(
-            s["S5_LABEL_ERROR_AND_VERSION"], trigger="G3", stage="H9",
+            s["S5_LABEL_ERROR_AND_VERSION"], trigger="G3", stage="H8",
             milestone="CLAIM_OR_CLOSURE", signals=[], task_id="E04",
             filters={"mechanism": "EXTERNAL_VALIDATION", "keyword": "Epic"})),
         ("E05", "T1", event_for(
@@ -119,6 +121,17 @@ def scenarios() -> list[dict]:
     changed["protocol"] = {"split": "subject-wise", "unit": "subject"}
     changed["hypothesis"] = "按受试者独立分组后重新估计泛化性能"
     rows.append(("E11", "G1_MISS", changed))
+    # H9: a substantive confirmation-protocol change re-opens G2.
+    rows.append(("E12", "G2", event_for(
+        s["S1_HAR_GROUP_LEAKAGE"], trigger="G2", stage="H9",
+        milestone="PROTOCOL_RECHECK",
+        signals=["CONFIRMATION_PROTOCOL_CHANGED"], task_id="E12")))
+    # Contradictory declaration: must stay advisory, never "verified".
+    conflict = event_for(
+        s["S1_HAR_GROUP_LEAKAGE"], trigger="G3", stage="H8",
+        milestone="CLAIM_OR_CLOSURE", signals=[], task_id="E13",
+        known_h_stage="H3")
+    rows.append(("E13", "G3_CONFLICT", conflict))
     return [{"id": i, "expected": e, "event": v} for i, e, v in rows]
 
 
@@ -157,6 +170,14 @@ def run() -> dict:
             "conditions_differ_not_transferred": out.get(
                 "conditions_differ_not_transferred") or [],
             "payload_chars": len(json.dumps(out, ensure_ascii=False)),
+            "reported_payload_chars": (out.get("token_budget") or {}).get(
+                "payload_chars"),
+            "next_action_count": (out.get("next_actions") or {}).get("returned", 0),
+            "next_action_types": [a["action_type"] for a in
+                                  (out.get("next_actions") or {}).get("actions", [])],
+            "declaration_conflicts": out.get("declaration_conflicts") or [],
+            "checkpoint_verified": bool(out.get("checkpoint_verified")),
+            "index_stale": bool(out.get("index_stale")),
             "automatic_go_stop": bool(out.get("automatic_go_stop")),
             "hard_gate": bool((out.get("enforcement_level") or {}).get("hard_gate")),
         })
@@ -181,7 +202,20 @@ def run() -> dict:
         "all_triggered_checkpoints_verified": all(
             r["verification"] == "RETRIEVAL_AND_APPLICABILITY_VERIFIED"
             for r in rows if r["expected"] in {"G1", "G2", "G3", "T1", "T2"}
-            and not r["cache_hit"]),
+            and not r["cache_hit"] and not r["declaration_conflicts"]
+            and not r["index_stale"]),
+        "h9_protocol_recheck_reopens_g2": any(
+            r["scenario_id"] == "E12" and r["observed_trigger"] == "G2"
+            for r in rows),
+        "declaration_conflict_never_verified": all(
+            not r["checkpoint_verified"] and
+            r["verification"] != "RETRIEVAL_AND_APPLICABILITY_VERIFIED"
+            for r in rows if r["declaration_conflicts"]),
+        "next_actions_bounded_and_not_executed": all(
+            0 <= r["next_action_count"] <= 3 for r in rows),
+        "payload_chars_matches_actual_return": all(
+            abs(r["payload_chars"] - r["reported_payload_chars"]) <= 200
+            for r in rows if r["reported_payload_chars"] is not None),
         "dev_iterations_caused_zero_retrieval": all(
             not r["retrieval_executed"] for r in rows
             if r["expected"] == "NO_TRIGGER"),

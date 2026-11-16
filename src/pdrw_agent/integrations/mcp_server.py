@@ -54,20 +54,24 @@ def create_server(settings: Settings | None = None):
                                origin: str = "", keyword: str = "",
                                max_experiences: int = 5,
                                include_cases: bool = True,
+                               case_scope: str = "auto",
                                task_profile: dict[str, Any] | None = None) -> dict[str, Any]:
         """Legacy PD-RW case index + read-only CASE_LIBRARY cases/review/impacts.
 
         Old (query, limit) calls keep their exact result shape; new keys are
         additive. Supply task_profile to request an 8-dimension migration
         review (mechanisms, legal inputs, labels, grouping, evaluation unit,
-        baseline, boundaries, counterexamples). Never emits GO/STOP.
+        baseline, boundaries, counterexamples). case_scope='auto' skips the
+        full case library for general lookups; 'force' always retrieves,
+        'off' never does. Never emits GO/STOP.
         """
         return service.call("search_research_memory", query=query, limit=limit,
                             mechanism=mechanism, domain=domain,
                             applicability=applicability, verdict=verdict,
                             evidence_level=evidence_level, origin=origin,
                             keyword=keyword, max_experiences=max_experiences,
-                            include_cases=include_cases, task_profile=task_profile)
+                            include_cases=include_cases, case_scope=case_scope,
+                            task_profile=task_profile)
 
     @mcp.tool()
     def review_case_transfer(task_profile: dict[str, Any], limit: int = 5,

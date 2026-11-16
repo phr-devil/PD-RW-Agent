@@ -601,29 +601,93 @@ def review(task_profile: dict, search_result: dict, filters: dict | None) -> dic
 
 
 # --------------------------------------------------------------------------
-# Negative warnings + success transfer: 3-5 decision-level impacts
+# Evidence tiers + negative warnings / success transfer
 # --------------------------------------------------------------------------
+def evidence_tier(info: dict) -> tuple[str, list[str]]:
+    """Classify a case's evidence WITHOUT silently discarding weak successes.
+
+    DECISION_GRADE     -> may enter the decision brief as a sourced experience.
+    EXPLORATORY_LEAD   -> preprint / internal report / abstract-only: an
+                          explicitly labelled clue only, NEVER an independently
+                          confirmed scientific conclusion.
+    CANDIDATE_ONLY     -> missing card, stale index, secondary/speculative or
+                          undeclared source: retained but not used as a brief.
+    """
+    grade = str(info.get("evidence_grade", "UNVERIFIED"))
+    levels = set(info.get("evidence_levels") or [])
+    caveats = list(info.get("caveats") or [])
+    if "INDEX_STALE" in grade or "UNVERIFIED_CARD" in grade or "MISSING" in grade:
+        return "CANDIDATE_ONLY", caveats + ["SOURCE_CARD_OR_INDEX_NOT_VERIFIED"]
+    if levels & {"SECONDARY_ONLY", "NOT_ACCESSED", "SPECULATION", "UNVERIFIED_REPORT"}:
+        return "CANDIDATE_ONLY", caveats + ["SECONDARY_OR_UNVERIFIED_SOURCE_NOT_ADMITTED"]
+    if grade == "DECISION_GRADE":
+        return "DECISION_GRADE", caveats
+    if (grade.startswith("DECISION_GRADE") or "ABSTRACT" in grade or
+            "LIMITATION" in grade or "NON_DECISION_GRADE" in grade or
+            "REVIEW_REQUIRED" in grade or "INTERNAL_REPORT" in levels or
+            "PREPRINT" in grade.upper() or "PAPER_LIMITATION" in levels):
+        return "EXPLORATORY_LEAD", caveats + [
+            "EXPLORATORY_LEAD_ONLY_NOT_INDEPENDENTLY_CONFIRMED"]
+    return "CANDIDATE_ONLY", caveats + ["EVIDENCE_GRADE_NOT_ADMITTED:" + grade]
+
+
+def _success_transfer_detail(case: dict, profile: dict | None,
+                             comparison: dict | None) -> dict:
+    """Success conditions, task agreement/differences and minimal validation."""
+    app = case.get("applicability") or {}
+    conditions = _cliplist(app.get("conditions"), 2, 150)
+    boundaries = _cliplist(app.get("boundaries"), 2, 150)
+    dims = (comparison or {}).get("dimension_comparison") or {}
+    matching = sorted(d for d, v in dims.items()
+                      if v.get("status") == "TEXT_OVERLAP_SIMILARITY_ONLY")
+    differing = sorted(d for d, v in dims.items()
+                       if v.get("status") in {"NO_TEXT_OVERLAP", "NOT_IN_CASE", "UNDECLARED"})
+    task_premises = {k: _clip(profile.get(k, ""), 140)
+                     for k in ("legal_inputs", "grouping", "evaluation_unit", "baseline")
+                     if isinstance(profile, dict) and profile.get(k)}
+    check = (case.get("next_minimal_check") or ["核对成功条件是否在当前任务成立"])[0]
+    return {
+        "success_key_conditions": (conditions + boundaries)[:3],
+        "conditions_matching_current_task": matching[:4],
+        "conditions_differing_from_current_task": differing[:4],
+        "current_task_premises": task_premises,
+        "transferable_mechanism": _clip(
+            f"{','.join(case['matched_mechanisms'] or case['all_mechanisms'][:2])}: "
+            f"{case.get('transferable_lesson', '')}", 220),
+        "minimal_validation_experiment": _clip(
+            f"在本任务条件下成对复现「{check}」，并核对 "
+            f"{','.join(boundaries[:1]) or '案例适用边界'} 是否成立", 220),
+        "condition_comparison_method": "DECLARED_TEXT_TRIAGE_NOT_EQUIVALENCE_VERIFIED",
+    }
+
+
 def decision_brief(search_result: dict, review_result: dict | None,
-                   max_experiences: int = 5) -> dict:
+                   max_experiences: int = 5,
+                   task_profile: dict | None = None) -> dict:
     if type(max_experiences) is not int or max_experiences < 1:
         raise AgentError("EXPERIENCE_LIMIT_INVALID", "max_experiences must be a positive integer")
     cap = min(max_experiences, MAX_CASES)
     source = search_result.get("source_verification", {}).get("per_case", {})
-    classifications = {x["case_id"]: x["classification"]
-                       for x in (review_result or {}).get("comparisons", [])}
+    reviews = {x["case_id"]: x
+               for x in (review_result or {}).get("comparisons", [])}
     negatives, successes, candidates_only = [], [], []
     for case in search_result.get("results", []):
         cid = case["case_id"]
         info = source.get(cid, {})
         grade = info.get("evidence_grade", "UNVERIFIED")
         roles = set(info.get("role_classes", []))
-        decision_grade = grade == "DECISION_GRADE"
         v = case["verdict"]
-        # Role separation: a review/perspective or unverified-secondary card is
-        # never an original empirical result, even if its local card exists.
+        # A case with explicitly different declared conditions must not be
+        # transferred as an active negative warning against a new direction.
+        if reviews.get(cid, {}).get("classification") == "CONDITIONS_DIFFER":
+            candidates_only.append({"case_id": cid,
+                                    "reason": "DECLARED_CONDITIONS_DIFFER_NOT_TRANSFERRED",
+                                    "retained_as": "CANDIDATE_ONLY_NOT_DECISION_INPUT"})
+            continue
+        tier, tier_caveats = evidence_tier(info)
         opinion_only = bool(roles) and roles <= {"OPINION_OR_REVIEW", "UNVERIFIED_SECONDARY",
                                                  "ROLE_UNDECLARED"}
-        if not decision_grade:
+        if tier == "CANDIDATE_ONLY":
             candidates_only.append({"case_id": cid, "reason": "EVIDENCE_GRADE=" + grade,
                                     "retained_as": "CANDIDATE_ONLY_NOT_DECISION_INPUT"})
             continue
@@ -641,9 +705,14 @@ def decision_brief(search_result: dict, review_result: dict | None,
             "case_id": cid, "polarity": polarity, "verdict": v,
             "mechanism_match": case["matched_mechanisms"] or case["all_mechanisms"][:3],
             "evidence_grade": grade,
+            "evidence_tier": tier,
+            "exploratory_lead_only": tier == "EXPLORATORY_LEAD",
+            "independent_confirmation": ("NOT_ESTABLISHED" if tier == "EXPLORATORY_LEAD"
+                                         else "SOURCE_VERIFIED_NOT_SCIENTIFIC_PROOF"),
             "role_classes": sorted(roles),
-            "caveats": info.get("caveats", []),
-            "transfer_classification": classifications.get(cid, "NOT_REVIEWED"),
+            "caveats": tier_caveats,
+            "transfer_classification": reviews.get(cid, {}).get("classification",
+                                                                "NOT_REVIEWED"),
             "concrete_impact": _clip(
                 f"{polarity} · {cid}: 在前提「{(case['premises'] or ['未声明'])[0]}」下"
                 f"该案例为 {v}；本次决策应执行「{check}」。", 300),
@@ -654,10 +723,12 @@ def decision_brief(search_result: dict, review_result: dict | None,
             "verification_required": True,
             "evidence_paths": case["evidence_paths"][:2],
         }
+        if polarity == "SUCCESS_TRANSFER":
+            item["success_transfer"] = _success_transfer_detail(
+                case, task_profile, reviews.get(cid))
         (negatives if polarity == "NEGATIVE_WARNING" else
          successes if polarity == "SUCCESS_TRANSFER" else negatives).append(item)
     # Guarantee both polarities are represented when available, <= cap total.
-    # The two fallback pools overlap by design, so dedupe on case_id.
     picked: list[dict] = []
     seen: set[str] = set()
 
@@ -671,7 +742,6 @@ def decision_brief(search_result: dict, review_result: dict | None,
     for pool in (negatives, successes):
         if pool and len(picked) < cap:
             take(pool.pop(0))
-    # Interleave polarities instead of exhausting all negatives first.
     while (negatives or successes) and len(picked) < cap:
         if negatives:
             take(negatives.pop(0))
@@ -682,12 +752,47 @@ def decision_brief(search_result: dict, review_result: dict | None,
         "returned": len(picked),
         "negative_warning_count": sum(1 for x in picked if x["polarity"] == "NEGATIVE_WARNING"),
         "success_transfer_count": sum(1 for x in picked if x["polarity"] == "SUCCESS_TRANSFER"),
+        "exploratory_lead_count": sum(1 for x in picked if x["exploratory_lead_only"]),
         "experiences": picked[:cap],
         "candidates_only_not_admitted": candidates_only[:3],
-        "candidate_policy": "Unverified / abstract-only / secondary / opinion cases stay candidates; never promoted to a formal case or scientific conclusion.",
+        "candidate_policy": ("Secondary/unverified/speculative cases stay candidates. "
+                             "Preprints, internal reports and abstract-only sources enter only "
+                             "as EXPLICITLY LABELLED exploratory leads, never as independently "
+                             "confirmed scientific conclusions."),
         "automatic_go_stop": False,
         "warning": WARNING, "notice": NOTICE,
     }
+
+
+# --------------------------------------------------------------------------
+# Compact-by-default advisory (full evidence stays on demand)
+# --------------------------------------------------------------------------
+def compact_for_search(out: dict) -> dict:
+    """Drop duplicated nested metadata and raw 8-dimension dumps.
+
+    This does NOT change the single case source: the full 8-dimension review
+    is still produced by ``review_case_transfer`` and the full payload by
+    ``case_gate_check(detail='full')``. It only removes copies that made the
+    default advisory too large to retain a coherent five-case set.
+    """
+    for section in (out.get("cases"), out.get("case_review"),
+                    out.get("decision_experiences")):
+        if isinstance(section, dict):
+            for redundant in ("warning", "notice", "automatic_go_stop"):
+                section.pop(redundant, None)
+    rev = out.get("case_review")
+    if isinstance(rev, dict):
+        for c in rev.get("comparisons", []):
+            dims = c.pop("dimension_comparison", None) or {}
+            c["dimension_status"] = {d: v.get("status") for d, v in dims.items()}
+            c.pop("case_boundaries", None)
+            c.pop("case_counterexamples", None)
+            c["full_evidence_at"] = ("case_library.cases.results | "
+                                     "review_case_transfer.comparisons")
+    out["compact_by_default"] = True
+    out["full_evidence_at"] = ["review_case_transfer",
+                               "case_gate_check(detail='full')"]
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -737,6 +842,8 @@ def _retain(out: dict, k: int) -> dict:
             1 for e in exps if e["polarity"] == "NEGATIVE_WARNING")
         brief["success_transfer_count"] = sum(
             1 for e in exps if e["polarity"] == "SUCCESS_TRANSFER")
+        brief["exploratory_lead_count"] = sum(
+            1 for e in exps if e.get("exploratory_lead_only"))
         brief["candidates_only_not_admitted"] = [
             c for c in brief.get("candidates_only_not_admitted", [])
             if c.get("case_id") in ids][:3]
@@ -812,19 +919,26 @@ def case_search(settings, query: str, filters: dict | None, limit: int = 5,
     bundle = index_override or load_index(root)
     validated_profile = _validate_profile(task_profile) if task_profile else None
     payload = {"query": query, "filters": filters or {}, "limit": limit,
-               "profile": validated_profile, "max_experiences": max_experiences}
+               "profile": validated_profile, "max_experiences": max_experiences,
+               # A stale index must not reuse a previously "source_verified"
+               # advisory even though index.json's sha256 is unchanged.
+               "index_stale": bool(bundle["index_stale"])}
 
     def produce():
         found = search(bundle, filters, query, limit, profile=validated_profile)
         rev = review(task_profile, found, filters) if task_profile else None
-        brief = decision_brief(found, rev, max_experiences)
+        # The success-transfer detail needs the DECLARED current-task premises;
+        # without them only a placeholder could be produced.
+        brief = decision_brief(found, rev, max_experiences,
+                               task_profile=validated_profile)
         out = {"status": found["status"], "case_learning_version": CASE_LEARNING_VERSION,
                "cases": found, "case_review": rev,
                "decision_experiences": brief,
                "source_verified": not found["source_verification"]["index_stale"],
+               "index_stale": bool(found["source_verification"]["index_stale"]),
                "warning": WARNING, "notice": NOTICE,
                "automatic_go_stop": False}
-        return _cap_total(out)
+        return _cap_total(compact_for_search(out))
 
     return _cached("case_search", payload, bundle["sha256"], produce)
 

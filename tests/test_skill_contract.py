@@ -18,7 +18,7 @@ class SkillContractTests(unittest.TestCase):
             self.assertRegex(front, rf"(?m)^{re.escape(key)}:")
         self.assertIn("name: pd-rw-research", front)
         self.assertLess(len(text.splitlines()), 160)
-        self.assertIn("version: 0.5.5", front)
+        self.assertIn("version: 0.6.0", front)
 
     def test_case_library_reuse_is_on_demand_and_advisory(self):
         text = ENTRY.read_text(encoding="utf-8")
