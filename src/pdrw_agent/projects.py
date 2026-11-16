@@ -42,6 +42,7 @@ def get_project_context(settings: Settings, project_id: str) -> dict:
     root, item, paths = settings.project_paths(project_id)
     state_path = paths["state"]
     state: dict = {}
+    md_id_status = "NOT_READ"
     if state_path.is_file():
         if state_path.suffix.lower() == ".json":
             obj = read_json(state_path, limit=2 * 1024 * 1024)
@@ -59,8 +60,6 @@ def get_project_context(settings: Settings, project_id: str) -> dict:
                 for key in MD_KEYS:
                     if key != "PROJECT_ID" and line.startswith(key + ":"):
                         state[key] = line[len(key) + 1:].strip()[:280]
-    else:
-        md_id_status = "NOT_READ"
     expected = item.get("expected_state_project_id")
     if expected is not None and not isinstance(expected, str):
         raise AgentError("INVALID_EXPECTED_ID", "Expected state ID must be text")
