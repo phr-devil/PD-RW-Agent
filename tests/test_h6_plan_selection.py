@@ -4,6 +4,7 @@ These fixtures verify structural protection only. They do NOT simulate a
 trusted WorkBuddy message source or permit real training.
 """
 import copy
+import hashlib
 import os
 import runpy
 import json
@@ -39,7 +40,7 @@ def sample_plan():
     b["scientific_question"] = "Is the training label protocol independent of acquisition sessions?"
     b["competing_explanation"] = "A session-specific shortcut dominates target class"
     return {
-        "schema_version": "pdrw-h6-plan-v1",
+        "schema_version": "pdrw-h6-plan-v2",
         "scope_ref": "launch-message-1",
         "options": [option("A", "UNKNOWN_NEEDS_PROBE"), b],
         "recommended_option_id": "B",
@@ -138,6 +139,17 @@ class H6PlanChoiceTests(unittest.TestCase):
         plan["recommended_option_id"] = "A"
         out = review_h6_plan_choice(plan)
         self.assertEqual(out["available_option_ids"], ["A"])
+
+    def test_legacy_v1_digest_and_user_reply_are_preserved(self):
+        legacy = sample_plan()
+        legacy["schema_version"] = "pdrw-h6-plan-v1"
+        expected = hashlib.sha256(json.dumps(
+            legacy, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":")).encode("utf-8")).hexdigest()
+        self.assertEqual(validate_h6_plan(legacy)[1], expected)
+        self.assertEqual(review_h6_plan_choice(
+            legacy, sample_choice(legacy))["status"],
+            "DECLARED_CHOICE_UNAUTHENTICATED")
 
     def test_rewording_recommendation_does_not_invalidate_science_scope(self):
         plan = sample_plan()
