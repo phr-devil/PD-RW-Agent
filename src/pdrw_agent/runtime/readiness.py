@@ -5,14 +5,11 @@ author permission, or DEV execution. Never reads sealed artifacts.
 """
 from __future__ import annotations
 
-import re
-
 from ..config import Settings, read_json, under_root
+from ..project_identity import parse_markdown_project_id
 from ..projects import get_project_context
 from ..schemas import AgentError
 from .history import reconstruct_project_history
-
-_MD_ID = re.compile(r"(?m)^\s*(?:-\s*)?PROJECT_ID\s*:\s*([^\s#]+)")
 
 
 def inspect_project_readiness(settings: Settings, project_id: str) -> dict:
@@ -42,10 +39,12 @@ def inspect_project_readiness(settings: Settings, project_id: str) -> dict:
         # Legacy state metadata is advisory. Only read a bounded text prefix;
         # do not normalize missing fields into inferred author decisions.
         with state_md.open(encoding="utf-8-sig", errors="replace") as handle:
-            match = _MD_ID.search(handle.read(32_000))
-        md_id = match.group(1) if match else None
+            md_id, md_id_status = parse_markdown_project_id(handle.read(32_000))
+    else:
+        md_id_status = "NOT_READ"
     declared_id = item.get("expected_state_project_id")
     if (context["status"] == "IDENTITY_CONFLICT" or
+            md_id_status == "AMBIGUOUS" or
             json_id and declared_id and json_id != declared_id or
             md_id and json_id and md_id != json_id or
             md_id and declared_id and md_id != declared_id):
