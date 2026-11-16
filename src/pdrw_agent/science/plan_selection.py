@@ -66,7 +66,7 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
         seen.add(ident)
         for field in OPTION_FIELDS - {"id", "science_fit"}:
             _required(option[field], field, 1000)
-        if option["science_fit"] not in FIT:
+        if not isinstance(option["science_fit"], str) or option["science_fit"] not in FIT:
             raise AgentError("H6_OPTION_INVALID", "Invalid science-fit evidence status")
     if plan["recommended_option_id"] not in seen:
         raise AgentError("H6_RECOMMENDATION_INVALID", "Recommended option not found")
@@ -115,8 +115,8 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         allowed = choice["allowed_option_ids"]
         if (choice["selected_option_id"] is not None or
                 not isinstance(allowed, list) or not allowed or
-                len(allowed) != len(set(allowed)) or
-                any(not isinstance(x, str) or x not in ids for x in allowed)):
+                any(not isinstance(x, str) or x not in ids for x in allowed) or
+                len(allowed) != len(set(allowed))):
             return {**base, "status": "CHOICE_SCOPE_INVALID",
                     "next": "RECHECK_BOUNDED_DELEGATION"}
         _required(choice["delegated_scope"], "delegated_scope", 500)
