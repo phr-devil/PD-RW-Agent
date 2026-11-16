@@ -8,7 +8,7 @@
 
 ## Implemented here
 
-- New read-only hash-bound H6 plan/choice checker and opt-in local science CLI.
+- New read-only hash-bound H6 plan/choice checker and opt-in local science CLI. Options carry PD-RW C/R/P classifications for compatibility with the existing H6 Task/strategy check.
 - Stale plan, wrong option, unbounded delegation and malformed records fail structural checks; even well-formed declared choices remain UNAUTHENTICATED.
 - Skill routes new-project user startup scope (H1/H2), Agent-led candidate assessment (H3-H5), and exactly one required specific H6 choice before dependent new-mainline work.
 - No new MCP tool, experimental Run writer, autonomous GPU executor or persistent decision ledger. Existing DEV continuation and separate effect authorizations are unchanged.
