@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **v0.7.7 H6 plan-choice preview:** New projects reuse user startup scope, AI researches H3-H5, and the Skill requires one specific H6 author choice. A hash-bound **read-only** Python checker rejects stale or malformed *declared* choices but cannot authenticate a user or enforce WorkBuddy actions. No new MCP tools. [Audit and limits](docs/V077_H6_PLAN_CHOICE.md).
+> **v0.7.8 H6 decision closure preview:** New projects reuse user startup scope, AI researches H3-H5, and the Skill requires one specific H6 author choice. A hash-bound **read-only** Python checker rejects stale or malformed *declared* choices but cannot authenticate a user or enforce WorkBuddy actions. No new MCP tools. [Audit and limits](docs/V077_H6_PLAN_CHOICE.md).
 
 > **v0.7.6 targeted science/runtime patch:** Compact resume keeps specific blocker reasons and source-reported read-only recovery routes. Optional hash-bound DEV/VAL Run matrix coverage is checked within existing `audit_scientific_experiment`; it never certifies metric validity or a preregistered plan. No new MCP tools or execution permissions. **Real 42/43/44 WorkBuddy comparisons remain NOT_MEASURED.** [Scope and limitations](docs/V076_TARGETED_AUDIT.md).
 
