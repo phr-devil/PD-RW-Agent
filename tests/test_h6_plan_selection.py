@@ -71,6 +71,15 @@ class H6PlanChoiceTests(unittest.TestCase):
         self.assertFalse(out["execution_authorized"])
         self.assertFalse(out["user_choice_authenticated"])
 
+    def test_provisional_metadata_fit_does_not_suppress_truth_warnings(self):
+        out = review_h6_plan_choice(sample_plan())
+        risks = {row["option_id"]: row for row in out["science_risk_flags"]}
+        self.assertIn("B", risks)
+        self.assertIn("INDEPENDENT_TRUTH_OR_GROUPS_UNVERIFIED", risks["B"]["warnings"])
+        self.assertIn("NEAREST_WORK_NOT_FULLY_ACCESSED", risks["B"]["warnings"])
+        self.assertFalse(out["science_risks_authoritatively_verified"])
+        self.assertFalse(out["scientific_truth_verified"])
+
     def test_declared_specific_reply_is_still_not_authenticated(self):
         plan = sample_plan()
         out = review_h6_plan_choice(plan, sample_choice(plan))
