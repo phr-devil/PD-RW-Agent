@@ -82,6 +82,10 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
                                   ("p_orientation", ORIENTATIONS)):
             if not isinstance(option[field], str) or option[field] not in vocabulary:
                 raise AgentError("H6_OPTION_INVALID", f"Invalid {field} classification")
+    if len(options) > 1 and len({
+            (o["scientific_question"].strip(), o["competing_explanation"].strip())
+            for o in options}) < 2:
+        raise AgentError("H6_OPTIONS_NOT_DISTINCT", "Options must differ in science or failure premise")
     if plan["recommended_option_id"] not in seen:
         raise AgentError("H6_RECOMMENDATION_INVALID", "Recommended option not found")
     encoded = json.dumps(plan, ensure_ascii=False, sort_keys=True,
@@ -140,6 +144,9 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         if selected not in ids or choice["allowed_option_ids"] != [] or choice["delegated_scope"] is not None:
             return {**base, "status": "CHOICE_SCOPE_INVALID",
                     "next": "RECHECK_SPECIFIC_SELECTION"}
+        if next(o for o in card["options"] if o["id"] == selected)["science_fit"] == "CONTRADICTED_FOR_CLAIM":
+            return {**base, "status": "SELECTED_SCIENCE_CONTRADICTED",
+                    "next": "REVISE_CLAIM_BEFORE_RECORDING_H6"}
         declared = {"kind": kind, "selected_option_id": selected}
     elif kind == "USER_DELEGATED":
         allowed = choice["allowed_option_ids"]
@@ -150,6 +157,10 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
             return {**base, "status": "CHOICE_SCOPE_INVALID",
                     "next": "RECHECK_BOUNDED_DELEGATION"}
         _required(choice["delegated_scope"], "delegated_scope", 500)
+        if any(o["id"] in allowed and o["science_fit"] == "CONTRADICTED_FOR_CLAIM"
+               for o in card["options"]):
+            return {**base, "status": "DELEGATION_INCLUDES_CONTRADICTED_CLAIM",
+                    "next": "NARROW_OR_REFRAME_DELEGATED_OPTIONS"}
         declared = {"kind": kind, "allowed_option_ids": allowed}
     else:
         raise AgentError("H6_CHOICE_INVALID", "Only specific user choice/delegation is allowed")
