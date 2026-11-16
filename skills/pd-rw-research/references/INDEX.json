@@ -4,6 +4,17 @@
   "default": "SKILL.md",
   "references": [
     {
+      "file": "plan-selection.md",
+      "triggers": [
+        "new research project",
+        "H6 selection",
+        "candidate plan",
+        "user choice"
+      ],
+      "scope": "New-project H6 plan/choice anti-bypass",
+      "authority": "ADAPTER_GUIDANCE_ONLY"
+    },
+    {
       "file": "integration.md",
       "triggers": [
         "setup",

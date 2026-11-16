@@ -44,7 +44,7 @@ class SkillContractTests(unittest.TestCase):
         text = ENTRY.read_text(encoding="utf-8")
         refs = re.findall(r"\[references/([^\]]+)\]\(references/([^\)]+)\)", text)
         self.assertEqual({target for _, target in refs},
-                         {"integration.md", "execution.md", "troubleshooting.md", "INDEX.json"})
+                         {"integration.md", "execution.md", "troubleshooting.md", "plan-selection.md", "INDEX.json"})
         for label, target in refs:
             self.assertEqual(label, target)
             self.assertTrue((SKILL / "references" / target).is_file())
@@ -53,7 +53,7 @@ class SkillContractTests(unittest.TestCase):
         index = json.loads((SKILL / "references" / "INDEX.json").read_text("utf-8"))
         self.assertEqual(index["schema_version"], 1)
         names = {item["file"] for item in index["references"]}
-        self.assertEqual(names, {"integration.md", "execution.md", "troubleshooting.md"})
+        self.assertEqual(names, {"integration.md", "execution.md", "troubleshooting.md", "plan-selection.md"})
         for item in index["references"]:
             self.assertTrue((SKILL / "references" / item["file"]).is_file())
             self.assertEqual(item["authority"], "ADAPTER_GUIDANCE_ONLY")
