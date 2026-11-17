@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 from .config import Settings
 from .schemas import failure
+from .runtime_identity import capture_runtime_identity
 from .projects import get_project_context
 from .rules import get_applicable_rules
 from .memory import search_research_memory
@@ -26,6 +27,9 @@ from .host.supervisor import get_host_diagnostic_status
 class ResearchService:
     def __init__(self, settings: Settings):
         self.settings = settings
+        # Snapshot at service creation: a long-lived MCP process retains its
+        # own identity even if installed source files are replaced on disk.
+        self.runtime_identity = capture_runtime_identity()
 
     def call(self, name: str, **kwargs) -> dict:
         handlers = {
@@ -55,6 +59,9 @@ class ResearchService:
             handler = handlers.get(name)
             if handler is None:
                 return {"status": "ERROR", "error_code": "UNKNOWN_TOOL"}
-            return handler(self.settings, **kwargs)
+            response = handler(self.settings, **kwargs)
+            if name in {"get_resume_context", "get_project_context"}:
+                return {**response, "agent_runtime": self.runtime_identity}
+            return response
         except (ValueError, OSError, UnicodeError, TypeError, sqlite3.Error) as exc:
             return failure(exc)

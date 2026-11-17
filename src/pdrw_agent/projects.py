@@ -4,6 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 from .config import Settings, read_json
+from .project_identity import parse_markdown_project_id
 from .schemas import AgentError
 
 MD_KEYS = ("PROJECT_ID", "ACTIVE_TASK", "NEXT", "BEST_VALID_RUN", "HOLDOUT", "RESEARCH_RECORD_REF",
@@ -41,6 +42,7 @@ def get_project_context(settings: Settings, project_id: str) -> dict:
     root, item, paths = settings.project_paths(project_id)
     state_path = paths["state"]
     state: dict = {}
+    md_id_status = "NOT_READ"
     if state_path.is_file():
         if state_path.suffix.lower() == ".json":
             obj = read_json(state_path, limit=2 * 1024 * 1024)
@@ -50,16 +52,20 @@ def get_project_context(settings: Settings, project_id: str) -> dict:
         else:
             with state_path.open(encoding="utf-8-sig", errors="replace") as fp:
                 content = fp.read(32_000)
+            md_id, md_id_status = parse_markdown_project_id(content)
+            if md_id is not None:
+                state["PROJECT_ID"] = md_id
             for line in content.splitlines():
                 line = line.strip().removeprefix("- ").strip()
                 for key in MD_KEYS:
-                    if line.startswith(key + ":"):
+                    if key != "PROJECT_ID" and line.startswith(key + ":"):
                         state[key] = line[len(key) + 1:].strip()[:280]
     expected = item.get("expected_state_project_id")
     if expected is not None and not isinstance(expected, str):
         raise AgentError("INVALID_EXPECTED_ID", "Expected state ID must be text")
     actual = state.get("project_id") or state.get("PROJECT_ID")
     mismatch = bool(expected and actual and expected != actual)
+    mismatch = mismatch or md_id_status == "AMBIGUOUS"
     paths_public = {k: {"path": str(p), "exists": p.is_file()} for k, p in paths.items()}
     missing = [k for k in ("state", "research_record") if not paths[k].is_file()]
     excerpt = snapshot_head(paths["research_record"])
@@ -68,6 +74,7 @@ def get_project_context(settings: Settings, project_id: str) -> dict:
                   "INCOMPLETE_CONTEXT" if missing or excerpt is None else "SOURCE_REVIEW_REQUIRED",
         "project_id": project_id,
         "identity": "DECLARED_ID_MISMATCH" if mismatch else "UNVERIFIED_REQUIRE_RAW_SOURCE",
+        "markdown_identity_parse_status": md_id_status,
         "workflow_commit_local_only": rule_commit(settings.workflow_root),
         "rule_freshness": "REMOTE_NOT_CHECKED",
         "project_root": str(root),
