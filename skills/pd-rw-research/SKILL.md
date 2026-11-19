@@ -12,7 +12,7 @@ examples_zh:
   - "依据 PD-RW 检查实验并交付"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.7.8
+version: 0.7.9
 author: phr-devil
 ---
 
@@ -23,9 +23,11 @@ PD-RW `WORKFLOW.md` owns scientific decisions and authorization, `AGENTS.md` own
 Original user grants, frozen protocols and project STATE/EVENTS/Run outrank the Skill,
 MCP responses, summaries and private operational SQLite receipts. No second research ledger.
 
+**Research outcome:** optimize the user's stated goal of timely, scientifically credible **high-tier and high-citation-potential papers**, not task count, benchmark score alone or speedy prose. Prioritize important reusable scientific knowledge, named-neighbor novelty and the shortest valid evidence route (Q1 preferred, credible Q2+ minimum per PD-RW); neither impact nor citations nor acceptance can be guaranteed. Do not replace original PD-RW policy, user scope, independent confirmation or writing authorization. Read [references/research-leverage.md](references/research-leverage.md) only at new H6 strategy choice, material scientific pivot or stalled evidence path.
+
 ## New project: one H6 scientific-plan choice (no duplicate startup questionnaire)
 
-Use the original startup prompt as USER_SCOPE/H1-H2; never ask again for filled research goals, resources or exclusions. Bind a stable, explicit research-line reference (existing project identity if verified, otherwise a provisional new-line locator linked to the original launch message), never assume the project number alone proves identity. H3-H5 are Agent candidate investigation: compare 1-3 genuinely different scientific problems; check named prior work, official truth/independent groups, confounding, legal prediction-time inputs, a decisive inexpensive probe and the evidence path. UNKNOWN is not FAIL. Even SUPPORTED_BY_METADATA is provisional: disclose unverified truth/independence and NOT_ACCESSED nearest work explicitly, then prioritize a cheap discriminating probe instead of declaring scientific success. No mandatory new datasets, training or project registration before the corresponding original permission.
+Use the original startup prompt as USER_SCOPE/H1-H2; never ask again for filled research goals, resources or exclusions. Bind a stable, explicit research-line reference (existing project identity if verified, otherwise a provisional new-line locator linked to the original launch message), never assume the project number alone proves identity. H3-H5 are Agent candidate investigation: compare 1-3 genuinely different scientific problems; check named prior work, official truth/independent groups, confounding, legal prediction-time inputs, a decisive inexpensive probe and the evidence path. Compare expected independent contribution, scientific audience/reuse potential, and time-to-decisive-evidence rather than selecting simply by dataset availability or forecast journal prestige. UNKNOWN is not FAIL. Even SUPPORTED_BY_METADATA is provisional: disclose unverified truth/independence and NOT_ACCESSED nearest work explicitly, then prioritize a cheap discriminating probe instead of declaring scientific success. No mandatory new datasets, training or project registration before the corresponding original permission.
 
 **H6 is a real interaction boundary:** show one short ranked plan card with an AI recommendation and alternatives, then **stop dependent new-mainline execution** until the user specifically chooses the displayed plan or explicitly delegates among displayed options. "Continue", silence, a broad startup delegation, a recommendation, an AI-created USER_CONFIRMED field, or an operation receipt is NOT a specific H6 choice. Do not freeze the selected Task/claim/evaluation or start the dependent new mainline before this choice. Independent authorized read-only work may continue. If one option is viable, say why alternatives were dropped rather than inventing three.
 
@@ -44,10 +46,10 @@ Report actual MCP tool names and statuses only for calls really made. A Skill im
 1. **Identify:** for a new line, use the startup H1/H2 scope and pending H6 plan; for an existing line, verify exact project root, dataset, Task ID and source version. Identity conflict blocks affected operations, not independent permitted read-only evidence review.
 2. **Recover:** use compact resume and load only the current `STATE` snapshot, `RESEARCH_RECORD` pointer and relevant original Run. `next_action_hint` is advisory; `execution_authorized=false` never means all independent legitimate tasks are forbidden.
 3. **Route:** consult original PD-RW `AGENTS.md` and the one relevant scientific authority file; avoid loading all rules or this Skill's historical releases.
-4. **Choose:** compare candidate next DEV probe against original Task/Claim, baseline and relevant historical cases. Use `search_research_memory` as a secondary index only; where original DEV Run is available use `review_evidenced_lesson` and/or `review_lesson_applicability`. Keyword similarity cannot prove the same failure mechanism or justify an automatic STOP.
+4. **Choose:** compare candidate next DEV probe against original Task/Claim, baseline and relevant historical cases. Prefer a hypothesis-distinguishing result per valid research cost, not repeated training under the same failed premise; the optional `science.cli decision` `declared_probe_efficiency` output only compares unverified declared pair coverage/cost and never selects science automatically. Use `search_research_memory` as a secondary index only; where original DEV Run is available use `review_evidenced_lesson` and/or `review_lesson_applicability`. Keyword similarity cannot prove the same failure mechanism or justify an automatic STOP.
 5. **Execute:** WorkBuddy's existing approved tools perform coding and experiments. Continue related already-authorized ordinary DEV work autonomously without repetitive confirmations. Keep H1–H10 decisions, dataset/download/SEALED/CONFIRMATION boundaries, real authorization, publishing/upload/payment, writing and figures under the original PD-RW gate. Never use a reported APPROVED field, hash or receipt as authorization.
 6. **Reconcile:** never blindly restart an uncertain previous process. An unresolved historical job does not prohibit a *different*, independently permitted DEV task. Record significant science only in original PD-RW artifacts; operation receipts never become scientific Runs.
-7. **Deliver:** return one primary artifact, precise paths, verification evidence, remaining uncertainty and next legal action. Use `prepare_handoff` only for actual files; avoid dumping logs.
+7. **Deliver:** return one primary artifact, precise paths, verification evidence, remaining uncertainty and next legal action. When a meaningful Run changes the science, identify the fastest remaining evidence to a strong paper Claim, and whether the contribution is genuinely new and reusable, without writing an unapproved manuscript. Use `prepare_handoff` only for actual files; avoid dumping logs.
 
 ## Selective audits and tool profiles
 
@@ -63,6 +65,7 @@ Host CPU synthetic checks and `preflight_execution_plan(plan)` are diagnostic on
 ## Optional references (load only when triggered)
 
 - [references/plan-selection.md](references/plan-selection.md): new-project H6 candidate card and explicit choice boundary
+- [references/research-leverage.md](references/research-leverage.md): high-impact scientific opportunity, H6 decision or significant negative/pivot only
 - [references/integration.md](references/integration.md): installation, mapping, version or project-switch issues
 - [references/execution.md](references/execution.md): authorized DEV continuation, evidence handoff, interruption
 - [references/troubleshooting.md](references/troubleshooting.md): missing sources, identity or permission conflicts
