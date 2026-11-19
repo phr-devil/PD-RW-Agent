@@ -16,8 +16,10 @@ import json
 import re
 
 from ..schemas import AgentError
+from .staged_selection import validate_upstream_choices
 
 PLAN_VERSION = "pdrw-h6-plan-v2"
+STAGED_PLAN_VERSION = "pdrw-h6-plan-v3"
 LEGACY_PLAN_VERSION = "pdrw-h6-plan-v1"
 CHOICE_VERSION = "pdrw-h6-choice-v1"
 FIT = frozenset({"SUPPORTED_BY_METADATA", "UNKNOWN_NEEDS_PROBE",
@@ -33,6 +35,8 @@ PLAN_FIELDS = frozenset({
     "recommended_option_id", "recommendation_rationale",
 })
 LEGACY_PLAN_FIELDS = PLAN_FIELDS - {"research_line_ref"}
+STAGED_PLAN_FIELDS = PLAN_FIELDS | {"upstream_choices"}
+STAGED_OPTION_FIELDS = OPTION_FIELDS | {"adaptive_pivot_envelope"}
 # Rationale prose can change without invalidating an otherwise identical science scope.
 MATERIAL_OPTION_KEYS = (
     "id", "scientific_question", "core_task", "dataset_or_proof_path",
@@ -62,27 +66,31 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     if not isinstance(plan, dict):
         raise AgentError("H6_PLAN_INVALID", "H6 plan must be an object")
     version = plan.get("schema_version")
-    if version not in {PLAN_VERSION, LEGACY_PLAN_VERSION}:
+    if version not in {PLAN_VERSION, LEGACY_PLAN_VERSION, STAGED_PLAN_VERSION}:
         raise AgentError("H6_PLAN_VERSION_INVALID", "Unsupported plan version")
-    expected = LEGACY_PLAN_FIELDS if version == LEGACY_PLAN_VERSION else PLAN_FIELDS
+    expected = (LEGACY_PLAN_FIELDS if version == LEGACY_PLAN_VERSION else
+                STAGED_PLAN_FIELDS if version == STAGED_PLAN_VERSION else PLAN_FIELDS)
     if set(plan) != expected:
         raise AgentError("H6_PLAN_INVALID", "Missing or unexpected versioned H6 plan fields")
     _required(plan["scope_ref"], "scope_ref", 240)
     if version == PLAN_VERSION:
         _required(plan["research_line_ref"], "research_line_ref", 240)
     _required(plan["recommendation_rationale"], "recommendation_rationale", 1000)
+    if version == STAGED_PLAN_VERSION:
+        validate_upstream_choices(plan["upstream_choices"], ("H3", "H4"))
     options = plan["options"]
     if not isinstance(options, list) or not 1 <= len(options) <= 3:
         raise AgentError("H6_PLAN_INVALID", "One to three evidenced options required")
+    option_fields = STAGED_OPTION_FIELDS if version == STAGED_PLAN_VERSION else OPTION_FIELDS
     seen = set()
     for option in options:
-        if not isinstance(option, dict) or set(option) != OPTION_FIELDS:
+        if not isinstance(option, dict) or set(option) != option_fields:
             raise AgentError("H6_OPTION_INVALID", "Option dimensions missing or extra")
         ident = option["id"]
         if not isinstance(ident, str) or not _ID.fullmatch(ident) or ident in seen:
             raise AgentError("H6_OPTION_INVALID", "Option IDs must be unique and bounded")
         seen.add(ident)
-        for field in OPTION_FIELDS - {"id", "science_fit"}:
+        for field in option_fields - {"id", "science_fit"}:
             _required(option[field], field, 1000)
         if not isinstance(option["science_fit"], str) or option["science_fit"] not in FIT:
             raise AgentError("H6_OPTION_INVALID", "Invalid science-fit evidence status")
@@ -104,8 +112,12 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     material = {"schema_version": plan["schema_version"], "scope_ref": plan["scope_ref"],
                 "research_line_ref": plan.get("research_line_ref"),
                 "recommended_option_id": plan["recommended_option_id"],
-                "options": [{k: item[k] for k in MATERIAL_OPTION_KEYS}
+                "options": [{k: item[k] for k in
+                             (MATERIAL_OPTION_KEYS + (("adaptive_pivot_envelope",)
+                                                      if version == STAGED_PLAN_VERSION else ()))}
                             for item in options]}
+    if version == STAGED_PLAN_VERSION:
+        material["upstream_choices"] = plan["upstream_choices"]
     canonical = json.dumps(material, ensure_ascii=False, sort_keys=True,
                            separators=(",", ":")).encode("utf-8")
     # Backward compatibility: existing v1 choices were bound to the entire
@@ -139,6 +151,7 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         "research_line_ref_declared": card.get("research_line_ref"),
         "recommended_option_id": card["recommended_option_id"],
         "available_option_ids": ids,
+        "upstream_choices_declared": card.get("upstream_choices"),
         "user_choice_authenticated": False,
         "scientific_truth_verified": False,
         "execution_authorized": False,
@@ -170,6 +183,11 @@ def review_h6_plan_choice(plan: dict, choice: dict | None = None) -> dict:
         return {**base, "status": "CHOICE_PLAN_MISMATCH",
                 "next": "ASK_AGAIN_FOR_CHANGED_H6_CARD"}
     _required(choice["original_user_message_ref"], "original_user_message_ref", 240)
+    if card["schema_version"] == STAGED_PLAN_VERSION and any(
+            link["original_user_message_ref"] == choice["original_user_message_ref"]
+            for link in card["upstream_choices"].values()):
+        return {**base, "status": "REUSED_UPSTREAM_AUTHOR_MESSAGE",
+                "next": "REQUIRE_SEPARATE_H6_POST_CARD_REPLY"}
     kind = choice["kind"]
     if kind == "USER_SELECTED":
         selected = choice["selected_option_id"]
