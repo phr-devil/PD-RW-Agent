@@ -225,6 +225,7 @@ class CloudCapabilityParityTests(unittest.TestCase):
         self.assertEqual(out["items"][0]["next"],
                          "POSITIVE_SCOPE_REQUIRED_FOR_TRANSFER")
 
+    @unittest.skipUnless(HAS_RETRIEVER, "CASE_LIBRARY/scripts/search_cases.py not present")
     def test_legacy_memory_contract_still_holds(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
