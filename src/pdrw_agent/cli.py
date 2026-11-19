@@ -7,6 +7,7 @@ from pathlib import Path
 from .config import Settings, read_json
 from .schemas import failure
 from .service import ResearchService
+from . import case_knowledge
 
 
 def main() -> int:
@@ -87,6 +88,8 @@ def main() -> int:
     kb.add_argument("--full", action="store_true",
                     help="Ignore previous state and rebuild from scratch")
     kb.add_argument("--dry-run", action="store_true")
+    kb.add_argument("--scope-file", default=None,
+                    help="JSON allowlist of CASE_IDs; builds a scoped mirror")
     kv = sub.add_parser("case-knowledge-verify")
     kv.add_argument("--dir", required=True)
     e = sub.add_parser("evidence")
@@ -199,9 +202,11 @@ def main() -> int:
         elif command == "case-export":
             out = service.call("export_case_markdown", case_id=options.case_id)
         elif command == "case-knowledge-build":
+            scope = (case_knowledge.load_scope(options.scope_file)
+                     if options.scope_file else None)
             out = service.call("build_case_knowledge", out_dir=options.out,
                                incremental=not options.full,
-                               dry_run=options.dry_run)
+                               dry_run=options.dry_run, scope=scope)
         elif command == "case-knowledge-verify":
             out = service.call("verify_case_knowledge", out_dir=options.dir)
         elif command == "evidence":

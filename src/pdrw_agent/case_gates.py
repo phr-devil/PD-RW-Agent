@@ -65,9 +65,12 @@ CHECKPOINTS = {
 }
 # PD-RW stage/milestone cross-validation. H9 is NOT a claim checkpoint: a
 # substantive change to the formal confirmation protocol re-opens G2 instead.
+# H4 belongs to PROTOCOL_FREEZE because G2's window starts at the data/truth
+# path (H4): a protocol frozen without checking grouping, labels and the legal
+# input window is exactly the failure the case library documents most often.
 EXPECTED_STAGES = {
     "QUESTION_SELECTION": frozenset({"H2", "H3"}),
-    "PROTOCOL_FREEZE": frozenset({"H6", "H7"}),
+    "PROTOCOL_FREEZE": frozenset({"H4", "H6", "H7"}),
     "PROTOCOL_RECHECK": frozenset({"H9"}),
     "CLAIM_OR_CLOSURE": frozenset({"H8", "H10"}),
 }

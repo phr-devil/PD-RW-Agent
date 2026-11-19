@@ -31,9 +31,14 @@ from . import __version__
 from .schemas import AgentError
 from . import case_export, case_learning
 
-MIRROR_VERSION = "1.1"
+MIRROR_VERSION = "1.2"
 MANIFEST_NAME = "manifest.json"
 STATE_VERSION = "1"
+# VCS metadata that legitimately lives next to a published mirror. It is never
+# part of the manifest (a commit object cannot hash itself), but a *stray* file
+# that is not one of these and not manifest-owned would be uploaded unchecked.
+VCS_ALLOWED = (".git", ".gitignore", ".gitattributes", ".gitmodules")
+SCOPE_VERSION = "1"
 
 CARD_DIR = "cases"
 INDEX_DIR = "indexes"
@@ -89,6 +94,43 @@ def _sha(text: str) -> str:
 
 def _sha_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+# --------------------------------------------------------------------------
+# Publication scope
+#
+# The mirror can be built for a *subset* of the library. This exists because
+# "which cases may leave this machine" is a different decision from "which
+# cases does the library contain": a case can be perfectly well-evidenced and
+# still be held back (unpublished internal numbers, internal file references,
+# co-author consent). A scope file makes that decision explicit, auditable and
+# reproducible, instead of hand-deleting cards from a published directory.
+# --------------------------------------------------------------------------
+def load_scope(path) -> dict:
+    """Read an allowlist of CASE_IDs. Missing file is an error, not a no-op."""
+    if not path:
+        return None
+    target = Path(path).expanduser()
+    if not target.is_file():
+        raise AgentError("SCOPE_FILE_MISSING", f"scope file not found: {target}")
+    raw = target.read_bytes()
+    try:
+        data = json.loads(raw.decode("utf-8-sig"))
+    except ValueError as exc:
+        raise AgentError("SCOPE_FILE_INVALID", "scope file is not valid JSON") from exc
+    if isinstance(data, dict):
+        ids = data.get("case_ids") or data.get("include") or []
+        note = data.get("note") or ""
+    elif isinstance(data, list):
+        ids, note = data, ""
+    else:
+        raise AgentError("SCOPE_FILE_INVALID", "scope file must be a list or an object")
+    clean = sorted({str(x).strip() for x in ids if str(x).strip()})
+    if not clean:
+        raise AgentError("SCOPE_FILE_EMPTY", "scope file lists no CASE_ID")
+    return {"scope_version": SCOPE_VERSION, "case_ids": clean,
+            "sha256": _sha_bytes(raw), "note": str(note),
+            "source": target.name}
 
 
 # --------------------------------------------------------------------------
@@ -181,7 +223,22 @@ def _topic_index(title: str, key: str, cases: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _index_md(cases: list[dict], library: dict, publish: dict) -> str:
+def _scope_lines(scope_meta: dict | None) -> list[str]:
+    """A partial mirror must say so, or a reader will mistake it for complete."""
+    scope = scope_meta or {}
+    if scope.get("mode") != "ALLOWLIST":
+        return [f"- 收录范围：**全库**（{scope.get('library_total', '?')} 张索引案例全部导出）"]
+    return [
+        f"- 收录范围：**定向子集 {scope.get('included')} / {scope.get('library_total')} 张**"
+        "（发布白名单，不是全库）",
+        f"- 未收录 {scope.get('excluded')} 张：它们仍在本机 CASE_LIBRARY 中，"
+        "只是未纳入本次发布范围；检索不到 **不等于** 该经验不存在。",
+        f"- 范围清单 sha256：`{scope.get('scope_sha256')}`",
+    ]
+
+
+def _index_md(cases: list[dict], library: dict, publish: dict,
+              scope_meta: dict | None = None) -> str:
     by_outcome, by_grade, by_status = {}, {}, {}
     for c in cases:
         by_outcome[c["outcome"]] = by_outcome.get(c["outcome"], 0) + 1
@@ -197,6 +254,7 @@ def _index_md(cases: list[dict], library: dict, publish: dict) -> str:
              "",
              "## 汇总", "",
              f"- 案例：{len(cases)}（内部 {internal} / 外部 {len(cases) - internal}）",
+             *_scope_lines(scope_meta),
              f"- 结论分布：{', '.join(f'{k} {v}' for k, v in sorted(by_outcome.items()))}",
              f"- 证据评定：{', '.join(f'{k} {v}' for k, v in sorted(by_grade.items()))}",
              f"- 状态分布：{', '.join(f'{k} {v}' for k, v in sorted(by_status.items()))}",
@@ -251,7 +309,8 @@ def _jsonl_with_hashes(cases: list[dict], card_sha: dict) -> str:
     return "\n".join(lines) + ("\n" if lines else "")
 
 
-def _readme(cases: list[dict], library: dict, publish: dict) -> str:
+def _readme(cases: list[dict], library: dict, publish: dict,
+            scope_meta: dict | None = None) -> str:
     return "\n".join([
         "# PD-RW Case Knowledge（科研经验知识镜像）",
         "",
@@ -261,6 +320,7 @@ def _readme(cases: list[dict], library: dict, publish: dict) -> str:
         f"- Schema：`{case_export.KNOWLEDGE_SCHEMA_VERSION}`（`docs/SCHEMA.md`）",
         f"- 导出版本：`{MIRROR_VERSION}`",
         f"- 案例数：{len(cases)}",
+        *_scope_lines(scope_meta),
         f"- 源库索引 sha256：`{library['library_sha']}`",
         f"- 可发布：**{'YES' if publish['publishable'] else 'NO'}**"
         + ("（阻断：" + ", ".join(publish["blockers"]) + "）" if publish["blockers"] else ""),
@@ -298,7 +358,7 @@ def _readme(cases: list[dict], library: dict, publish: dict) -> str:
     ])
 
 
-def _agents_md(cases: list[dict]) -> str:
+def _agents_md(cases: list[dict], scope_meta: dict | None = None) -> str:
     return "\n".join([
         "# AGENTS.md — 三个 Agent 的统一读取约定",
         "",
@@ -306,7 +366,7 @@ def _agents_md(cases: list[dict]) -> str:
         "",
         "## 统一读取顺序（不要跳步）",
         "",
-        "1. `manifest.json` — 确认 `schema_version`、`case_count`、`publishable`、",
+        "1. `manifest.json` — 确认 `schema_version`、`case_count`、`scope.mode`、`publishable`、",
         "   `library_index_sha256`。若 `publishable=false`，只能当草稿参考。",
         "2. `INDEX.md` 或 `indexes/` — 用阶段（H3/H4/H6/H7/H8）或主题标签缩小范围。",
         "3. 3–5 张候选卡 `cases/<CASE_ID>.md` — 读 `前提` / `适用条件` / `适用边界` / `反例`。",
@@ -321,6 +381,10 @@ def _agents_md(cases: list[dict]) -> str:
         "  即使结论不同，也不构成独立重复验证。",
         "- **阶段归属是路由提示**：`h_stages_basis=MECHANISM_ROUTING_HEURISTIC_V1` 表示",
         "  阶段由机制标签派生，不是案例自身的声明。",
+        "",
+        "## 覆盖范围",
+        "",
+    ] + _scope_lines(scope_meta) + [
         "",
         "## 何时不要检索",
         "",
@@ -377,7 +441,8 @@ def _field_note(field: str) -> str:
         "source_type": "`origin`：INTERNAL / EXTERNAL",
         "source_group_id": "同源簇 ID；聚合卡为 SRC-AGG-<CASE_ID>，不与单篇论文合并",
         "source_ids": "从 source_refs / evidence 提取的 DOI、arXiv、PMID、PMCID、OpenReview 标识",
-        "same_source_cases": "直接共享至少一个文献标识的其他 CASE_ID（同源≠独立证据）",
+        "same_source_cases": "直接共享至少一个文献标识的其他 CASE_ID（同源≠独立证据）；"
+                              "对象为 SRC-AGG-* 表示该聚合卡收录了本卡所依据的文献，不是重复验证",
         "domains": "`research_domains` 归一为大写",
         "h_stages": "阶段路由标签；依据见 h_stages_basis",
         "h_stages_basis": "DECLARED / MECHANISM_ROUTING_HEURISTIC_V1 / UNKNOWN",
@@ -477,10 +542,34 @@ def _lifecycle(entries: list[dict]) -> str:
 # --------------------------------------------------------------------------
 # Plan
 # --------------------------------------------------------------------------
-def build_plan(settings, *, state: dict | None = None) -> dict:
+def build_plan(settings, *, state: dict | None = None,
+               scope: dict | None = None) -> dict:
     """Render every mirror file in memory. No filesystem write happens here."""
     library = load_cases(settings)
-    records = sorted(library["records"], key=lambda r: str(r.get("case_id")))
+    all_records = sorted(library["records"], key=lambda r: str(r.get("case_id")))
+    if scope:
+        allowed = set(scope["case_ids"])
+        present = {r.get("case_id") for r in all_records}
+        unknown = sorted(allowed - present)
+        if unknown:
+            raise AgentError("SCOPE_CASE_NOT_FOUND",
+                             "scope lists CASE_ID not present in the library: "
+                             + ", ".join(unknown[:8]))
+        records = [r for r in all_records if r.get("case_id") in allowed]
+        excluded = sorted(present - allowed)
+    else:
+        records = all_records
+        excluded = []
+    scope_meta = {
+        "mode": "ALLOWLIST" if scope else "FULL",
+        "included": len(records),
+        "library_total": len(all_records),
+        "excluded": len(excluded),
+        "excluded_case_ids": excluded,
+        "scope_sha256": (scope or {}).get("sha256"),
+        "scope_source": (scope or {}).get("source"),
+        "note": (scope or {}).get("note") or "",
+    }
     pairs = [(r, library["metas"].get(r.get("case_id"), {})) for r in records]
     groups, same = case_export.cluster_sources(pairs)
 
@@ -514,11 +603,12 @@ def build_plan(settings, *, state: dict | None = None) -> dict:
                       "_sha256": rendered["sha256"]})
 
     card_sha = {c["case_id"]: c["_sha256"] for c in cases}
+    publish = _publish_state(library, cases, blockers, len(records))
     files: dict[str, str] = {}
     for c in cases:
         files[c["card_path"]] = c["_markdown"]
     files[JSONL_NAME] = _jsonl_with_hashes(cases, card_sha)
-    files["INDEX.md"] = _index_md(cases, library, _publish_state(library, cases, blockers, state))
+    files["INDEX.md"] = _index_md(cases, library, publish, scope_meta)
     for stage in STAGES:
         files[f"{STAGE_DIR}/{stage}.md"] = _stage_index(stage, cases)
     topic_groups: dict[str, list[dict]] = {}
@@ -530,18 +620,16 @@ def build_plan(settings, *, state: dict | None = None) -> dict:
     for key in sorted(topic_groups):
         title = ("机制 · " if key.startswith("MECH-") else "领域 · ") + key.split("-", 1)[1]
         files[f"{TOPIC_DIR}/{key}.md"] = _topic_index(title, key, topic_groups[key])
-    files["README.md"] = _readme(cases, library, _publish_state(library, cases, blockers, state))
-    files["AGENTS.md"] = _agents_md(cases)
+    files["README.md"] = _readme(cases, library, publish, scope_meta)
+    files["AGENTS.md"] = _agents_md(cases, scope_meta)
     files[f"{DOC_DIR}/SCHEMA.md"] = _schema_md(cases)
     files[f"{DOC_DIR}/RETRIEVAL.md"] = _retrieval_md(cases)
     files[f"{INSIGHT_DIR}/README.md"] = _insights_readme()
-    files[LIFECYCLE_NAME] = _lifecycle(_lifecycle_entries(state, cases))
-
-    publish = _publish_state(library, cases, blockers, state)
-    # INDEX.md/README.md embed the publish verdict: re-render once so the gate
-    # string cannot go stale against the manifest.
-    files["INDEX.md"] = _index_md(cases, library, publish)
-    files["README.md"] = _readme(cases, library, publish)
+    files[LIFECYCLE_NAME] = _lifecycle(_lifecycle_entries(state, cases, set(excluded)))
+    # A published mirror is a git work tree. Without this, a Windows clone would
+    # rewrite LF to CRLF and every manifest hash would stop matching, so the
+    # ".gitattributes" is part of the generated payload rather than local config.
+    files[".gitattributes"] = "# Generated by pdrw-agent: keep mirror bytes exact.\n* -text\n"
 
     hashes = {path: _sha(text) for path, text in files.items()}
     content_sha = _sha("\n".join(f"{p}\n{hashes[p]}" for p in sorted(hashes)))
@@ -551,6 +639,7 @@ def build_plan(settings, *, state: dict | None = None) -> dict:
         "agent_version": __version__,
         "card_format": case_export.KNOWLEDGE_CARD_FORMAT,
         "case_count": len(cases),
+        "scope": scope_meta,
         "source": {
             "library_index_sha256": library["library_sha"],
             "index_schema_version": library["bundle"]["data"].get("schema_version"),
@@ -578,13 +667,19 @@ def build_plan(settings, *, state: dict | None = None) -> dict:
         "privacy_blocked_cases": blockers,
         "files": [{"path": p, "sha256": hashes[p], "bytes": len(files[p].encode("utf-8"))}
                   for p in sorted(files)],
+        # `file_count` counts content files listed in this manifest. The manifest
+        # cannot list (or hash) itself, so the directory always holds exactly one
+        # more file than it reports - hence the explicit second number.
         "file_count": len(files),
+        "file_count_including_manifest": len(files) + 1,
+        "file_count_semantics": "MANIFEST_EXCLUDED",
         "content_sha256": content_sha,
     }
     files[MANIFEST_NAME] = json.dumps(manifest, ensure_ascii=False,
                                       sort_keys=True, indent=1) + "\n"
     return {"files": files, "manifest": manifest, "cases": cases,
-            "library": library, "publish": publish, "privacy_blockers": blockers}
+            "library": library, "publish": publish, "privacy_blockers": blockers,
+            "scope": scope_meta}
 
 
 def _publish_state_label(publishable: bool) -> str:
@@ -608,7 +703,8 @@ def _case_state(cases: list[dict]) -> dict:
             for c in cases}
 
 
-def _diff_state(previous: dict, cases: list[dict]) -> dict:
+def _diff_state(previous: dict, cases: list[dict],
+                excluded: set | None = None) -> dict:
     """Retirement / status-change events implied by this plan. Deterministic."""
     old = previous.get("cases") or {}
     new = _case_state(cases)
@@ -618,7 +714,8 @@ def _diff_state(previous: dict, cases: list[dict]) -> dict:
         retired.append({"event": "CASE_RETIRED", "case_id": cid,
                         "path": old[cid].get("path"),
                         "last_sha256": old[cid].get("sha256"),
-                        "reason": "SOURCE_RECORD_REMOVED",
+                        "reason": ("SCOPE_EXCLUDED" if cid in (excluded or set())
+                                   else "SOURCE_RECORD_REMOVED"),
                         "generation": generation})
     for cid in sorted(set(old) & set(new)):
         before, after = old[cid], new[cid]
@@ -633,7 +730,8 @@ def _diff_state(previous: dict, cases: list[dict]) -> dict:
     return {"generation": generation, "retired": retired, "events": events}
 
 
-def _lifecycle_entries(state: dict | None, cases: list[dict]) -> list[dict]:
+def _lifecycle_entries(state: dict | None, cases: list[dict],
+                       excluded: set | None = None) -> list[dict]:
     """History carried from the state file plus this run's delta.
 
     Computed before the state file is written, so a case removed in this run is
@@ -647,32 +745,39 @@ def _lifecycle_entries(state: dict | None, cases: list[dict]) -> list[dict]:
         # something to be a change *from*.
         baseline = {"event": "INITIAL_EXPORT", "case_count": len(cases),
                     "generation": int(state.get("generation") or 0) + 1}
-    delta = _diff_state(state, cases)
+    delta = _diff_state(state, cases, excluded)
     head = [baseline] if baseline else []
     return (head + list(state.get("retired") or []) + delta["retired"]
             + list(state.get("status_events") or []) + delta["events"])
 
 
 def _publish_state(library: dict, cases: list[dict], blockers: dict,
-                   state: dict | None) -> dict:
+                   expected: int) -> dict:
     """Gates decided at BUILD time.
 
     A mirror just rendered from the current library is consistent with it by
     construction, so "the library moved on" is not a build-time blocker; it is
     a verify-time blocker (see `verify(..., settings=...)`), which is exactly
     where a stale mirror would otherwise be published.
+
+    `expected` is the number of cases this build was *asked* to export (all of
+    them, or the publication allowlist), never the raw library count - a scoped
+    build is complete at 5/5, not broken at 5/65.
     """
     reasons = []
     if library["index_stale"]:
         reasons.append("INDEX_STALE_REBUILD_REQUIRED")
-    expected = library["bundle"]["data"].get("case_count")
     if expected != len(cases):
         reasons.append("EXPORT_INCOMPLETE")
-    if library["bundle"]["card_count"] != len(cases):
+    unresolved = [c["case_id"] for c in cases
+                  if not c.get("source_card_sha256")
+                  or c["source_card_sha256"] == "UNKNOWN"]
+    if unresolved:
         reasons.append("CARD_COUNT_MISMATCH")
     if blockers:
         reasons.append("PRIVACY_OR_CONTENT_BLOCKER")
-    return {"publishable": not reasons, "blockers": reasons}
+    return {"publishable": not reasons, "blockers": reasons,
+            "unresolved_cards": sorted(unresolved)}
 
 
 # --------------------------------------------------------------------------
@@ -704,7 +809,8 @@ def load_state(out_dir: Path) -> dict:
 
 def next_state(previous: dict, plan: dict) -> dict:
     """Carry retirement/status history forward; never silently drop a case."""
-    delta = _diff_state(previous, plan["cases"])
+    excluded = set((plan.get("scope") or {}).get("excluded_case_ids") or [])
+    delta = _diff_state(previous, plan["cases"], excluded)
     initial = previous.get("initial") or {
         "event": "INITIAL_EXPORT", "case_count": len(plan["cases"]),
         "generation": delta["generation"]}
@@ -720,19 +826,6 @@ def next_state(previous: dict, plan: dict) -> dict:
 # --------------------------------------------------------------------------
 # Writing
 # --------------------------------------------------------------------------
-def _write_tree(target: Path, files: dict[str, str]) -> list[str]:
-    written = []
-    for rel in sorted(files):
-        path = target / rel
-        path.parent.mkdir(parents=True, exist_ok=True)
-        data = files[rel].encode("utf-8")
-        if path.is_file() and _sha_bytes(path.read_bytes()) == _sha_bytes(data):
-            continue
-        path.write_bytes(data)
-        written.append(rel)
-    return written
-
-
 def _stage_tree(target: Path, files: dict[str, str],
                 previous_dir: Path | None) -> tuple[list[str], list[str]]:
     """Stage a full tree. Unchanged files are hard-linked, never rewritten."""
@@ -758,11 +851,15 @@ def _stage_tree(target: Path, files: dict[str, str],
 
 
 def build(settings, out_dir, *, incremental: bool = True,
-          dry_run: bool = False) -> dict:
-    """Render (and optionally write) the knowledge mirror atomically."""
+          dry_run: bool = False, scope=None) -> dict:
+    """Render (and optionally write) the knowledge mirror atomically.
+
+    `scope` is either None (whole library) or the dict returned by `load_scope`.
+    """
     out = Path(out_dir).expanduser().resolve()
     previous = load_state(out)
-    plan = build_plan(settings, state=previous if incremental else None)
+    plan = build_plan(settings, state=previous if incremental else None,
+                      scope=scope)
     manifest = plan["manifest"]
 
     # Never delete a case file that the new plan still contains; only files the
@@ -781,7 +878,8 @@ def build(settings, out_dir, *, incremental: bool = True,
         existing = {p for p in plan["files"] if (out / p).is_file()}
         return {"status": "DRY_RUN_PLAN_ONLY", "target": str(out),
                 "case_count": len(plan["cases"]),
-                "file_count": len(plan["files"]),
+                "scope": plan["scope"],
+                "file_count": manifest["file_count"],
                 "would_write": len(plan["files"]) - len(existing),
                 "would_delete": stale_files,
                 "publishable": manifest["publishable"],
@@ -812,14 +910,29 @@ def build(settings, out_dir, *, incremental: bool = True,
             except OSError:
                 retiring.rename(out)  # restore the last good mirror, unchanged
                 raise
+            # A published mirror is also a git work tree. `.git/` is not part of
+            # the manifest, so it has to survive the swap explicitly - otherwise
+            # the first rebuild would delete the repository along with the old
+            # tree.
+            vcs = [n for n in VCS_ALLOWED if (retiring / n).exists()]
+            moved = []
+            try:
+                for name in vcs:
+                    (retiring / name).rename(out / name)
+                    moved.append(name)
+                shutil.rmtree(retiring, ignore_errors=True)
+            except OSError:
+                # Keep the old tree (and therefore the repository) recoverable.
+                raise AgentError(
+                    "VCS_PRESERVE_FAILED",
+                    "mirror replaced but VCS metadata could not be moved; "
+                    f"recoverable copy left at {retiring}") from None
         else:
             out.parent.mkdir(parents=True, exist_ok=True)
             builder.rename(out)
     finally:
         if builder.exists():
             shutil.rmtree(builder, ignore_errors=True)
-        if retiring.exists():
-            shutil.rmtree(retiring, ignore_errors=True)
 
     state = next_state(previous, plan)
     state_path(out).write_text(json.dumps(state, ensure_ascii=False,
@@ -827,7 +940,9 @@ def build(settings, out_dir, *, incremental: bool = True,
                                encoding="utf-8")
     return {"status": "MIRROR_WRITTEN", "target": str(out),
             "case_count": len(plan["cases"]),
-            "file_count": len(plan["files"]),
+            "scope": plan["scope"],
+            "file_count": manifest["file_count"],
+            "file_count_including_manifest": manifest["file_count_including_manifest"],
             "written": changed, "reused": len(reused),
             "deleted": stale_files,
             "publishable": manifest["publishable"],
@@ -877,6 +992,27 @@ def verify(out_dir, settings=None) -> dict:
     card_files = sorted(p for p in hashes if p.startswith(f"{CARD_DIR}/"))
     if len(card_files) != manifest.get("case_count"):
         problems.append("CASE_FILE_COUNT_MISMATCH")
+    # Anything on disk that the manifest does not own would be uploaded without
+    # a hash, a privacy scan or a review. VCS metadata is the only exception.
+    owned = {str(e.get("path")) for e in manifest.get("files") or []}
+    on_disk = set()
+    vcs_files = 0
+    for path in out.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(out).as_posix()
+        if rel.split("/")[0] in VCS_ALLOWED and rel not in owned:
+            vcs_files += 1  # .git/ internals and similar: tracked by git, not by us
+            continue
+        on_disk.add(rel)
+    unmanaged = sorted(p for p in on_disk - owned
+                       if p.split("/")[0] not in VCS_ALLOWED
+                       and p != MANIFEST_NAME)
+    if unmanaged:
+        problems.append("UNMANAGED_FILES_PRESENT")
+    scope = manifest.get("scope") or {}
+    if scope.get("mode") == "ALLOWLIST" and scope.get("included") != manifest.get("case_count"):
+        problems.append("SCOPE_COUNT_MISMATCH")
     if not manifest.get("publishable"):
         problems.append("MANIFEST_NOT_PUBLISHABLE")
     for code in manifest.get("publish_blockers") or []:
@@ -893,7 +1029,12 @@ def verify(out_dir, settings=None) -> dict:
             problems.append("SOURCE_LIBRARY_CHANGED_SINCE_EXPORT")
     return {"status": "MIRROR_VERIFIED" if not problems else "MIRROR_PROBLEMS",
             "target": str(out), "case_count": manifest.get("case_count"),
+            "scope": scope,
             "file_count": manifest.get("file_count"),
+            "file_count_including_manifest": manifest.get("file_count_including_manifest"),
+            "files_on_disk": len(on_disk),
+            "vcs_files": vcs_files,
+            "unmanaged_files": unmanaged,
             "content_sha256": content_sha,
             "expected_content_sha256": manifest.get("content_sha256"),
             "missing": missing, "mismatched": mismatched,

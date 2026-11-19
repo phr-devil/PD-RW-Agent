@@ -146,7 +146,7 @@ class KnowledgeMirrorTests(unittest.TestCase):
         first_hash = json.loads(first["manifest.json"])["content_sha256"]
         second = self.fx.build()
         self.assertEqual(second["written"], [])
-        self.assertEqual(second["reused"], second["file_count"])
+        self.assertEqual(second["reused"], second["file_count_including_manifest"])
         self.assertEqual(_read_all(self.fx.out), first)
         self.assertEqual(second["content_sha256"], first_hash)
 
@@ -473,6 +473,99 @@ class RealLibraryKnowledgeTests(unittest.TestCase):
         card.write_text(card.read_text(encoding="utf-8") + "x", encoding="utf-8")
         result = case_knowledge.verify(copy)
         self.assertIn("FILE_HASH_MISMATCH", result["problems"])
+
+
+@unittest.skipUnless(HAS_RETRIEVER, "CASE_LIBRARY/scripts/search_cases.py not present")
+class PublishScopeTests(unittest.TestCase):
+    """WP6-B: a mirror may be built for a reviewed allowlist, not only全库."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        case_learning._RESULT_CACHE.clear()
+        case_learning._RETRIEVER_CACHE.clear()
+        self.base = Path(self.temp.name)
+        self.fx = _KnowledgeFixture(self.base, [
+            _kcase("T-01"),
+            _kcase("T-02", verdict="SUCCESS", mechanics=["SENSOR_CALIBRATION"]),
+            _kcase("T-03", status="ARCHIVE", mechanics=["GROUP_INDEPENDENCE"]),
+        ])
+        self.scope_file = self.base / "scope.json"
+        self.scope_file.write_text(json.dumps(
+            {"note": "first batch", "case_ids": ["T-01", "T-03"]}),
+            encoding="utf-8")
+
+    def test_scope_exports_only_listed_cases(self):
+        scope = case_knowledge.load_scope(self.scope_file)
+        out = self.fx.build(scope=scope)
+        self.assertEqual(out["case_count"], 2)
+        cards = sorted(p.stem for p in (self.fx.out / CARD_FILES).glob("*.md"))
+        self.assertEqual(cards, ["T-01", "T-03"])
+        manifest = json.loads((self.fx.out / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["scope"]["mode"], "ALLOWLIST")
+        self.assertEqual(manifest["scope"]["included"], 2)
+        self.assertEqual(manifest["scope"]["library_total"], 3)
+        self.assertEqual(manifest["scope"]["excluded_case_ids"], ["T-02"])
+        # A subset is complete at 2/2, not broken at 2/3.
+        self.assertTrue(manifest["publishable"], manifest["publish_blockers"])
+        index = (self.fx.out / "INDEX.md").read_text(encoding="utf-8")
+        self.assertIn("定向子集 2 / 3", index)
+        rows = [json.loads(l) for l in (self.fx.out / "indexes/cases.jsonl")
+                .read_text(encoding="utf-8").splitlines() if l.strip()]
+        self.assertEqual(sorted(r["case_id"] for r in rows), ["T-01", "T-03"])
+
+    def test_scope_rejects_unknown_case_id(self):
+        self.scope_file.write_text(json.dumps({"case_ids": ["T-01", "T-99"]}),
+                                   encoding="utf-8")
+        scope = case_knowledge.load_scope(self.scope_file)
+        with self.assertRaises(Exception) as ctx:
+            self.fx.build(scope=scope)
+        self.assertEqual(getattr(ctx.exception, "code", ""), "SCOPE_CASE_NOT_FOUND")
+
+    def test_scope_shrink_records_scope_excluded_not_deletion(self):
+        self.fx.build()
+        scope = case_knowledge.load_scope(self.scope_file)
+        self.fx.build(scope=scope)
+        events = [json.loads(l) for l in (self.fx.out / "indexes/lifecycle.jsonl")
+                  .read_text(encoding="utf-8").splitlines() if l.strip()]
+        retired = [e for e in events if e.get("event") == "CASE_RETIRED"]
+        self.assertEqual([e["case_id"] for e in retired], ["T-02"])
+        self.assertEqual(retired[0]["reason"], "SCOPE_EXCLUDED")
+
+    def test_git_metadata_survives_an_atomic_rebuild(self):
+        self.fx.build(scope=case_knowledge.load_scope(self.scope_file))
+        git_dir = self.fx.out / ".git"
+        git_dir.mkdir()
+        (git_dir / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+        self.fx.build(scope=case_knowledge.load_scope(self.scope_file))
+        self.assertTrue((git_dir / "HEAD").is_file())
+        result = case_knowledge.verify(self.fx.out)
+        self.assertEqual(result["unmanaged_files"], [])
+        self.assertEqual(result["status"], "MIRROR_VERIFIED")
+        # .git/ must not be counted as mirror content, nor reported as stray.
+        self.assertGreater(result["vcs_files"], 0)
+        self.assertEqual(result["files_on_disk"],
+                         result["file_count_including_manifest"])
+
+    def test_unmanaged_file_blocks_publication(self):
+        self.fx.build(scope=case_knowledge.load_scope(self.scope_file))
+        (self.fx.out / "notes.env").write_text("TOKEN=abc\n", encoding="utf-8")
+        result = case_knowledge.verify(self.fx.out)
+        self.assertIn("UNMANAGED_FILES_PRESENT", result["problems"])
+        self.assertEqual(result["unmanaged_files"], ["notes.env"])
+        self.assertFalse(result["publishable"])
+
+    def test_file_counts_are_explicit_and_match_disk(self):
+        out = self.fx.build(scope=case_knowledge.load_scope(self.scope_file))
+        manifest = json.loads((self.fx.out / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["file_count"], len(manifest["files"]))
+        self.assertEqual(manifest["file_count_including_manifest"],
+                         manifest["file_count"] + 1)
+        self.assertEqual(manifest["file_count_semantics"], "MANIFEST_EXCLUDED")
+        self.assertEqual(out["file_count_including_manifest"],
+                         manifest["file_count_including_manifest"])
+        result = case_knowledge.verify(self.fx.out)
+        self.assertEqual(result["files_on_disk"], manifest["file_count_including_manifest"])
 
 
 if __name__ == "__main__":

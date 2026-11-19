@@ -102,6 +102,7 @@ class CaseGateTests(unittest.TestCase):
     def test_three_mandatory_checkpoints_actually_retrieve(self):
         for trigger, stage, milestone, output_key in (
             ("G1", "H3", "QUESTION_SELECTION", "selection_impact"),
+            ("G2", "H4", "PROTOCOL_FREEZE", "concrete_checks"),
             ("G2", "H7", "PROTOCOL_FREEZE", "concrete_checks"),
             ("G3", "H8", "CLAIM_OR_CLOSURE", "contribution_review"),
         ):
