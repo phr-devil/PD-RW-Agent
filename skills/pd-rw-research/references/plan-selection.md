@@ -38,7 +38,7 @@ library precedent, plus one blocking question and its cheapest check per finding
 (same relation in another dataset/sensor), `KNOWLEDGE_GAIN_IS_METRIC_ONLY`,
 `TRUTH_NOT_INDEPENDENT`/`DECLARED_CONFLICT` (proxy or model-generated truth claimed independent),
 `UNIT_NOT_INDEPENDENT`/`UNIT_COUNT_CONFLATION` (frames counted as N), `NON_DISCRIMINATING`
-(both explanations predict the same observation), `CONFIRMATION_CIRCULAR`,
+(both explanations predict the same observation), `PREDICTION_NOT_STATED`, `CONFIRMATION_CIRCULAR`,
 `CONFOUNDERS_NOT_STATED`, `ILLEGAL_PREDICTION_INPUT`. `cross_candidate` reports candidates that
 share one `failure_premise`: those are one option, not a comparison.
 

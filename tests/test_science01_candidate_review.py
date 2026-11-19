@@ -63,6 +63,13 @@ class HistoricalDefectTests(unittest.TestCase):
         self.assertIn("NON_DISCRIMINATING", result["flags"])
         self.assertEqual("DECLARED_CONFLICT", result["checks"]["discrimination"])
 
+    def test_a_missing_prediction_is_named_as_such(self):
+        item = card("SC-05-K1-CALIBRATION")
+        item["competing_explanations"][0]["predicted_observation"] = ""
+        result = review_candidate(item)
+        self.assertIn("PREDICTION_NOT_STATED", result["flags"])
+        self.assertNotIn("FALSIFIER_NOT_STATED", result["flags"])
+
     def test_reusing_the_evaluation_set_as_confirmation_is_circular(self):
         self.assertIn("CONFIRMATION_CIRCULAR",
                       review_candidate(card("SC-01-REDUNDANCY-BOUND"))["flags"])

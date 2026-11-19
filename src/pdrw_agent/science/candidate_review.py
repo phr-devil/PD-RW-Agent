@@ -95,6 +95,7 @@ _PRECEDENT = {
     "STRONGEST_ALTERNATIVE_MISSING": ["CASE-08"],
     "ALTERNATIVES_NOT_DISTINCT": ["CASE-08"],
     "FALSIFIER_NOT_STATED": ["CASE-09"],
+    "PREDICTION_NOT_STATED": ["CASE-08"],
     "CONFIRMATION_CIRCULAR": ["CASE-20"],
     "CONFIRMATION_NOT_PLANNED": ["CASE-20"],
     "CONFOUNDERS_NOT_STATED": ["CASE-10", "CASE-05"],
@@ -268,7 +269,7 @@ def _check(card: dict, key: str) -> dict:
             state = "NOT_DECLARED"
         observations = [_norm(x["predicted_observation"]) for x in competing]
         if any(not o for o in observations):
-            findings.append("FALSIFIER_NOT_STATED")
+            findings.append("PREDICTION_NOT_STATED")
             state = "NOT_DECLARED" if state == "DECLARED" else state
         elif len(set(observations)) < len(observations):
             findings.append("NON_DISCRIMINATING")
