@@ -21,6 +21,8 @@ from pdrw_agent.schemas import AgentError
 from pdrw_agent.science import feedback_link
 from pdrw_agent.science.feedback_link import to_run_feedback
 
+ROOT = Path(__file__).resolve().parents[1]
+
 from tests.test_case_gates import gate_event
 from tests.test_case_learning import HAS_RETRIEVER, _Fixture, _case
 from tests.test_science_feedback_link import _Project, _sha
@@ -318,3 +320,44 @@ class GateCacheBehaviourTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ConsoleEncodingTests(unittest.TestCase):
+    """A cp1252 console must not turn an advisory into a traceback."""
+
+    def run_cli(self, args, cwd):
+        import os
+        import subprocess
+        import sys
+        env = {**os.environ, "PYTHONIOENCODING": "cp1252",
+               "PYTHONUTF8": "0", "PYTHONPATH": str(ROOT / "src")}
+        return subprocess.run([sys.executable, *args], capture_output=True,
+                              text=True, encoding="utf-8", timeout=180,
+                              cwd=str(cwd), env=env)
+
+    def test_legacy_feedback_cli_survives_a_cp1252_console(self):
+        from tests.test_science_feedback import packet
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "packet.json"
+            path.write_text(json.dumps(packet(), ensure_ascii=False),
+                            encoding="utf-8")
+            done = self.run_cli(["-m", "pdrw_agent.science.feedback",
+                                 "--packet", str(path)], ROOT)
+        self.assertEqual(done.returncode, 0, done.stderr[-800:])
+        self.assertEqual(done.stderr.strip(), "")
+        self.assertEqual(json.loads(done.stdout)["status"],
+                         "ADVISORY_FEEDBACK_ONLY")
+
+    def test_feedback_link_cli_survives_a_cp1252_console(self):
+        with tempfile.TemporaryDirectory() as temp:
+            project = _Project(Path(temp))
+            link = project.root / "protocol" / "LINK.json"
+            link.write_text(json.dumps(project.link(), ensure_ascii=False),
+                            encoding="utf-8")
+            done = self.run_cli(
+                ["-m", "pdrw_agent.science.cli", "feedback-link",
+                 "--link", str(link), "--project-root", str(project.root),
+                 "--as-run-feedback"], ROOT)
+        self.assertEqual(done.returncode, 0, done.stderr[-800:])
+        self.assertEqual(json.loads(done.stdout)["link_status"],
+                         "ADVISORY_FEEDBACK_ONLY")

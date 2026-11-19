@@ -141,7 +141,12 @@ def main() -> int:
                 result = result["review_packet"]
     except (ValueError, OSError, TypeError, KeyError) as exc:
         result = failure(exc)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    try:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        # Same fallback as the main CLI: a cp1252 console cannot render the
+        # Chinese advisory text, and a crash there is not a scientific result.
+        print(json.dumps(result, ensure_ascii=True, indent=2))
     if result.get("status") == "ERROR":
         return 2
     # H6 is never authenticated by this CLI: nonzero prevents shell wrappers

@@ -173,7 +173,12 @@ def main(argv: list[str] | None = None) -> int:
         result = review_probe_feedback(read_json(args.packet, limit=128 * 1024))
     except (ValueError, OSError, TypeError, KeyError) as exc:
         result = failure(exc)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    try:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        # Same fallback as the main CLI: a cp1252 console cannot render the
+        # Chinese advisory text, and a crash there is not a scientific result.
+        print(json.dumps(result, ensure_ascii=True, indent=2))
     return 2 if result["status"] == "ERROR" else 0
 
 
