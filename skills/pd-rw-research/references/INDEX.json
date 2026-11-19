@@ -15,6 +15,17 @@
       "authority": "ADAPTER_GUIDANCE_ONLY"
     },
     {
+      "file": "research-leverage.md",
+      "triggers": [
+        "high-impact research",
+        "H6 plan ranking",
+        "stalled scientific evidence",
+        "major research pivot"
+      ],
+      "scope": "Fast high-impact/high-reuse scientific evidence pathway; no new science policy",
+      "authority": "ADAPTER_GUIDANCE_ONLY"
+    },
+    {
       "file": "integration.md",
       "triggers": [
         "setup",
