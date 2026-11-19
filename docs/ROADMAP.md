@@ -1,5 +1,13 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.7.9 research-leverage alignment (adapter only; not a validated improvement)
+
+- User-level optimization: faster **credible** high-tier/high-citation-potential results, never predicted citations or relaxed science integrity. Use existing PD-RW H6 and H7/05; no new author review, scientific policy, ledger or paid service.
+- Trigger on-demand research leverage guidance for H6 option comparison or material failure/pivot; compare independent knowledge, named near-neighbor, audience/reuse and shortest valid evidence route.
+- Optional pure-Python declared probe frontier compares exact discriminable hypothesis-pair **sets** and known ordinal cost; UNKNOWN costs are incomparable. It is advisory and does not rank scientific value, choose experiments, authorize execution or verify predictions.
+- Next: measured same-budget frozen research A/B/C replay and real WorkBuddy host integration before any claim of better publications, citations, scientific success or Token efficiency. Existing real DEV/GPU host and H6 authentication restrictions remain.
+
+
 ## v0.7.5 convergence gate — no expansion until measured
 
 - Expose additive scientific/operation/next-action resume views; MCP defaults to compact output. Keep full schema for backward compatibility.
