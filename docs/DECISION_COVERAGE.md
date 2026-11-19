@@ -189,3 +189,54 @@ inputs in `case_gates.py`; no rule, tool, permission, H-node, payload shape or
    advisory; it does not by itself improve a research decision.
 4. `PRESERVATION_UNVERIFIED` is unchanged: "retrieval / hash / CI is not proof"
    still exists only in original user messages.
+
+## SCIENCE-01 — candidate value, novelty and identifiability (2026-11-20)
+
+Baseline `d1ca67f` (v0.9.6). One new read-only module (`science/candidate_review.py`) and one
+CLI subcommand. No rule, H-node, permission, MCP tool, profile count, `next_actions` shape or
+existing payload changed. The authoritative science rules stay in PD-RW
+`HIGH_VALUE_RESEARCH_DESIGN.md` / `SEARCH_DISCOVERY.md`; this round adds a check on the
+*candidate card*, not another process.
+
+### Measured defect
+
+| # | Defect | Evidence it was real | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 1 | At H3 the only checks were card *shape* and author-choice binding (`staged_selection.review_early_choice` has no science check), and the H6 heuristic (`_declared_evidence_warnings`) fires on the literal string `UNKNOWN`. A confident card therefore passed untouched, while an honest card was the one penalised | six frozen cards reconstructed from CASE-10/11/14/21 and INT-SUCCESS-01/05: H3 science findings **0/6**; H6 with `SUPPORTED_BY_METADATA` **0/6**; H6 with `UNKNOWN_NEEDS_PROBE` **6/6** and one identical warning set (zero discrimination) | `candidate-review` cross-checks eight declared relations (named nearest gap, knowledge gain vs replication, truth independence, evaluation unit, discriminating prediction, confirmation independence, confounders, prediction-time inputs); findings carry the rule, the library precedent and the cheapest check | `test_science01_candidate_review` (24); `evals/science_value_eval.py` |
+| 2 | The four defect types had no machine-checkable statement, only prose in the rules: novelty from a search miss (CASE-14), replication reframed as knowledge (CASE-21), proxy/model-generated truth declared independent (CASE-10), rows counted as N (CASE-11) | the frozen cards pass `early-review` structurally while a human reads them as the same historical failures | each becomes a finding code with a declared-vs-declared contradiction (`DECLARED_CONFLICT`) rather than a score | `HistoricalDefectTests` (7), `RevisionLoopTests` (2) |
+
+### Measured comparison (same six cards, no model)
+
+| | v0.9.6 checks | candidate review |
+| --- | --- | --- |
+| Historically defective cards flagged | 0 / 4 | 4 / 4 |
+| Defect localised to the right relation | 0 / 4 | 4 / 4 |
+| Historically successful cards left clean | n/a (no signal) | 2 / 2 |
+| Payload for the six cards | 6 152 chars | 8 559 chars |
+
+### Preservation in this round
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| H3/H4/H6/H8 + H5-with-H6 + H7 in-scope DEV autonomy | unchanged; no new author node | full suite 510/510 under the v1.13 root (`68e29c3`) **and** the v1.14 worktree (`d4056fc`); `V114BoundaryTests`, `test_h6_plan_selection` |
+| SEALED, source tiers, `as_of`, DEV/VAL isolation | unchanged | `test_wp9_*`, `test_science_feedback_link`, `SealedBoundaryUnchangedTests` |
+| MCP surface | 24 tools, profiles 11/21/24, no tool added; the new check is CLI-only | `PROFILE_TOOLS`, `test_mcp`, `case_decision_eval` V9 live stdio |
+| Existing payloads | unchanged: `case_decision_eval` V1/V2/V3 stay 15 512 / 12 824 / 15 787 chars | `case_decision_eval` 10/10 |
+| Case gate behaviour | unchanged | `case_gate_eval` 17/17 guardrails |
+| Original research data, Runs, STATE, `CASE_LIBRARY`, frozen protocols | untouched; cases were read only, no Run re-executed | `git status`, library digest before = after |
+
+### Unverified in this round
+
+1. **No real model session.** The Skill is installed (`0.9.7`, byte-identical) and the stdio
+   server starts, but this session exposes no `pd-rw-research` tool and the connector list is
+   empty. `REAL_LLM_END_TO_END = NOT_MEASURED (BLOCKED_BY_HOST_TOOL_MOUNT)`. The protocol is in
+   `audit/science01/REAL_SESSION_PROTOCOL.md`.
+2. **The six cards are reconstructions**, written from CASE_LIBRARY premises. They are not
+   verbatim model output and not an expert-labelled benchmark; they test whether a documented
+   defect is surfaced.
+3. **Research value is `NOT_MEASURED`.** A surfaced question is not a better question. The
+   v0.9.7 → 0.9.6 difference measured here is instrumentation, not scientific output.
+4. **Passing the review is not validity.** A card can be written to satisfy all eight relations;
+   `score_provided`, `scientific_truth_verified`, `automatic_go` and `automatic_stop` are always
+   false, and the CLI exits 3.
+5. Token/wall-clock cost in a real session: `NOT_MEASURED` (character counts only).

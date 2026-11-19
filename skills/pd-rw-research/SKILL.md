@@ -13,7 +13,7 @@ examples_zh:
   - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.9.6
+version: 0.9.7
 author: phr-devil
 ---
 
@@ -32,7 +32,7 @@ MCP responses, summaries and private operational SQLite receipts. No second rese
 
 **New projects (PD-RW v1.14):** reuse original H1/H2 limits. Ask for **three distinct post-card author decisions**: H3 selects a paper-worthy question after bounded prior-art/opportunity review; H4 selects evidence/data/proof route after truth, independence, permission and cost review; H5 is an Agent draft, confirmed when H6 selects the paper contribution, concrete Task and bounded adaptive-pivot scope. H4 cites H3; H6 cites H3/H4 and the original HARD-constraint fingerprint. An old single-H6 project retains its valid original choices. Missing choices pause only dependent actions, not independent permitted read-only work.
 
-**No approval by declarations:** `continue`, a model recommendation, a repeated message ref, a plan SHA or an `APPROVED` JSON cannot replace specific original user choices. The trusted host must authenticate original messages and independently authorize protected tool effects; card checkers never do so. Technical changes within an approved H7 scope proceed autonomously; material core-Claim or strategy changes go through H8/relevant author boundary. For versioned H3/H4/H6 card schemas and optional advisory CLI, load [references/plan-selection.md](references/plan-selection.md) *only when selecting/revising a plan*. Preserve original records in `RESEARCH_RECORD.md` and `STATE`, not a third ledger.
+**No approval by declarations:** `continue`, a model recommendation, a repeated message ref, a plan SHA or an `APPROVED` JSON cannot replace specific original user choices. The trusted host must authenticate original messages and independently authorize protected tool effects; card checkers never do so. Technical changes within an approved H7 scope proceed autonomously; material core-Claim or strategy changes go through H8/relevant author boundary. For versioned H3/H4/H6 card schemas, the optional `candidate-review` check (named nearest gap, knowledge gain vs replication, independent truth/unit, discriminating prediction) and the advisory CLI, load [references/plan-selection.md](references/plan-selection.md) *only when selecting/revising a plan*. Preserve original records in `RESEARCH_RECORD.md` and `STATE`, not a third ledger.
 
 ## MCP-first for a registered, permitted project
 
