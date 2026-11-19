@@ -95,7 +95,7 @@
 
 **Research agent integration for WorkBuddy, powered by the existing PD-RW workflow.**
 
-> **v0.5.3 routing adjustment:** For an explicitly registered and permitted project, an MCP-enabled WorkBuddy Skill now requests an actual bounded MCP project-context call before broad file reads; the server uses the same Python service as the CLI. This is an instruction-level routing change, **not** a guaranteed host enforcement mechanism. See [WorkBuddy MCP-first acceptance](docs/RUNTIME_AND_MCP.md#v053-workbuddy-mcp-first-routing-acceptance).
+> **v0.5.3 routing adjustment:** For an explicitly registered and permitted project, an MCP-enabled WorkBuddy Skill now requests an actual bounded MCP project-context call before broad file reads; the server uses the same Python service as the CLI. This is an instruction-level routing change, **not** a guaranteed host enforcement mechanism. See [WorkBuddy MCP-first acceptance](docs/RUNTIME_AND_MCP.md#historical-v053-workbuddy-mcp-first-routing-acceptance-replay-only).
 
 > Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled in the Agent adapter (including caller-supplied callback) pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
 
