@@ -20,6 +20,7 @@ def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
         ident: {tuple(pair) for pair in s["distinguishable_hypothesis_pairs_as_declared"]}
         for ident, s in known.items()
     }
+    discriminating = {ident for ident, pairs in pairsets.items() if pairs}
     dominated = {}
     for ident, s in known.items():
         for other_id, other in known.items():
@@ -34,13 +35,18 @@ def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
             if cheaper and coverage and strictly_better:
                 dominated.setdefault(ident, []).append(other_id)
     return {
-        "frontier_candidate_ids_as_declared": [
-            ident for ident in known if ident not in dominated
-        ],
+        # A probe that separates no hypothesis pair cannot change the judgment,
+        # so it must not be named as the cheap option. When *no* probe separates
+        # anything, the honest answer is "there is no decisive probe", not a
+        # Pareto winner among equally uninformative candidates.
+        "frontier_candidate_ids_as_declared": (
+            [ident for ident in known if ident not in dominated] if discriminating else []
+        ),
         "dominated_candidates_as_declared": [
             {"id": ident, "dominated_by": dominators}
             for ident, dominators in dominated.items()
         ],
+        "no_discriminating_probe": bool(known) and not discriminating,
         "unknown_cost_ids": [
             s["id"] for s in summaries if s["declared_cost_band"] not in _COST_ORDER
         ],

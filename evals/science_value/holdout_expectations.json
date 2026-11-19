@@ -1,0 +1,47 @@
+{
+  "note": "Labels are the defect the CASE_LIBRARY record documents for that project. They are not a model judgement and not a benchmark of research quality. 'primary' is the single documented framing error the card reproduces; 'any' lists every flag that would be a correct hit.",
+  "cases": {
+    "HO-01-CROSS-CONDITION-ORACLE": {
+      "source_case": "CASE-12",
+      "historical_verdict": "MIXED / VERIFIED_FAILURE",
+      "defect": "ORACLE 偏移移除用 DEV_VAL 标签，非法；且只报绝对精度、未把秩信息分账",
+      "primary": ["ILLEGAL_PREDICTION_INPUT"],
+      "any": ["ILLEGAL_PREDICTION_INPUT", "KNOWLEDGE_GAIN_IS_METRIC_ONLY"]
+    },
+    "HO-02-SELECTOR-SAME-SIGNAL": {
+      "source_case": "CASE-17",
+      "historical_verdict": "FAILURE / VERIFIED_FAILURE",
+      "defect": "选择器与标签共享同一 pad_* 信号，增益可能是标签属性；确认集与评价集同源",
+      "primary": ["TRUTH_NOT_INDEPENDENT"],
+      "any": ["TRUTH_NOT_INDEPENDENT", "CONFIRMATION_CIRCULAR", "DECLARED_CONFLICT"]
+    },
+    "HO-03-MULTIMODAL-VS-SIMPLE": {
+      "source_case": "CASE-13",
+      "historical_verdict": "FAILURE / VERIFIED_FAILURE",
+      "defect": "增益 -0.00069（p=0.877）且基线被退化条件打坏；主张只写成指标改善",
+      "primary": ["KNOWLEDGE_GAIN_IS_METRIC_ONLY"],
+      "any": ["KNOWLEDGE_GAIN_IS_METRIC_ONLY", "REPLICATION_ONLY"]
+    },
+    "HO-04-SKILL-FROM-PARENT-POSTERIOR": {
+      "source_case": "INT-SUCCESS-03",
+      "historical_verdict": "MIXED / VERIFIED_SUCCESS",
+      "defect": "无（窄范围合法 DEV 增益，边界正确陈述）",
+      "primary": [],
+      "any": []
+    },
+    "HO-05-WEARABLE-MEASUREMENT": {
+      "source_case": "INT-SUCCESS-04",
+      "historical_verdict": "MIXED / VERIFIED_SUCCESS",
+      "defect": "无（测量结论可独立成立，已声明确认队列同源）",
+      "primary": [],
+      "any": []
+    },
+    "HO-06-IMU-REMOUNT-GEOMETRIC": {
+      "source_case": "EXT-N06",
+      "historical_verdict": "SUCCESS / VERIFIED_SUCCESS",
+      "defect": "无（简单算法、独立真值、自带反向证据与弃权）",
+      "primary": [],
+      "any": []
+    }
+  }
+}
