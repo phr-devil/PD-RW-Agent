@@ -35,7 +35,7 @@ PLAN_FIELDS = frozenset({
     "recommended_option_id", "recommendation_rationale",
 })
 LEGACY_PLAN_FIELDS = PLAN_FIELDS - {"research_line_ref"}
-STAGED_PLAN_FIELDS = PLAN_FIELDS | {"upstream_choices"}
+STAGED_PLAN_FIELDS = PLAN_FIELDS | {"upstream_choices", "hard_constraints_sha256"}
 STAGED_OPTION_FIELDS = OPTION_FIELDS | {"adaptive_pivot_envelope"}
 # Rationale prose can change without invalidating an otherwise identical science scope.
 MATERIAL_OPTION_KEYS = (
@@ -78,6 +78,9 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     _required(plan["recommendation_rationale"], "recommendation_rationale", 1000)
     if version == STAGED_PLAN_VERSION:
         validate_upstream_choices(plan["upstream_choices"], ("H3", "H4"))
+        hard_digest = plan["hard_constraints_sha256"]
+        if not isinstance(hard_digest, str) or not _HASH.fullmatch(hard_digest):
+            raise AgentError("H6_PLAN_INVALID", "HARD constraints digest required")
     options = plan["options"]
     if not isinstance(options, list) or not 1 <= len(options) <= 3:
         raise AgentError("H6_PLAN_INVALID", "One to three evidenced options required")
@@ -118,6 +121,7 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
                             for item in options]}
     if version == STAGED_PLAN_VERSION:
         material["upstream_choices"] = plan["upstream_choices"]
+        material["hard_constraints_sha256"] = plan["hard_constraints_sha256"]
     canonical = json.dumps(material, ensure_ascii=False, sort_keys=True,
                            separators=(",", ":")).encode("utf-8")
     # Backward compatibility: existing v1 choices were bound to the entire
