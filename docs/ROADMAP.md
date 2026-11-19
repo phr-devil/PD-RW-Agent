@@ -1,5 +1,13 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.8.0 publication-first H3/H4/H6 (unmeasured)
+
+- New PD-RW v1.4 projects: agent-led deep topic search and author H3 decision, separate H4 dataset/proof decision, H5 proposed final question, and author H6 concrete paper Task / bounded adaptive pivot. Each card has a material hash, distinct original user-message ref, and H4/H6 upstream binding. Historical v1.3 projects retain their decisions.
+- Optional local-only `science.cli early-review` reviews H3/H4 declarations; `h6-review` accepts v3 plans with upstream choices and `adaptive_pivot_envelope`. Both always return a nonzero exit for untrusted approval.
+- No new MCP execute tool, authorization source, science ledger, standalone scheduler, writing permission or automatic training. Need independent host authentication and OS-isolated permission enforcement before real DEV.
+- Next: original frozen H3/H4/H6 dialogues and actual WorkBuddy A/B/C, including wrong-message reuse, stale H4/H6 linkage, in-scope traditional algorithm pivot, invalid evidence and output quality. CI and fabricated examples cannot certify publication/citation success.
+
+
 ## v0.7.9 research-leverage alignment (adapter only; not a validated improvement)
 
 - User-level optimization: faster **credible** high-tier/high-citation-potential results, never predicted citations or relaxed science integrity. Use existing PD-RW H6 and H7/05; no new author review, scientific policy, ledger or paid service.
