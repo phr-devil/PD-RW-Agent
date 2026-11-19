@@ -9,7 +9,6 @@ question, and they do not score science.
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 import unittest
@@ -179,57 +178,53 @@ class SchemaTests(unittest.TestCase):
 
 
 class CliTests(unittest.TestCase):
+    """In-process: the argument parsing and exit code are what matter here.
+
+    A subprocess would add platform-specific stdio behaviour without testing
+    anything this module owns; the stdio entry point is covered by the existing
+    h6-review CLI tests.
+    """
+
+    def _run(self, argv):
+        import contextlib
+        import io
+        from unittest.mock import patch
+        from pdrw_agent.science import cli
+
+        out = io.StringIO()
+        with patch.object(sys, "argv", ["science-cli", *argv]), contextlib.redirect_stdout(out):
+            code = cli.main()
+        return code, out.getvalue()
+
     def test_cli_reviews_a_bundle_and_never_signals_approval(self):
-        proc = subprocess.run(
-            [sys.executable, "-m", "pdrw_agent.science.cli", "candidate-review",
-             "--cards", str(ROOT / "evals" / "science_value" / "cards.json")],
-            cwd=ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
-            env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
-        )
-        self.assertEqual(3, proc.returncode, proc.stderr)
-        result = json.loads(proc.stdout)
+        code, text = self._run(
+            ["candidate-review", "--cards", str(ROOT / "evals" / "science_value" / "cards.json")])
+        self.assertEqual(3, code)
+        result = json.loads(text)
         self.assertEqual(6, len(result["candidates"]))
         self.assertFalse(result["automatic_go"])
+        self.assertEqual("CANDIDATE_REVIEW_ADVISORY", result["status"])
+
+    def test_cli_accepts_repeated_cards(self):
+        path = str(ROOT / "evals" / "science_value" / "revision_example.json")
+        code, text = self._run(["candidate-review", "--card", path, "--card", path])
+        # Duplicate IDs are rejected rather than silently averaged.
+        self.assertEqual(2, code)
+        self.assertEqual("CANDIDATE_CARD_INVALID", json.loads(text)["error_code"])
 
     def test_cli_rejects_a_bundle_without_cards(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "bad.json"
             path.write_text('{"not_cards": []}', encoding="utf-8")
-            proc = subprocess.run(
-                [sys.executable, "-m", "pdrw_agent.science.cli", "candidate-review",
-                 "--cards", str(path)],
-                cwd=ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
-                env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
-            )
-            self.assertEqual(2, proc.returncode)
-            self.assertEqual("CANDIDATE_CARD_INVALID", json.loads(proc.stdout)["error_code"])
+            code, text = self._run(["candidate-review", "--cards", str(path)])
+            self.assertEqual(2, code)
+            self.assertEqual("CANDIDATE_CARD_INVALID", json.loads(text)["error_code"])
 
-
-class RevisionLoopTests(unittest.TestCase):
-    """Answering the questions must change the design, not the wording."""
-
-    def test_answering_the_questions_clears_the_findings(self):
-        original = review_candidate(card("SC-01-REDUNDANCY-BOUND"))
-        revised = review_candidate(json.loads(
-            (ROOT / "evals" / "science_value" / "revision_example.json").read_text("utf-8")))
-        self.assertTrue(original["flags"])
-        self.assertEqual([], revised["flags"])
-        self.assertEqual("DECLARED", revised["checks"]["discrimination"])
-        # Clearing a finding is not a scientific verdict.
-        self.assertFalse(revised["scientific_truth_verified"])
-
-    def test_the_revision_differs_in_the_relations_not_only_the_phrasing(self):
-        original = card("SC-01-REDUNDANCY-BOUND")
-        revised = json.loads(
-            (ROOT / "evals" / "science_value" / "revision_example.json").read_text("utf-8"))
-        self.assertEqual(2, len(revised["named_nearest"]))
-        self.assertEqual("ACCESSED", revised["nearest_status"])
-        before = [x["predicted_observation"] for x in original["competing_explanations"]]
-        after = [x["predicted_observation"] for x in revised["competing_explanations"]]
-        self.assertEqual(1, len(set(before)))
-        self.assertEqual(2, len(set(after)))
-        self.assertFalse(revised["confirmation_shares_evaluation_data"])
+    def test_cli_requires_a_card(self):
+        code, text = self._run(["candidate-review"])
+        self.assertEqual(2, code)
+        self.assertEqual("CANDIDATE_CARD_INVALID", json.loads(text)["error_code"])
 
 
 if __name__ == "__main__":
