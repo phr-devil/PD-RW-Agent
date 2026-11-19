@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdrw-agent"
-version = "0.9.6"
+version = "0.9.7"
 description = "PD-RW research runtime: bounded state/evidence audit, case-learning gates, MCP, operational receipts and guarded previews"
 readme = "README.md"
 requires-python = ">=3.11"

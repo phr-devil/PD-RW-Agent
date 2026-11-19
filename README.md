@@ -1,13 +1,15 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.6 (declared-vs-verified feedback boundary).**
+> **Current release — 0.9.7 (candidate value, novelty and identifiability).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
-> checks · service/CLI/MCP · runtime receipts) and one **downgrade-only**
-> projection from an evidence-linked Run to the next action. No event field
+> checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
+> projection from an evidence-linked Run to the next action, and one read-only
+> **candidate review** for the question chosen at H3. No event field
 > authenticates itself: `case_gate_check` reports what was claimed next to what
-> it actually checked, and names the four checks it did not run. No scientific
-> rule, H-node, permission gate or tool count changed: MCP stays 11/21/24, no
-> tool was added, and the case library / Runs / frozen protocols are untouched.
+> it actually checked, and `candidate-review` reports which declared relation is
+> unstated or self-contradictory. No scientific rule, H-node, permission gate or
+> tool count changed: MCP stays 11/21/24, no tool was added, and the case
+> library / Runs / frozen protocols are untouched.
 > [Architecture](docs/ARCHITECTURE.md) · [Runtime](docs/RUNTIME_AND_MCP.md) ·
 > [Preservation map](docs/DECISION_COVERAGE.md) ·
 > [Feedback contract](docs/EXPERIMENT_FEEDBACK_LINK.md).
@@ -15,6 +17,21 @@
 
 ## Release notes (newest first; the release above is the current one)
 
+> **v0.9.7 candidate review (science capability, not new process):** at H3 the
+> only checks were card *shape* and author-choice binding, and the H6 warning
+> heuristic fired on the literal string `UNKNOWN` — so a confident card claiming
+> "no prior work, F1 improves, 29 279 frames" passed with zero warnings, while an
+> honest card was the one that got flagged. `science.cli candidate-review`
+> cross-checks eight declared relations (named nearest gap, knowledge gain vs
+> replication, truth independence, evaluation unit, discriminating prediction,
+> confirmation independence, confounders, prediction-time inputs) and returns
+> the rule, a library precedent and the cheapest check per finding. It provides
+> no score, no GO/STOP, reads no literature or Run, and exits 3. On six frozen
+> cards reconstructed from CASE-10/11/14/21 and INT-SUCCESS-01/05 it surfaces
+> 4/4 documented defects that v0.9.6 did not flag, and leaves both historically
+> successful directions clean. **Model behaviour and research value are
+> `NOT_MEASURED`.**
+>
 > **v0.9.6 bounded-input cache key (freeze candidate):** the gate fingerprint
 > hashed only the first 900 characters of `run_feedback` and the first 500 of a
 > derived evidence declaration. Two *legal* declarations that differed later

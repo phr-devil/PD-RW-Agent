@@ -1,0 +1,264 @@
+{
+  "schema_version": "pdrw-candidate-cards-v1",
+  "note": "Frozen SCIENCE-01 inputs. Each card is a reconstruction of what the v0.9.6 H3 card would contain for a real historical direction, written from the original case premises (premises/lesson text in CASE_LIBRARY). It is NOT verbatim model output and is NOT an expert-labelled benchmark; expected_flags records the historical defect the case library documents.",
+  "cards": [
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "SC-01-REDUNDANCY-BOUND",
+      "question": "触觉阵列的空间冗余是否给出可恢复性上界：以 pad 时间自相关与稳定空间活动冗余推导可观测性边界",
+      "failure_premise": "现有触觉尺度研究只报告通道数—性能曲线，未把空间冗余作为可恢复性边界建模",
+      "contribution_form": "LAW_BOUNDARY",
+      "success_new_knowledge": "同一空间冗余关系在另一传感器与另一数据集上成立",
+      "refutation_consequence": "若冗余关系不成立，则现有触觉尺度定律的适用条件被削弱",
+      "named_nearest": [
+        {
+          "work": "ACTS (arXiv:2410.13847)",
+          "covers": "1024-taxel uniform/random/adaptive 采样 + 全 raster 强基线，真实闭环，N*=f(C) 定律",
+          "remaining": "文献未检索到把该冗余关系写成可恢复性上界的工作"
+        }
+      ],
+      "nearest_status": "NOT_ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "空间冗余是可恢复性上界，通道数下降应按上界损失信息",
+          "predicted_observation": "减少通道数后重建误差按预测上界上升"
+        },
+        {
+          "explanation": "只是采样密度效应，与冗余结构无关",
+          "predicted_observation": "减少通道数后重建误差按预测上界上升"
+        }
+      ],
+      "falsifier": "在固定总通道数下打乱空间排布，若误差不变则冗余结构解释被否定",
+      "truth_kind": "MEASURED_INSTRUMENT",
+      "truth_source": "IMADA 试验机参考测量（非本传感器信号）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时仅触觉阵列原始读数和已知采样几何",
+      "evaluation_unit": "SESSION",
+      "independent_units": 12,
+      "reported_n": 12,
+      "confounders": [
+        "材料批次",
+        "按压速度"
+      ],
+      "evidence_path": "CPU 全流水线复算（历史 307.74 s，无 GPU）",
+      "confirmation_ref": "同一批 pad 的另一段录制",
+      "confirmation_shares_evaluation_data": true,
+      "resources": "CPU，无需新数据"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "SC-02-MU-FROM-SLIDE",
+      "question": "由滑动阶段力信号解析摩擦系数并回归材料属性",
+      "failure_premise": "滑动信号中含有足以解析摩擦系数的切向信息",
+      "contribution_form": "MEASUREMENT",
+      "success_new_knowledge": "材料属性可由滑动阶段信号直接回归，无需独立摩擦试验",
+      "refutation_consequence": "若解析量与独立测量不一致，则触觉信号不能替代摩擦试验",
+      "named_nearest": [
+        {
+          "work": "RCT 触觉材料数据集原始论文",
+          "covers": "力—深度响应与材料分类",
+          "remaining": "未给出滑动阶段的 μ 解析路径"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "信号中真的含材料摩擦信息",
+          "predicted_observation": "解析 μ 与独立试验机 μ 跨材料排序一致"
+        },
+        {
+          "explanation": "回归学到的是接触条件而非材料",
+          "predicted_observation": "打乱材料标签后准确率不变"
+        }
+      ],
+      "falsifier": "固定材料改变接触条件，若预测随条件漂移则材料解释被否定",
+      "truth_kind": "PROXY_FROM_INPUT",
+      "truth_source": "由同一滑动信号按 F/N 解析得到的 μ",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时滑动阶段 time,force 两列",
+      "evaluation_unit": "WINDOW",
+      "independent_units": 18880,
+      "reported_n": 18880,
+      "confounders": [
+        "接触条件",
+        "滑动速度"
+      ],
+      "evidence_path": "DEV 滑动 CSV 上零拟合分析",
+      "confirmation_ref": "另一台 IMADA 试验机 10 mm/min 测量",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，无需新数据"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "SC-03-FRAME-POWER",
+      "question": "以 29,279 帧记录估计触觉材料分类的跨材料泛化能力",
+      "failure_premise": "记录数量足以支撑跨材料泛化结论",
+      "contribution_form": "ALGORITHM",
+      "success_new_knowledge": "在 122 种材料上给出跨材料分类的可复现增益与失效条件",
+      "refutation_consequence": "若独立材料上无增益，则触觉材料分类的泛化边界被收窄",
+      "named_nearest": [
+        {
+          "work": "RCT 触觉材料基准（项目 31 D1 协议）",
+          "covers": "122 材料、受试者分组与力—深度特征",
+          "remaining": "跨材料留出协议下的增益未报告"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "增益来自材料相关特征",
+          "predicted_observation": "留出材料上增益保持"
+        },
+        {
+          "explanation": "增益来自受试者/批次记忆",
+          "predicted_observation": "打乱材料标签后增益消失"
+        }
+      ],
+      "falsifier": "留出材料上增益消失即否定材料解释",
+      "truth_kind": "HUMAN_LABEL",
+      "truth_source": "人工材料标注（wang+shuo union）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时单次按压的力—深度序列",
+      "evaluation_unit": "FRAME",
+      "independent_units": 27929,
+      "reported_n": 27929,
+      "confounders": [
+        "采样率",
+        "按压速度"
+      ],
+      "evidence_path": "DEV_VAL 70/30 切分",
+      "confirmation_ref": "未污染的留出材料组",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，单卡即可"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "SC-04-FIRST-MU",
+      "question": "首次从触觉滑动信号回归摩擦系数并建立跨材料预测",
+      "failure_premise": "尚无工作做过触觉滑动信号的摩擦系数回归",
+      "contribution_form": "ALGORITHM",
+      "success_new_knowledge": "建立触觉信号到摩擦系数的首个预测模型",
+      "refutation_consequence": "若预测不成立，则该任务在此数据上不可做",
+      "named_nearest": [
+        {
+          "work": "（检索零命中，无具名近邻）",
+          "covers": "无",
+          "remaining": "首次回归摩擦系数，文献未搜到同类工作"
+        }
+      ],
+      "nearest_status": "NONE_FOUND",
+      "competing_explanations": [
+        {
+          "explanation": "触觉信号含摩擦信息",
+          "predicted_observation": "跨材料 μ 预测误差低于常数基线"
+        },
+        {
+          "explanation": "只是材料分类的副产品",
+          "predicted_observation": "控制材料后 μ 预测退化到常数基线"
+        }
+      ],
+      "falsifier": "控制材料后误差回到常数基线即否定摩擦信息解释",
+      "truth_kind": "MEASURED_INSTRUMENT",
+      "truth_source": "IMADA 试验机 μ（10 mm/min）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时滑动阶段力信号",
+      "evaluation_unit": "SUBJECT",
+      "independent_units": 24,
+      "reported_n": 24,
+      "confounders": [
+        "滑动速度与真值速度不同源"
+      ],
+      "evidence_path": "DEV 滑动子集回归",
+      "confirmation_ref": "另一批次材料复测",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "SC-05-K1-CALIBRATION",
+      "question": "合法增加一次目标域监督校准（K=1）是否把跨条件步态识别从不可迁移变为可迁移",
+      "failure_premise": "零标签主动校准的瓶颈是可辨识信息不足，而不是模型容量不足",
+      "contribution_form": "TRADITIONAL_METHOD",
+      "success_new_knowledge": "可辨识的信息条件而非模型复杂度决定跨条件可迁移性，并给出该结论的适用范围",
+      "refutation_consequence": "若同 K 下简单残差校正无效，则“信息条件优先于模型容量”的判断在步态迁移中不成立",
+      "named_nearest": [
+        {
+          "work": "APACE 零标签主动校准",
+          "covers": "无目标标签下的主动校准，Oracle 约 8%–10% 上界，多步恢复 71%–75%",
+          "remaining": "未检验 K=1 有监督校准下的可辨识性条件与简单校正的对照"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "增益来自更强的序列模型",
+          "predicted_observation": "固定 K=1 与同预算下，复杂模型优于残差校正"
+        },
+        {
+          "explanation": "增益来自新增的可辨识校准误差",
+          "predicted_observation": "同 K=1 下固定/随机校正显著低于残差校正，且复杂模型无额外增益"
+        }
+      ],
+      "falsifier": "同 K=1 下残差校正与随机校正无差异，则信息解释被否定",
+      "truth_kind": "HUMAN_LABEL",
+      "truth_source": "GAITRite 仪器步态事件，独立于 IMU 输入",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时 IMU 序列 + 每次任务允许的 1 条校准标签",
+      "evaluation_unit": "SUBJECT",
+      "independent_units": 74,
+      "reported_n": 74,
+      "confounders": [
+        "佩戴位置",
+        "步行速度"
+      ],
+      "evidence_path": "WearGait DEV 上同 K 三路对照（固定/随机/残差）",
+      "confirmation_ref": "另一独立队列重新训练各自模型",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，小规模"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "SC-06-SIMPLE-BASELINE",
+      "question": "多库 HAR 上简单受监督/多输入强基线是否已足够，复杂融合模块的附加科学贡献能否成立",
+      "failure_premise": "复杂融合的增益在容量匹配与同预算下消失",
+      "contribution_form": "TRADITIONAL_METHOD",
+      "success_new_knowledge": "给出复杂融合模块在何种条件下不优于容量匹配简单基线的边界，并说明该边界对基准结论的影响",
+      "refutation_consequence": "若容量匹配后复杂模块仍有稳定增益，则“简单基线足够”的边界判断被推翻",
+      "named_nearest": [
+        {
+          "work": "HARTH / HAR70+ 原始基准与 MHEALTH / PAMAP2 跨库研究",
+          "covers": "单库 SOTA 与复杂融合结构",
+          "remaining": "缺少同预算、容量匹配的跨库简单基线族比较"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "复杂模块带来真实表征增益",
+          "predicted_observation": "容量匹配后复杂模块仍稳定优于简单基线"
+        },
+        {
+          "explanation": "增益来自参数量与调参预算",
+          "predicted_observation": "容量匹配与同预算后差异落入配对 CI"
+        }
+      ],
+      "falsifier": "容量匹配置换对照显示简单基线优势来自容量差异，则需重新归因",
+      "truth_kind": "HUMAN_LABEL",
+      "truth_source": "各库人工活动标注，独立于传感器输入",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时窗口内 IMU 序列",
+      "evaluation_unit": "SUBJECT",
+      "independent_units": 30,
+      "reported_n": 30,
+      "confounders": [
+        "设备",
+        "采样率",
+        "受试者重叠"
+      ],
+      "evidence_path": "四库同协议重跑简单基线族 + 配对 CI",
+      "confirmation_ref": "留出受试者独立确认",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU"
+    }
+  ]
+}

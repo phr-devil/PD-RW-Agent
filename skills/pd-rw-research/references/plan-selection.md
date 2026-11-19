@@ -16,6 +16,37 @@ Optimize time to a **credible, high-tier (Q1 preferred; defensible Q2+ floor), w
 
 All cards make the shortest credible evidence-to-paper path, strongest near-neighbor counterargument, unknowns, cost/time and realistic scholarly reuse explicit. No fixed waiting time, invented bibliography, journal acceptance forecast, citation count, or automatic negative-Run STOP.
 
+## Candidate review before H3 (optional, advisory)
+
+A candidate card records one question the Agent is prepared to defend. Write one per retained
+candidate (1–6) and run the review before showing the H3 card:
+
+```powershell
+python -m pdrw_agent.science.cli candidate-review --cards CANDIDATES.json
+```
+
+Each card declares: `question`, `failure_premise`, `contribution_form`, `success_new_knowledge`,
+`refutation_consequence`, `named_nearest` (`work/covers/remaining`), `nearest_status`,
+`competing_explanations` (`explanation/predicted_observation`), `falsifier`, `truth_kind`,
+`truth_source`, `truth_independent_of_input`, `prediction_time_inputs`, `evaluation_unit`,
+`independent_units`, `reported_n`, `confounders` (list or `NONE_AFTER_CHECK`), `evidence_path`,
+`confirmation_ref`, `confirmation_shares_evaluation_data`, `resources`.
+
+The review cross-checks eight declared relations and returns finding codes with the rule and the
+library precedent, plus one blocking question and its cheapest check per finding:
+`NEIGHBOR_UNVERIFIED`/`NOVELTY_FROM_ABSENCE` (a search miss is not a gap), `REPLICATION_ONLY`
+(same relation in another dataset/sensor), `KNOWLEDGE_GAIN_IS_METRIC_ONLY`,
+`TRUTH_NOT_INDEPENDENT`/`DECLARED_CONFLICT` (proxy or model-generated truth claimed independent),
+`UNIT_NOT_INDEPENDENT`/`UNIT_COUNT_CONFLATION` (frames counted as N), `NON_DISCRIMINATING`
+(both explanations predict the same observation), `PREDICTION_NOT_STATED`, `CONFIRMATION_CIRCULAR`,
+`CONFOUNDERS_NOT_STATED`, `ILLEGAL_PREDICTION_INPUT`. `cross_candidate` reports candidates that
+share one `failure_premise`: those are one option, not a comparison.
+
+Answer the questions in the card, or drop the candidate. The review reads no literature, Run or
+project file; `score_provided`, `scientific_truth_verified`, `automatic_go` and `automatic_stop`
+are always false, and the CLI exits 3. It is not an H3 approval, not a ranking and not a
+substitute for reading the nearest paper. Precedent: CASE-10, CASE-11, CASE-14, CASE-21.
+
 ## Versioned read-only card contracts
 
 The local CLI can check **declared** fields, not user authentication:

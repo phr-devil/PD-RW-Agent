@@ -1,6 +1,6 @@
 # PD-RW-Agent architecture and change contract
 
-This file describes **where each responsibility lives** in v0.9.6 and what each
+This file describes **where each responsibility lives** in v0.9.7 and what each
 layer is forbidden to do. It is an adapter map, not a scientific rule source:
 PD-RW `WORKFLOW.md` / `AGENTS.md` remain the only owners of scientific meaning.
 
@@ -11,7 +11,7 @@ PD-RW `WORKFLOW.md` / `AGENTS.md` remain the only owners of scientific meaning.
 | **1 · PD-RW rule checkout** | H1–H10 semantics, three decision loops, six activities, SEALED/writing/figure gates, its own preflight/checker code | Be replaced, paraphrased away or silently re-versioned by this repo | External checkout (`PDRW_WORKFLOW_ROOT`) |
 | **2 · Research project** | `STATE`, `RESEARCH_RECORD`, `PAPER_BLUEPRINT`, immutable Runs, frozen protocols, data, scripts, original user messages | Be rewritten, migrated or summarised into a second ledger | Project root, resolved from the operator's private map |
 | **3 · Skill (prompt adapter)** | Trigger text, routing instructions, when to call which tool, bounded reporting | Authenticate a user, authorize an effect, or stand in for a missing rule | `skills/pd-rw-research/` |
-| **4 · Python science checks** | Read-only, bounded declarations: plan cards, proposal assessment, feedback binding, Run integrity, validity audit, case admissibility | Decide science, promote a declared value to a verified one, or write project artifacts | `src/pdrw_agent/science/` |
+| **4 · Python science checks** | Read-only, bounded declarations: candidate review, plan cards, proposal assessment, feedback binding, Run integrity, validity audit, case admissibility | Decide science, promote a declared value to a verified one, or write project artifacts | `src/pdrw_agent/science/` |
 | **5 · Service + adapters** | One dispatch table shared by CLI and MCP; stable JSON shapes; visibility profiles | Add a second implementation of a science rule; grant permission by being installed | `service.py`, `cli.py`, `integrations/mcp_server.py` |
 | **6 · Runtime + host diagnostics** | Private operational receipts (SQLite), bounded resume, fixed CPU synthetic jobs, host readiness probes | Become scientific records; claim OS isolation or authenticated authorization | `runtime/`, `host/` |
 
@@ -92,7 +92,7 @@ only in the returned basis (`gate_fingerprint(...)[1]`).
 | `scripts/context.py action-review` | Wraps PD-RW `core.execution_preflight` | Advisory only; grants nothing |
 | `scripts/context.py delivery-review` | Wraps PD-RW `core.delivery_check` | Existence/path-only; no content or SEALED clearance |
 
-## Not implemented (honest scope for v0.9.6)
+## Not implemented (honest scope for v0.9.7)
 
 - No original-user-message authentication, tool interceptor, sandbox or OS ACL.
 - No re-reading of a Run inside `case_gate_check`: it reports declared feedback
