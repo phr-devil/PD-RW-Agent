@@ -7,22 +7,24 @@
       "file": "plan-selection.md",
       "triggers": [
         "new research project",
+        "H3 question",
+        "H4 dataset/proof decision",
         "H6 selection",
-        "candidate plan",
         "user choice"
       ],
-      "scope": "New-project H6 plan/choice anti-bypass",
+      "scope": "v1.4 H3/H4/H6 staged author choices and legacy H6 compatibility",
       "authority": "ADAPTER_GUIDANCE_ONLY"
     },
     {
       "file": "research-leverage.md",
       "triggers": [
         "high-impact research",
+        "H3 opportunity selection",
         "H6 plan ranking",
         "stalled scientific evidence",
         "major research pivot"
       ],
-      "scope": "Fast high-impact/high-reuse scientific evidence pathway; no new science policy",
+      "scope": "Fast paper-evidence path, reuse/citation potential and evidence-driven adaptive contribution",
       "authority": "ADAPTER_GUIDANCE_ONLY"
     },
     {
