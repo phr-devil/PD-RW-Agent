@@ -1,5 +1,24 @@
 # PD-RW-Agent
 
+> **Current release — 0.9.4 (architecture convergence, no rule changes).**
+> Six explicit layers (PD-RW rules · research project · Skill · Python science
+> checks · service/CLI/MCP · runtime receipts) and one **downgrade-only**
+> projection from an evidence-linked Run to the next action. No scientific
+> rule, H-node, permission gate or tool count changed: MCP stays 11/21/24, no
+> tool was added, and the case library / Runs / frozen protocols are untouched.
+> [Architecture](docs/ARCHITECTURE.md) · [Runtime](docs/RUNTIME_AND_MCP.md) ·
+> [Preservation map](docs/DECISION_COVERAGE.md) ·
+> [Feedback contract](docs/EXPERIMENT_FEEDBACK_LINK.md).
+> Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
+
+## Release notes (newest first; the release above is the current one)
+
+> **v0.9.0–v0.9.3 (summary):** evidence-linked probe feedback, a judged-Run
+> next action, separate pre-decision/post-Run case timing, a strict `as_of`
+> historical view for replay, and the `pdrw-probe-feedback-link-v1` contract.
+> Details are in the tagged commits and `docs/EXPERIMENT_FEEDBACK_LINK.md`;
+> the individual notes are not duplicated here.
+
 > **v0.8.1 lean scientific autonomy:** The WorkBuddy Skill now explicitly preserves five root boundaries while restoring first-Pilot tolerance, meaningful narrow findings, fair traditional-method improvements, positive and negative lesson reuse, selective rule loading, no automatic project STOP and evidence-first paper closure. No new hard gates or permissions. Real research gains remain **NOT_MEASURED**. [Skill](skills/pd-rw-research/SKILL.md) · [Research guidance](skills/pd-rw-research/references/research-leverage.md).
 
 > **v0.8.0 publication-first three-choice startup (historical behavior):** New PD-RW v1.4 projects require independent author H3 question, H4 evidence, and H6 contribution/Task selections; H5 is derived and bound to H6. Research focus and contribution method may adapt to stronger evidence-backed paper opportunities within an approved pivot envelope. Optional read-only H3/H4 card checks and v3 H6 upstream binding are provided, without true user authentication, real DEV/GPU execution, SEALED rights or manuscript permission. Existing v1.3/v1/v2 selections remain readable; **real WorkBuddy improvement NOT_MEASURED**. [Card contract](skills/pd-rw-research/references/plan-selection.md).

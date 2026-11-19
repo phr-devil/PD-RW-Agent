@@ -682,9 +682,22 @@ RUN_FEEDBACK_OUTCOMES = {"INCREASE", "DECREASE", "NO_CHANGE", "UNKNOWN"}
 RUN_FEEDBACK_REVIEWS = {"DECLARED_PREDICTION_CONTRAST", "NO_DISCRIMINATING_CONTRAST",
                         "NO_VALID_SCIENTIFIC_INFERENCE"}
 RUN_FEEDBACK_PROVENANCE = {"PRE_RESULT_PROVENANCE_VERIFIED", "PRE_RESULT_RECORD_UNVERIFIED"}
+# Vocabulary of ``science.feedback_link``. A status is only echoed so the
+# situation can tell a record conflict from a measured negative; the gate never
+# re-reads the Run and never upgrades a provenance on its own.
+RUN_FEEDBACK_LINK_STATUSES = {"ADVISORY_FEEDBACK_ONLY", "PRE_RESULT_RECORD_UNVERIFIED",
+                              "NOT_COMPARABLE", "RUN_EVIDENCE_UNVERIFIED",
+                              "RUN_STATUS_CONFLICT", "UNKNOWN"}
+# Provenance may only stay "verified" when the binder itself reported a usable
+# binding. A hand-written value without a link status is capped at unverified.
+VERIFIED_PROVENANCE_STATUSES = {"ADVISORY_FEEDBACK_ONLY", "NOT_COMPARABLE"}
 STRATEGY_SCOPES = {"CORE_TASK", "MAIN_CLAIM", "H6_STRATEGY", "SCIENTIFIC_QUESTION"}
 T2_STRATEGY_SIGNALS = {"CORE_ALGORITHM_CHANGE", "DATA_SCOPE_CHANGE",
                        "SCIENTIFIC_QUESTION_CHANGE"}
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
 
 
 def _declared_run_feedback(event: dict) -> dict | None:
@@ -692,6 +705,11 @@ def _declared_run_feedback(event: dict) -> dict | None:
 
     The gate cannot re-verify the Run here, so every value stays labelled as
     declared. Routine DEV has no Run feedback and keeps the old path.
+
+    Credibility is reported twice: ``provenance`` echoes what the caller wrote,
+    ``provenance_effective`` is the capped value the gate actually acts on. A
+    verified provenance survives only when a usable ``link_status`` from the
+    binder accompanies it; a hand-typed "verified" is never enough.
     """
     raw = event.get("run_feedback")
     if raw is None:
@@ -718,12 +736,29 @@ def _declared_run_feedback(event: dict) -> dict | None:
     provenance = str(raw.get("provenance") or "").strip().upper()
     if provenance and provenance not in RUN_FEEDBACK_PROVENANCE:
         raise AgentError("GATE_EVENT_INVALID", "run_feedback.provenance is unknown")
+    link_status = str(raw.get("link_status") or "").strip().upper()
+    if link_status and link_status not in RUN_FEEDBACK_LINK_STATUSES:
+        raise AgentError("GATE_EVENT_INVALID", "run_feedback.link_status is unknown")
+    digest = str(raw.get("proposal_sha256") or "").strip().lower()
+    if digest and not _is_sha256(digest):
+        raise AgentError("GATE_EVENT_INVALID", "run_feedback.proposal_sha256 is not a digest")
+    # Downgrade only: the gate has no way to confirm a verified provenance, so
+    # anything that does not come with a usable binder status is capped.
+    effective = provenance
+    if provenance == "PRE_RESULT_PROVENANCE_VERIFIED" \
+            and link_status not in VERIFIED_PROVENANCE_STATUSES:
+        effective = "PRE_RESULT_RECORD_UNVERIFIED"
     return {
         "run_ref": _clip(str(raw.get("run_ref") or ""), 120),
         "validity": validity,
         "outcome": outcome,
         "prediction_review": review,
         "provenance": provenance,
+        "provenance_effective": effective,
+        "provenance_basis": ("FEEDBACK_LINK_STATUS_PRESENT" if link_status
+                             else "NO_LINK_STATUS_HAND_DECLARED"),
+        "link_status": link_status,
+        "proposal_sha256": digest,
         "compatible": bounded_list("compatible"),
         "contradicted": bounded_list("contradicted"),
         "evidence_refs": bounded_list("evidence_refs"),
@@ -735,6 +770,15 @@ def _declared_run_feedback(event: dict) -> dict | None:
 def _run_situation(feedback: dict | None, execution_evidence: dict) -> str:
     if feedback is None:
         return "NO_RUN_FEEDBACK_DECLARED"
+    # A conflicting or unreadable record precedes every other reading: the
+    # declared validity itself is what is in doubt, so no scientific inference
+    # may be drawn from it yet.
+    if feedback.get("link_status") == "RUN_STATUS_CONFLICT":
+        return "RUN_RECORD_CONFLICT"
+    if feedback.get("link_status") == "RUN_EVIDENCE_UNVERIFIED":
+        return "RUN_EVIDENCE_MISSING"
+    if feedback.get("link_status") == "NOT_COMPARABLE":
+        return "MEASUREMENT_AXES_CHANGED"
     if feedback["validity"] == "INVALID":
         if execution_evidence.get("status") == "NO_EXECUTION_EVIDENCE_DECLARED":
             return "EXECUTION_UNVERIFIED"
@@ -747,6 +791,10 @@ def _run_situation(feedback: dict | None, execution_evidence: dict) -> str:
         return "NO_VALID_INFERENCE"
     if feedback["prediction_review"] == "NO_DISCRIMINATING_CONTRAST":
         return "NO_DISCRIMINATING_CONTRAST"
+    if feedback["prediction_review"] != "DECLARED_PREDICTION_CONTRAST":
+        # No declared contrast means the compatible/contradicted lists prove
+        # nothing, whatever they contain.
+        return "NO_DISCRIMINATING_CONTRAST"
     compatible, contradicted = feedback["compatible"], feedback["contradicted"]
     if compatible and contradicted:
         return "COMPETING_EXPLANATIONS_SPLIT"
@@ -758,6 +806,22 @@ def _run_situation(feedback: dict | None, execution_evidence: dict) -> str:
 
 
 _SITUATION_TEXT = {
+    "RUN_RECORD_CONFLICT": (
+        "RESOLVE_RUN_RECORD_CONFLICT_FIRST",
+        "声明的 Run 有效性与项目自身 Run 记录冲突：先核对原始记录，此前的预测对照作废，"
+        "不得登记为科学负结果。",
+        "打开项目内 Run 记录与原始日志确认实际状态；修正声明或按原协议重跑，并保留原记录。",
+        ["哪一份记录是权威", "冲突是否也影响此前的结论"]),
+    "RUN_EVIDENCE_MISSING": (
+        "LOCATE_OR_REMEASURE_RUN_EVIDENCE_FIRST",
+        "引用结果缺失或哈希已变：先找回或重测原始证据；在此之前不比较预测、不更新假设支持度。",
+        "核对 evidence_refs 与原始文件哈希；无法复原时按原协议重跑同一探针。",
+        ["文件是否被移动或覆盖", "是否必须重跑才能恢复比较"]),
+    "MEASUREMENT_AXES_CHANGED": (
+        "REPREREGISTER_CHANGED_AXES_BEFORE_COMPARING",
+        "观测指标、评价单位或比较参照已偏离冻结提案：该跨度不能被当作被否假设。",
+        "要么恢复原观测轴重跑，要么把新轴作为新探针重新声明预测后再比较。",
+        ["偏离是有意改进还是实现漂移", "新轴下的最小可判别探针"]),
     "PROTOCOL_OR_EXECUTION_DEFECT": (
         "FIX_PROTOCOL_OR_EXECUTION_BEFORE_INTERPRETING",
         "先定位评价协议或执行缺陷（分组、泄漏、日志、资源），不要把该 Run 登记为科研负结果。",
@@ -823,7 +887,15 @@ def _situation_action(situation: str, feedback: dict | None,
             "declared_validity": (feedback or {}).get("validity"),
             "declared_outcome": (feedback or {}).get("outcome"),
             "prediction_review": (feedback or {}).get("prediction_review"),
+            # Declared and effective are kept apart so a downstream summary
+            # cannot quote a hand-written "verified" as if the gate had checked it.
+            # ``pre_result_provenance`` stays as the declared echo (old shape).
             "pre_result_provenance": (feedback or {}).get("provenance"),
+            "pre_result_provenance_declared": (feedback or {}).get("provenance"),
+            "pre_result_provenance_effective": (feedback or {}).get("provenance_effective"),
+            "provenance_basis": (feedback or {}).get("provenance_basis"),
+            "link_status": (feedback or {}).get("link_status"),
+            "proposal_sha256": (feedback or {}).get("proposal_sha256"),
             "evidence_refs": list((feedback or {}).get("evidence_refs") or []),
             "execution_evidence_status": execution_evidence.get("status"),
         },
@@ -1023,8 +1095,20 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
         "evidence": {
             "run_ref": (run_feedback or {}).get("run_ref") or "",
             "run_evidence_refs": list((run_feedback or {}).get("evidence_refs") or []),
+            "proposal_sha256": (run_feedback or {}).get("proposal_sha256") or "",
+            "feedback_link_status": (run_feedback or {}).get("link_status") or "",
             "case_index_sha256": ((cl.get("cases") or {}).get("source_verification")
                                   or {}).get("index_sha256"),
+        },
+        # Credibility is reported as declared-vs-effective, never summed up into
+        # a single "verified" label.
+        "credibility": {
+            "run_feedback_declared_only": run_feedback is not None,
+            "pre_result_provenance_declared": (run_feedback or {}).get("provenance") or "",
+            "pre_result_provenance_effective":
+                (run_feedback or {}).get("provenance_effective") or "",
+            "provenance_basis": (run_feedback or {}).get("provenance_basis") or "",
+            "scientific_inference_verified": False,
         },
         # The gate cannot verify a decision-time receipt; claiming otherwise
         # would repeat the defect WP9-A fixes in feedback_link.
@@ -1044,6 +1128,14 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
         "execution_evidence": execution_evidence,
         "situation": {"kind": situation,
                       "run_feedback_declared": run_feedback is not None,
+                      "run_feedback_declared_only": True,
+                      "provenance_basis": (run_feedback or {}).get("provenance_basis") or "",
+                      "prediction_verification_reported_by_binder": bool(
+                          (run_feedback or {}).get("link_status") in VERIFIED_PROVENANCE_STATUSES
+                          and (run_feedback or {}).get("provenance_effective")
+                          == "PRE_RESULT_PROVENANCE_VERIFIED"
+                          and (run_feedback or {}).get("prediction_review")
+                          == "DECLARED_PREDICTION_CONTRAST"),
                       "scientific_inference_verified": False},
         "decision_basis": decision_basis,
         "applicability_risk_noted": risk_noted,

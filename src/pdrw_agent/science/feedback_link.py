@@ -67,6 +67,23 @@ CASE_INFLUENCE_VERIFIED = "VERIFIED_IN_FROZEN_DECLARATION"
 CASE_INFLUENCE_RETRIEVAL = "RECEIPT_VERIFIED_RETRIEVAL_ONLY"
 CASE_INFLUENCE_UNKNOWN = "UNKNOWN_NO_RECEIPT"
 CASE_INFLUENCE_DECLARED_ONLY = "NOT_CLAIMED"
+# Vocabulary shared with ``case_gates``: the projection below speaks exactly the
+# bounded ``run_feedback`` dialect so no caller has to invent a translation.
+LINK_STATUSES = frozenset({
+    "ADVISORY_FEEDBACK_ONLY", "PRE_RESULT_RECORD_UNVERIFIED", "NOT_COMPARABLE",
+    "RUN_EVIDENCE_UNVERIFIED", "RUN_STATUS_CONFLICT",
+})
+GATE_VALIDITY = frozenset({"VALID", "INVALID", "INCONCLUSIVE", "NOT_RUN"})
+GATE_OUTCOMES = frozenset({"INCREASE", "DECREASE", "NO_CHANGE", "UNKNOWN"})
+GATE_REVIEWS = {
+    # Only a real declared contrast may be reported as one; an incomparable or
+    # absent comparison stays empty rather than being relabelled downstream.
+    COMPARISON_PERFORMED: "DECLARED_PREDICTION_CONTRAST",
+    "NO_VALID_SCIENTIFIC_INFERENCE": "NO_VALID_SCIENTIFIC_INFERENCE",
+}
+# These statuses mean the cited evidence or the declared status cannot be
+# interpreted at all, so no prediction contrast may survive the projection.
+UNINTERPRETABLE_STATUSES = frozenset({"RUN_EVIDENCE_UNVERIFIED", "RUN_STATUS_CONFLICT"})
 
 
 def _bounded(value, field: str, limit: int = 240) -> str:
@@ -645,4 +662,81 @@ def review_linked_feedback(link: dict, *, project_root, case_root=None,
                  "prediction existed before the result. Verify the original frozen record, the exact "
                  "Run and prediction-time inputs. A missing case is NOT_FOUND_WITHIN_SCOPE, not proof "
                  "that no prior evidence exists."),
+    }
+
+
+def _clip_refs(values, limit: int = 6) -> list[str]:
+    out: list[str] = []
+    for item in values or []:
+        text = str(item).strip()
+        if text and len(text) <= 240 and text not in out:
+            out.append(text)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def to_run_feedback(link_result: dict) -> dict:
+    """Project a link result into the bounded ``run_feedback`` of ``case_gate_check``.
+
+    The projection is **downgrade-only**. It can copy a verified provenance the
+    binder reported, but it can never raise one: an unverified provenance stays
+    unverified, and a Run whose status or evidence failed verification loses its
+    prediction contrast entirely. Hand-writing this object bypasses the binder,
+    so the gate additionally records that no link status was supplied.
+
+    The result is *still* declared data — the gate does not re-read the Run.
+    """
+    if not isinstance(link_result, dict) or link_result.get("schema_version") != LINK_SCHEMA:
+        raise AgentError("FEEDBACK_LINK_INVALID", "Not a feedback-link result")
+    status = str(link_result.get("status") or "").upper()
+    if status not in LINK_STATUSES:
+        raise AgentError("FEEDBACK_LINK_INVALID", "Link result carries no known status")
+
+    observed = link_result.get("observation_preserved")
+    observed = observed if isinstance(observed, dict) else {}
+    provenance_block = link_result.get("provenance")
+    provenance_block = provenance_block if isinstance(provenance_block, dict) else {}
+    provenance = str(provenance_block.get("pre_result_provenance") or PROVENANCE_UNVERIFIED)
+    if provenance not in {PROVENANCE_VERIFIED, PROVENANCE_UNVERIFIED}:
+        provenance = PROVENANCE_UNVERIFIED
+    comparison = str(provenance_block.get("prediction_comparison") or "NOT_PERFORMED")
+    review = GATE_REVIEWS.get(comparison, "")
+
+    validity = str(observed.get("declared_validity") or "UNKNOWN").upper()
+    validity = validity if validity in GATE_VALIDITY else "UNKNOWN"
+    outcome = str(observed.get("declared_outcome") or "UNKNOWN").upper()
+    outcome = outcome if outcome in GATE_OUTCOMES else "UNKNOWN"
+
+    feedback = link_result.get("feedback")
+    feedback = feedback if isinstance(feedback, dict) else {}
+    compatible = _clip_refs(feedback.get("compatible_predictions"))
+    contradicted = _clip_refs(feedback.get("contradicted_predictions"))
+
+    if status in UNINTERPRETABLE_STATUSES:
+        # The cited result or the declared status cannot be read at all.
+        provenance, review, outcome = PROVENANCE_UNVERIFIED, "", "UNKNOWN"
+        compatible, contradicted = [], []
+    elif status != "ADVISORY_FEEDBACK_ONLY" and status != "NOT_COMPARABLE":
+        provenance = PROVENANCE_UNVERIFIED
+    if review != "DECLARED_PREDICTION_CONTRAST":
+        compatible, contradicted = [], []
+
+    prereg = link_result.get("prereg")
+    digest = str((prereg or {}).get("proposal_sha256") or "").lower()
+    digest = digest if len(digest) == 64 and all(c in "0123456789abcdef" for c in digest) else ""
+
+    run = link_result.get("run")
+    run_ref = str((run or {}).get("ref") or observed.get("run_ref") or "").strip()[:120]
+    return {
+        "run_ref": run_ref,
+        "validity": validity,
+        "outcome": outcome,
+        "prediction_review": review,
+        "provenance": provenance,
+        "compatible": compatible,
+        "contradicted": contradicted,
+        "evidence_refs": _clip_refs(observed.get("evidence_refs")),
+        "link_status": status,
+        "proposal_sha256": digest,
     }

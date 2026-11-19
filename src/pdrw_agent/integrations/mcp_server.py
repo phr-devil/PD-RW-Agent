@@ -1,8 +1,9 @@
-"""PD-RW MCP v0.5: bounded reads plus private operational-only receipts.
+"""PD-RW MCP server: bounded reads plus private operational-only receipts.
 
-There is deliberately NO MCP tool to write PD-RW Run/Claim/STATE. A separately
-trusted host must authenticate permission and call the internal adapter.
-MCP stdout remains exclusively protocol traffic.
+There is deliberately NO MCP tool to write PD-RW Run/Claim/STATE, and none for
+the optional experiment-feedback link. A separately trusted host must
+authenticate permission and call the internal adapter. MCP stdout remains
+exclusively protocol traffic.
 """
 from __future__ import annotations
 import os
@@ -43,6 +44,30 @@ PROFILE_TOOLS = {
     "diagnostic": CORE_TOOLS | AUDIT_TOOLS | DIAGNOSTIC_TOOLS | CASE_TOOLS,
 }
 
+# Session-level guidance. Every sentence states a limit the tools cannot cross;
+# the per-tool docstrings carry the detail. Keeping it short lowers the cost of
+# every new MCP session without dropping a boundary, and the contract test
+# below pins both the claims and the size.
+INSTRUCTIONS = (
+    "PD-RW is the only scientific rule source. The only mutations allowed "
+    "here are private execution receipts, never research artifacts. A "
+    "reported operation, preflight, checkpoint or memory is not original-user "
+    "authorization or scientific validation. CASE_LIBRARY lookups are "
+    "read-only advisory candidates: keyword similarity is NOT scientific "
+    "premise equivalence, no GO/STOP is emitted, unresolved cases stay "
+    "candidates, and no STATE/Run/SEALED or research rule is modified. "
+    "case_gate_check runs the 3 advisory checkpoints (G1 H2-H3, G2 H6-H7 "
+    "with its H9 recheck, G3 H8/H10 and never H9 alone; priority "
+    "G1>G2>G3>T1>T2) only when a declared trigger fires, requires a real "
+    "retrieval plus applicability judgement, deduplicates by fingerprint "
+    "and marks missing or conflicting evidence UNKNOWN. It is a "
+    "Skill/tool-level advisory request, NOT a host state-transition hard "
+    "gate; PD-RW H6/H8 author choices and writing permissions are "
+    "unchanged. project_case_bridge only maps declared card fields, marks "
+    "every missing dimension UNKNOWN and never rewrites or approves a card. "
+    "Do not auto-restart uncertain GPU jobs or open SEALED."
+)
+
 
 def tools_for_profile(profile: str | None = None) -> frozenset[str]:
     selected = profile if profile is not None else os.getenv("PDRW_MCP_PROFILE", "research")
@@ -58,29 +83,7 @@ def create_server(settings: Settings | None = None, profile: str | None = None):
         raise RuntimeError('Install MCP extra: pip install -e ".[mcp]"') from exc
     visible_tools = tools_for_profile(profile)
     service = ResearchService(settings or Settings.load())
-    mcp = MCPServer("PD-RW Research", version=__version__, instructions=(
-        "PD-RW is the only scientific rule source. The only mutations allowed "
-        "here are private execution receipts, never research artifacts. "
-        "A reported operation, preflight, checkpoint, or memory is not "
-        "original-user authorization or scientific validation. "
-        "CASE_LIBRARY lookups are read-only advisory candidates: keyword "
-        "similarity is NOT scientific premise equivalence, no GO/STOP is "
-        "emitted, unresolved cases stay candidates, and no STATE/Run/SEALED "
-        "or research rule is modified. "
-        "case_gate_check implements 3 advisory checkpoints (G1 H2-H3 question "
-        "selection, G2 H6-H7 protocol freeze and its H9 protocol recheck, "
-        "G3 H8/H10 claim or staged closure, never H9 alone) and 2 "
-        "conditional triggers (T1 anomaly/negative results, T2 material "
-        "decision change) with priority G1>G2>G3>T1>T2. It reuses the existing "
-        "retriever, verifies a REAL retrieval plus applicability judgement, "
-        "deduplicates by fingerprint and marks missing/insufficient/conflicting "
-        "evidence UNKNOWN. These are Skill/tool-level advisory requests, NOT a "
-        "host state-transition hard gate; PD-RW H6/H8 author choices and "
-        "writing permissions are unchanged. project_case_bridge only maps "
-        "declared H3/H4/H6 card fields into that check and marks every missing "
-        "dimension UNKNOWN; it never rewrites, approves or rejects a card. "
-        "Do not auto-restart uncertain GPU jobs or open SEALED."
-    ))
+    mcp = MCPServer("PD-RW Research", version=__version__, instructions=INSTRUCTIONS)
 
     def register(name: str):
         # Unselected tools are never registered in the protocol tool list.
@@ -222,6 +225,9 @@ def create_server(settings: Settings | None = None, profile: str | None = None):
         Ordinary DEV signals are suppressed. The tool reuses
         case_learning.case_search for the real retrieval and 8-dimension
         applicability review; it does NOT add a second retriever or ranking.
+        event may carry an optional bounded run_feedback produced by
+        science.cli feedback-link --as-run-feedback; the gate treats it as
+        declared and caps any hand-written provenance.
         Returns at most 5 compact cases, 1-3 proposed next actions, a
         verifiable retrieval_record, UNKNOWN reasons, cache/fingerprint info
         and the actual (non-hard-gate) enforcement level. No GO/STOP, no writes.

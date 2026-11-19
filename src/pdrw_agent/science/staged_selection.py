@@ -1,7 +1,9 @@
 """Read-only H3/H4 research-question and evidence-path choice cards.
 
-The v1.4 author-selection chain is NOT an authorization service. Original
-messages and action permissions must be authenticated by a trusted host.
+The v1.14 author-selection chain is NOT an authorization service. H3 and H4 are
+two distinct post-card author decisions; H6 follows with its own card, and H5 is
+derived and bound to H6. Original messages and action permissions must be
+authenticated by a trusted host, never by this module.
 """
 from __future__ import annotations
 

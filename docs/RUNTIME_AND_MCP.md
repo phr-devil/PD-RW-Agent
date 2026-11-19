@@ -1,29 +1,42 @@
-# Python Runtime + MCP — operator documentation (v0.7.5)
+# Python Runtime + MCP — operator documentation
 
-> The diagnostic MCP surface has **20 tools** (the default research profile has 17), including one read-only
-> host-diagnostic status endpoint. Host CPU selftests launch only via
-> operator's separate host CLI, not through MCP/WorkBuddy. Real scientific
-> DEV/GPU execution is not enabled. See [v0.7.2 pilot](V072_HOST_PILOT.md).
+**Current release: 0.9.4.** Read this section only; everything below the
+historical index is kept verbatim for audit.
 
-> The legacy v0.4-v0.5 sections below are retained as historical
-> setup examples. Current MCP has 20 tools defined in the server and
-> tested by tests/test_mcp.py. v0.7.1 adds Python-only internal host
-> validation and readiness diagnostics, not a new MCP execution tool.
-> See V071_HOST_READINESS.md. DEV/GPU execution is not yet enabled.
+| Fact | Current value |
+| --- | --- |
+| Package version | `0.9.4` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
+| CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
+| Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
+| Real DEV/GPU execution | Not enabled |
+| Original-user authentication / OS isolation | Not implemented |
+| WorkBuddy research gain, token or wall-clock saving | `NOT_MEASURED` |
 
-## v0.7.5 recommended WorkBuddy profile
+What the current release adds on top of the v0.8 line: an evidence-linked Run
+feedback contract with three separate provenance states (`docs/EXPERIMENT_FEEDBACK_LINK.md`),
+a next action derived from the judged Run rather than from case keywords, a
+strict `as_of` historical view for evaluation replay, and one downgrade-only
+projection (`to_run_feedback`, `feedback-link --as-run-feedback`) so the gate
+never receives a hand-translated credibility level.
 
-At MCP startup the environment variable `PDRW_MCP_PROFILE` may be `minimal` (11 tools), `research` (17, default), or `diagnostic` (20). A profile is **tool discovery visibility, not authorization**: the Python CLI and WorkBuddy's own external tools retain their independently configured capabilities.
+Nothing here authorizes anything: Python and MCP **cannot** approve a download,
+a SEALED read, a manuscript, a figure, a payment or a submission, and no
+profile grants real execution. Only the WorkBuddy host holds those capabilities.
 
-Add `"PDRW_MCP_PROFILE": "research"` under the MCP server `env` block and restart/reconnect the MCP connection. Import the updated Skill independently. For a fresh-session project recovery, the Skill calls `get_resume_context(project_id, detail_level="compact")` once. The CLI and Python code default to the backward-compatible full view.
+## Historical index (audit trail — anchors preserved)
 
-For previously installed broad-inventory integration tests use `profile="diagnostic"` explicitly. Only explicitly configured `diagnostic` exposes the fixed CPU host/selftest diagnostics. No profile grants real DEV/GPU execution or OS isolation.
+| Section | Applies to |
+| --- | --- |
+| [v0.5 local continuation](#v05-local-continuation) | Operation receipts |
+| [v0.5.3 routing acceptance](#historical-v053-workbuddy-mcp-first-routing-acceptance-replay-only) | Replay study only; **not** current setup |
+| [v0.5.4 CASE_LIBRARY advisory reuse](#v054-local-increment-case_library-advisory-reuse) | Historical |
+| [v0.5.5 five case gates](#v055-local-increment-five-case-application-gates) | Historical |
+| Tool-count notes | Read the current table above; older counts are labelled |
 
-This is an adapter. PD-RW remains the one and only scientific-rule authority. Python and MCP **cannot** authorize operations, decide scientific merit, or read SEALED data by virtue of being installed.
+## Setup (current)
 
-## Setup: Windows 11 PowerShell
-
-Clone both repositories to distinct directories. Use **Python 3.11+** and a private virtual environment in PD-RW-Agent:
+Windows 11 PowerShell, Python 3.11+:
 
 ```powershell
 cd D:\path\to\PD-RW-Agent
@@ -32,20 +45,18 @@ py -3.11 -m venv .venv
 Copy-Item config\project-map.example.json project-map.local.json
 ```
 
-Edit the private `project-map.local.json` with actual project IDs, roots, existing `STATE.md` or `STATE.json`, `RESEARCH_RECORD.md` paths, and optional `expected_state_project_id`. Never commit it, unpublished materials, secrets, or personal data. Use a read-only, non-SEALED project first.
-
-CLI and MCP use the **same service layer**:
+Edit the private `project-map.local.json` (project IDs, roots, `STATE` paths).
+Never commit it or any unpublished/SEALED material. Then:
 
 ```powershell
 $env:PDRW_AGENT_CONFIG = "D:\path\to\PD-RW-Agent\project-map.local.json"
 $env:PDRW_WORKFLOW_ROOT = "D:\path\to\Problem-Data-Research-Workflow"
-.\.venv\Scripts\python.exe -m pdrw_agent.cli context --project-id "example-project"
+.\.venv\Scripts\python.exe -m pdrw_agent.cli resume --project-id "example-project"
 .\.venv\Scripts\python.exe -m pdrw_agent.cli rules --topic "DEV"
-.\.venv\Scripts\python.exe -m pdrw_agent.cli memory --query "HAR"
-.\.venv\Scripts\python.exe -m pdrw_agent.cli evidence --project-id "example-project"
+.\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-MCP local stdio example (replace every path; do not publish real paths):
+MCP stdio example (replace every path; do not publish real paths):
 
 ```json
 {
@@ -56,14 +67,19 @@ MCP local stdio example (replace every path; do not publish real paths):
       "args": ["-m", "pdrw_agent.integrations.mcp_server"],
       "env": {
         "PDRW_AGENT_CONFIG": "D:\\path\\to\\PD-RW-Agent\\project-map.local.json",
-        "PDRW_WORKFLOW_ROOT": "D:\\path\\to\\Problem-Data-Research-Workflow"
+        "PDRW_WORKFLOW_ROOT": "D:\\path\\to\\Problem-Data-Research-Workflow",
+        "PDRW_MCP_PROFILE": "research"
       }
     }
   }
 }
 ```
 
-Import the existing `skills/pd-rw-research/` Skill independently, or use its ZIP. WorkBuddy installation/configuration varies by edition. Check the client's own MCP UI/validation; do not assume importing a Skill alone installs the Python environment or starts MCP.
+Import `skills/pd-rw-research/` (or `dist/pd-rw-research.zip`) separately: an
+already-running stdio server keeps the old schema, and editing this repository
+does not update the installed Skill copy. A profile changes **visibility**, not
+authority.
+
 
 ## First five MCP tools (historical snapshot, not current tool count)
 
@@ -106,7 +122,7 @@ $env:PDRW_RUNTIME_DIR = "$env:LOCALAPPDATA\\PD-RW-Agent\\private-runtime"
 
 Add `PDRW_RUNTIME_DIR` to the stdio MCP `env` block. WorkBuddy must use the same private directory across sessions; otherwise only science-project recovery works. All tool interfaces are defined in [V05_EXECUTION.md](V05_EXECUTION.md).
 
-Historical v0.5 tool inventory: 11. **Current v0.8.2 MCP inventory: 24 tools in the `diagnostic` profile** — 11 core, 6 audit/science, 3 host-diagnostic and 4 optional CASE_LIBRARY advisory (`case_gate_check`, `review_case_transfer`, `extract_case_candidates`, `project_case_bridge`). Profiles: `minimal` 11, `research` 21, `diagnostic` 24. Two tools are private operational-receipt mutations; there are zero scientific write or arbitrary command tools. No MCP interface can register an original PD-RW Run, authenticate a user grant, or execute a real DEV/GPU process. Install/import Skill and MCP separately.
+Historical v0.5 tool inventory: 11. **v0.8.2 inventory (historical): 24 tools in the `diagnostic` profile** — 11 core, 6 audit/science, 3 host-diagnostic and 4 optional CASE_LIBRARY advisory (`case_gate_check`, `review_case_transfer`, `extract_case_candidates`, `project_case_bridge`). Profiles: `minimal` 11, `research` 21, `diagnostic` 24 — unchanged in 0.9.x. Two tools are private operational-receipt mutations; there are zero scientific write or arbitrary command tools. No MCP interface can register an original PD-RW Run, authenticate a user grant, or execute a real DEV/GPU process. Install/import Skill and MCP separately.
 
 ## Historical v0.5.3 WorkBuddy MCP-first routing acceptance (replay only)
 
@@ -123,7 +139,7 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For current use verify Python and installed Skill both report **0.7.5**, then restart/reconnect MCP and confirm **17 tools** with the default research profile (or 20 with diagnostic). Historical frozen comparisons must instead install their originally tested versions and maintain matched tools. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.4 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
 

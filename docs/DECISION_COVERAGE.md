@@ -36,3 +36,82 @@ This index preserves the **effective design decisions** from prior WorkBuddy + C
 5. **No full reproduction of private local project evidence** is possible from this public adapter repository.
 
 Whenever a gap is fixed, update the implementation + focused tests, and mark evidence scope precisely.
+
+## Constraint preservation map — 0.9.4 convergence review (2026-11-19)
+
+This is an audit index, not a second policy. "Authority" names the owner of the
+meaning; where the local rule checkout cannot show that text, the row says so
+instead of assuming it away.
+
+Baseline: `83b6360` (v0.9.3) on `wp9/v0.9.3-trusted-feedback`; review branch
+`arch/convergence-0.9.4`. Local PD-RW checkout: `68e29c3` = `pd-rw-human-review-v1.3`.
+The v1.4 protocol text (`d4056fc`) was read from the remote raw file, not from
+the local checkout.
+
+### Scientific goal
+
+| Requirement | Authority | Implementation | Test | This round | Verification |
+| --- | --- | --- | --- | --- | --- |
+| Q1 first, credible Q2+ as the floor | PD-RW `Q2_PUBLICATION_GOAL.md`, `HIGH_VALUE_RESEARCH_DESIGN.md` | `SKILL.md` Outcome paragraph | `test_skill_contract` (text) | unchanged | text assertion + manual read |
+| Importance, named nearest-neighbor delta, falsifiability | H3/H4 card schema | `science/staged_selection.py` | `test_staged_selection` | unchanged | card-field contract |
+| Simple methods, valid negatives, mechanism/law/evaluation contributions allowed | `CONTRIBUTION_TAXONOMY.md` | `SKILL.md`, `references/research-leverage.md` | `test_skill_contract` | unchanged | text contract |
+| No auto-certification of novelty via DEV gains, model complexity or zero retrieval hits | `NEXT_ACTION_POLICY.md` | `case_gates` (no GO/STOP), `science/decision.py` | `test_case_gates`, `test_science_decision` | unchanged; new "no upgrade" assertions | `test_arch_convergence` |
+
+### Scientific workflow
+
+| Requirement | Authority | Implementation | Test | This round | Verification |
+| --- | --- | --- | --- | --- | --- |
+| PD-RW is the only rule source | `WORKFLOW.md` | Skill header, service docstring | `test_skill_contract` | `ARCHITECTURE.md` makes the layer order explicit | doc assertions |
+| Three loops, six activities, H1–H10 version compatibility | `contracts/research_activity_protocol.v1.json`, `human_review_protocol.v1.json` | no re-implementation in this repo | CI matrix (v1.13 + v1.14 fixture) | unchanged | CI + review |
+| v1.4: H3/H4/H6 are three distinct author decisions, H5 derived and bound to H6 | `pd-rw-human-review-v1.4` (`d4056fc`, read remotely) | `staged_selection.py` (H3/H4), `plan_selection.py` v3 upstream | `test_staged_selection`, `test_h6_plan_selection` | unchanged; stale "v1.4 chain" docstring corrected to v1.14 | targeted tests |
+| Old projects keep valid historical choices (no retroactive re-selection) | `WORKFLOW.md` local rollback; `legacy_protocol_versions` | `LEGACY_PLAN_VERSION` v1 path | `test_h6_plan_selection` | unchanged | legacy-card test |
+| H7: authorized DEV continues autonomously | protocol H7 `decision_owner=AGENT` | `SKILL.md` step 5; ordinary DEV → `NO_TRIGGER` | `test_science_autonomy_regressions`, `test_case_gates` | unchanged | regression |
+| H8 only for a material Claim/strategy change | H8 `reopen_when` | `_strategy_scope_change` | `test_case_gates`, `test_wp9_next_action` | unchanged | regression |
+| No new H node, approval step or state machine | `WORKFLOW.md` header | nothing added | `test_arch_convergence` (tool surface) | none added | test |
+
+### Scientific truthfulness
+
+| Requirement | Authority | Implementation | Test | This round | Verification |
+| --- | --- | --- | --- | --- | --- |
+| Legal prediction-time inputs, label truth, group independence, strong baseline, fair evaluation, leakage | `EXPERIMENT_LOOP.md` | `science/validity.py` | `test_v062_validity` | unchanged | regression |
+| DEV/VAL/SEALED separation and frozen evidence | `CONFIRMATION.md`, `EXECUTION_ASSURANCE.md` | path refusal in `feedback_link` | `test_science_feedback_link` | unchanged | regression |
+| Distinguish NOT_RUN / INVALID / INCONCLUSIVE / UNKNOWN / valid positive / valid negative | `RUN_RECORD_STATUS` mapping (v0.9.3) | `feedback_link`, `case_gates._run_situation` | `test_wp9_feedback_timing`, `test_wp9_next_action` | three record-level situations added (conflict / missing evidence / changed axes) | `test_arch_convergence` |
+| One negative Pilot, UNKNOWN evidence or an engineering failure never ends the project | `NEXT_ACTION_POLICY.md` | `_SITUATION_TEXT` | `test_wp9_next_action` | unchanged | regression |
+| Retrieval, declaration, hash, CI PASS or self-assessment never become proof | original user instructions (**PRESERVATION_UNVERIFIED**: no rule file in this repo) | `declared_only`, `declared` vs `effective` | new | strengthened: hand-written provenance is capped, projection is downgrade-only | `test_arch_convergence` |
+| Proposal → evidence → feedback → next action stays one chain | this review (B) | `feedback_link.to_run_feedback`, gate `decision_basis` | new (18 tests) | added | targeted tests |
+
+### Permissions
+
+| Requirement | Authority | Implementation | Test | This round | Verification |
+| --- | --- | --- | --- | --- | --- |
+| Original authorization separate from the scientific plan choice | `human_review_protocol.v1.json` | every checker returns `*_authorized=false` | `test_science_feedback_link`, `test_wp9_*` | unchanged | regression |
+| Already-authorized ordinary DEV is not blocked again | `NEXT_ACTION_POLICY.md` | ordinary DEV triggers nothing | `test_case_gates` | unchanged | regression |
+| Download, extra resources, cost, egress, SEALED, figures, writing, submission keep separate gates | `CONFIRMATION.md`, `WRITING_GATE.md`, `FIGURE_POLICY.md` | no tool can perform them | `test_mcp` (no execution tool) | unchanged | regression |
+| Skill/Python/MCP declarations are not host authorization or OS isolation | same | `hard_gate=false`, `permission_to_execute=false` | `test_case_gates` | `ARCHITECTURE.md` states it per layer | regression + doc |
+
+### State and memory
+
+| Requirement | Authority | Implementation | Test | This round | Verification |
+| --- | --- | --- | --- | --- | --- |
+| Real project identity and root/STATE/RESEARCH_RECORD/Run binding | `DUAL_DOCUMENT_WORKFLOW.md` | `projects.py`, `runtime/recovery.py` | `test_runtime`, `test_v05_pd_rw_integration` | unchanged | regression |
+| An unregistered project is never pretended to be registered | PD-RW identity rules | `service` returns `PROJECT_NOT_REGISTERED` | `test_mcp`, `test_runtime` | unchanged | regression |
+| No second scientific ledger | `WORKFLOW.md` | no new store | `test_arch_convergence` | none added | test |
+| Original Runs, frozen protocols, historical choices, card fingerprints and CASE_LIBRARY are not migrated or rewritten | original user instructions | this round writes to no project | `git diff` + directory audit | untouched | change audit |
+| Cross-session recovery, rule-version check, MCP fallback, context-confusion guard | `AGENTS.md` | `runtime/recovery.py`, `MCP_NOT_USED` | `test_wp2_reliability`, `test_skill_contract` | unchanged | regression |
+| Pre/post-Run case timing and strict `as_of` do not regress | this repo (v0.9.3 contract) | `feedback_link.case_timing`, `case_learning.search(as_of=...)` | `test_wp9_feedback_timing`, `test_wp9_case_as_of` | unchanged; legacy comparator now states its timing is unverified | regression + new test |
+
+### Efficiency and compatibility
+
+| Requirement | Authority | Implementation | Test | This round | Verification |
+| --- | --- | --- | --- | --- | --- |
+| On-demand Skill loading, compact/full recovery, MCP profiles, CLI/MCP contract | `RUNTIME_AND_MCP.md` | Skill <160 lines; profiles | `test_skill_contract`, `test_mcp` | docs converged on one current entry; counts unchanged | tests |
+| No mandatory full-rule read, repeated review, extra agent call or fixed useless test | `NEXT_ACTION_POLICY.md` | none added | — | none added | manual |
+| Trimming prompts must not drop behavior | original user instructions | marker-based Skill contract | `test_skill_contract` | one bullet rewritten, no marker removed | regression |
+| Research-Prompt-Library stays a read-only compatibility reference | original user instructions | no edits | — | not modified | `git status` per repo |
+
+### Explicitly unverified in this round
+
+1. **`PRESERVATION_UNVERIFIED`** — "retrieval, declaration, hash, CI or self-assessment is not proof" is only stated in original user messages; no repository rule file carries that sentence. Behavior was preserved and tightened, but the *source text* could not be re-read.
+2. **v1.4 protocol text is remote-only here.** The local PD-RW checkout is `pd-rw-human-review-v1.3` (`68e29c3`); the v1.4 wording was read from `d4056fc` on GitHub. The adapter implements the v1.4 shape, but this machine cannot diff the two rule trees offline.
+3. **No measured research, Token or wall-clock benefit.** `NOT_MEASURED`; no paired WorkBuddy replay was recorded.
+4. **Whether a real model will call `to_run_feedback` instead of hand-writing `run_feedback`** is unmeasured; only the code-level cap is tested.

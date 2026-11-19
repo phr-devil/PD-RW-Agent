@@ -176,8 +176,35 @@ same IDs, otherwise `RECEIPT_VERIFIED_RETRIEVAL_ONLY`.
 
 ## Connecting the Run to the next action
 
-`case_gate_check` accepts an optional bounded `run_feedback` object in the
-event (values copied from the binder output; the gate does not re-verify them):
+Do **not** hand-write the gate input. Project the link result:
+
+```sh
+python -m pdrw_agent.science.cli feedback-link \
+  --link link.json --project-root <project> --as-run-feedback
+```
+
+or call `pdrw_agent.science.feedback_link.to_run_feedback(result)` in Python.
+The projection is **downgrade-only** and emits exactly the bounded dialect
+`case_gate_check` accepts:
+
+| Field | Source | Rule |
+| --- | --- | --- |
+| `run_ref` | link Run ref | echo |
+| `validity` / `outcome` | declared observation | echo, unknown words become `UNKNOWN` |
+| `prediction_review` | `provenance.prediction_comparison` | only a real contrast becomes `DECLARED_PREDICTION_CONTRAST`; `NOT_COMPARABLE`/`NOT_PERFORMED` become empty |
+| `provenance` | `provenance.pre_result_provenance` | never raised; forced to `PRE_RESULT_RECORD_UNVERIFIED` when the link status is not usable |
+| `compatible` / `contradicted` | link `feedback` | kept only for a declared contrast, dropped for a conflict or missing evidence |
+| `evidence_refs` | `observation_preserved` | bounded echo |
+| `link_status` | link `status` | lets the gate tell a record conflict from a measured negative |
+| `proposal_sha256` | `prereg.proposal_sha256` | traceability of the proposal that the Run judged |
+
+`case_gate_check` still treats this as **declared** input and never re-reads the
+Run. It also caps a hand-written `provenance`: without a `link_status`, a
+`PRE_RESULT_PROVENANCE_VERIFIED` value is reported as
+`provenance_effective = PRE_RESULT_RECORD_UNVERIFIED` with
+`provenance_basis = NO_LINK_STATUS_HAND_DECLARED`.
+
+Example event:
 
 ```json
 "run_feedback": {
@@ -185,7 +212,8 @@ event (values copied from the binder output; the gate does not re-verify them):
   "prediction_review": "DECLARED_PREDICTION_CONTRAST",
   "provenance": "PRE_RESULT_PROVENANCE_VERIFIED",
   "compatible": ["real-gain"], "contradicted": ["leakage-explains-gain"],
-  "evidence_refs": ["DEV/runs/RUN-002/metrics.json"]
+  "evidence_refs": ["DEV/runs/RUN-002/metrics.json"],
+  "link_status": "ADVISORY_FEEDBACK_ONLY", "proposal_sha256": "<64 hex>"
 }
 ```
 
@@ -193,6 +221,9 @@ event (values copied from the binder output; the gate does not re-verify them):
 
 | Situation | First action |
 | --- | --- |
+| `RUN_RECORD_CONFLICT` | resolve the conflicting Run record first; the earlier contrast is void |
+| `RUN_EVIDENCE_MISSING` | locate or re-measure the cited evidence before comparing |
+| `MEASUREMENT_AXES_CHANGED` | restore the frozen axes or re-declare a new probe; not a failed hypothesis |
 | `PROTOCOL_OR_EXECUTION_DEFECT` / `EXECUTION_UNVERIFIED` | fix or locate the execution record first |
 | `RUN_NOT_EXECUTED` | confirm the blocker, rerun the same probe |
 | `INCONCLUSIVE_MEASUREMENT` | quantify noise before adding data |
@@ -203,8 +234,10 @@ event (values copied from the binder output; the gate does not re-verify them):
 
 Every action carries `basis`, `applicability`, `minimal_validation`,
 `open_questions` and `automatic_go_stop: false`. `next_actions.decision_basis`
-summarises what was used (`run_ref`, evidence refs, case index sha) and leaves
-`selected: null` — the choice stays with the researcher and PD-RW.
+summarises what was used (`run_ref`, evidence refs, `proposal_sha256`,
+`feedback_link_status`, case index sha), records `credibility` as
+declared-vs-effective, and leaves `selected: null` — the choice stays with the
+researcher and PD-RW.
 
 ## Recording the outcome
 

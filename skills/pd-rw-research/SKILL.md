@@ -13,7 +13,7 @@ examples_zh:
   - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.9.3
+version: 0.9.4
 author: phr-devil
 ---
 
@@ -134,11 +134,12 @@ categorical predictions, and attaches at most three case candidates. Rules:
 - Timing is explicit: retrieval now is `post_run_related_case_ids`, never
   pre-decision use. Pre-decision IDs need a `pdrw-case-usage-receipt-v1` receipt
   in the project dated before the frozen decision; otherwise UNKNOWN.
-- After a judged Run, pass a bounded `run_feedback` object to `case_gate_check`
-  (`run_ref`, `validity`, `outcome`, `prediction_review`, `provenance`,
-  `compatible`, `contradicted`, `evidence_refs`). The first next action then
-  follows the Run situation (repair protocol, check execution, reassess the
-  premise, keep the champion, or design a discriminating probe), not keywords.
+- After a judged Run, project the link with `to_run_feedback` (or
+  `feedback-link --as-run-feedback`) and pass that object as `run_feedback` to
+  `case_gate_check`; never hand-write `provenance`, which the gate caps. The
+  first next action follows the Run situation (record conflict, missing
+  evidence, changed axes, repair, rerun, reassess the premise, keep the
+  champion, better probe), not keywords.
 - Write the contrast and the changed next step in the existing
   `RESEARCH_RECORD.md`; `PAPER_BLUEPRINT.md` only when a Claim changes. No second
   ledger, no approval step.
