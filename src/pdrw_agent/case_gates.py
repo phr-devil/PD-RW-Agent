@@ -677,8 +677,201 @@ def _action_text(kind: str, cid: str, case: dict, exp: dict,
     return _clip(rec, 330), _clip(why, 260), _clip(minimal, 220)
 
 
+RUN_FEEDBACK_VALIDITY = {"VALID", "INVALID", "INCONCLUSIVE", "NOT_RUN"}
+RUN_FEEDBACK_OUTCOMES = {"INCREASE", "DECREASE", "NO_CHANGE", "UNKNOWN"}
+RUN_FEEDBACK_REVIEWS = {"DECLARED_PREDICTION_CONTRAST", "NO_DISCRIMINATING_CONTRAST",
+                        "NO_VALID_SCIENTIFIC_INFERENCE"}
+RUN_FEEDBACK_PROVENANCE = {"PRE_RESULT_PROVENANCE_VERIFIED", "PRE_RESULT_RECORD_UNVERIFIED"}
+STRATEGY_SCOPES = {"CORE_TASK", "MAIN_CLAIM", "H6_STRATEGY", "SCIENTIFIC_QUESTION"}
+T2_STRATEGY_SIGNALS = {"CORE_ALGORITHM_CHANGE", "DATA_SCOPE_CHANGE",
+                       "SCIENTIFIC_QUESTION_CHANGE"}
+
+
+def _declared_run_feedback(event: dict) -> dict | None:
+    """Bounded declared feedback from ``science.feedback_link``, if supplied.
+
+    The gate cannot re-verify the Run here, so every value stays labelled as
+    declared. Routine DEV has no Run feedback and keeps the old path.
+    """
+    raw = event.get("run_feedback")
+    if raw is None:
+        return None
+    if not isinstance(raw, dict) or len(raw) > 12:
+        raise AgentError("GATE_EVENT_INVALID",
+                         "run_feedback must be a small declared object")
+
+    def bounded_list(key: str) -> list[str]:
+        value = raw.get(key) or []
+        if not isinstance(value, (list, tuple)):
+            return []
+        return [_clip(str(x), 80) for x in value[:6] if str(x).strip()]
+
+    validity = str(raw.get("validity") or "UNKNOWN").strip().upper()
+    if validity not in RUN_FEEDBACK_VALIDITY:
+        raise AgentError("GATE_EVENT_INVALID", "run_feedback.validity is not a declared validity")
+    outcome = str(raw.get("outcome") or "UNKNOWN").strip().upper()
+    if outcome not in RUN_FEEDBACK_OUTCOMES:
+        raise AgentError("GATE_EVENT_INVALID", "run_feedback.outcome is not a declared outcome")
+    review = str(raw.get("prediction_review") or "").strip().upper()
+    if review and review not in RUN_FEEDBACK_REVIEWS:
+        raise AgentError("GATE_EVENT_INVALID", "run_feedback.prediction_review is unknown")
+    provenance = str(raw.get("provenance") or "").strip().upper()
+    if provenance and provenance not in RUN_FEEDBACK_PROVENANCE:
+        raise AgentError("GATE_EVENT_INVALID", "run_feedback.provenance is unknown")
+    return {
+        "run_ref": _clip(str(raw.get("run_ref") or ""), 120),
+        "validity": validity,
+        "outcome": outcome,
+        "prediction_review": review,
+        "provenance": provenance,
+        "compatible": bounded_list("compatible"),
+        "contradicted": bounded_list("contradicted"),
+        "evidence_refs": bounded_list("evidence_refs"),
+        "declared_only": True,
+        "scientific_inference_verified": False,
+    }
+
+
+def _run_situation(feedback: dict | None, execution_evidence: dict) -> str:
+    if feedback is None:
+        return "NO_RUN_FEEDBACK_DECLARED"
+    if feedback["validity"] == "INVALID":
+        if execution_evidence.get("status") == "NO_EXECUTION_EVIDENCE_DECLARED":
+            return "EXECUTION_UNVERIFIED"
+        return "PROTOCOL_OR_EXECUTION_DEFECT"
+    if feedback["validity"] == "NOT_RUN":
+        return "RUN_NOT_EXECUTED"
+    if feedback["validity"] == "INCONCLUSIVE":
+        return "INCONCLUSIVE_MEASUREMENT"
+    if feedback["prediction_review"] == "NO_VALID_SCIENTIFIC_INFERENCE":
+        return "NO_VALID_INFERENCE"
+    if feedback["prediction_review"] == "NO_DISCRIMINATING_CONTRAST":
+        return "NO_DISCRIMINATING_CONTRAST"
+    compatible, contradicted = feedback["compatible"], feedback["contradicted"]
+    if compatible and contradicted:
+        return "COMPETING_EXPLANATIONS_SPLIT"
+    if compatible:
+        return "SUPPORTS_DECLARED_HYPOTHESIS"
+    if contradicted:
+        return "VALID_NEGATIVE_RESULT"
+    return "NO_DISCRIMINATING_CONTRAST"
+
+
+_SITUATION_TEXT = {
+    "PROTOCOL_OR_EXECUTION_DEFECT": (
+        "FIX_PROTOCOL_OR_EXECUTION_BEFORE_INTERPRETING",
+        "先定位评价协议或执行缺陷（分组、泄漏、日志、资源），不要把该 Run 登记为科研负结果。",
+        "复核 Run 日志与评价脚本，确认探针实际使用的数据划分、评价单位与比较参照。",
+        ["该 Run 是否仍能回答原问题", "同一缺陷是否也影响此前的结论"]),
+    "EXECUTION_UNVERIFIED": (
+        "LOCATE_EXECUTION_RECORD_BEFORE_INTERPRETING",
+        "声明为 INVALID 但没有执行证据：先找到真实 Run 记录，再判断是工程问题还是评价问题。",
+        "回查 Run/operation 记录与原始日志；找不到时保持 UNKNOWN，不归入任何科学结论。",
+        ["Run 是否真实执行过", "失败发生在哪一层"]),
+    "RUN_NOT_EXECUTED": (
+        "CONFIRM_BLOCKER_AND_RERUN_SAME_PROBE",
+        "探针未执行：确认阻塞原因后重跑同一探针；未运行的结果不能改变科学结论。",
+        "记录阻塞原因，按原协议重跑并保存原始 Run。",
+        ["阻塞是资源、实现还是协议问题"]),
+    "INCONCLUSIVE_MEASUREMENT": (
+        "QUANTIFY_NOISE_BEFORE_MORE_DATA",
+        "测量不确定：先量化噪声与评价单位的影响，再决定是否值得增加样本或换探针。",
+        "用既有 Run 估计方差/置信区间，确认最小可检测差异后再决定是否追加数据。",
+        ["当前设计能否分辨目标效应", "是否应先改评价单位"]),
+    "NO_VALID_INFERENCE": (
+        "REPAIR_EVIDENCE_BEFORE_SCIENTIFIC_UPDATE",
+        "该 Run 的有效性不允许任何科学推断：保留观察，但不更新假设支持度。",
+        "修复有效性缺陷或重跑；在此之前不比较预测与观测。",
+        ["缺陷是否可修复", "是否需要重做协议"]),
+    "NO_DISCRIMINATING_CONTRAST": (
+        "DESIGN_DISCRIMINATING_PROBE",
+        "该探针无法区分竞争解释（预测相同或未声明）：换一个能让它们给出不同预测的探针。",
+        "列出每个假设的定性预测，只保留预测互不相同的观测；优先成本最低者。",
+        ["哪些假设对仍未被区分", "新探针的最小成本"]),
+    "COMPETING_EXPLANATIONS_SPLIT": (
+        "VERIFY_RUN_THEN_DESIGN_DIFFERENTIATING_PROBE",
+        "支持与反驳并存：先核验原始 Run，再用能分开幸存解释的最小探针推进。",
+        "对每个幸存解释写出可观测预测，选一个成本最低且预测互斥的探针。",
+        ["哪一个解释仍未被排除", "是否需要独立组复现"]),
+    "SUPPORTS_DECLARED_HYPOTHESIS": (
+        "KEEP_CHAMPION_AND_FILL_EVIDENCE_GAP",
+        "保留当前 Champion，把下一步放在论文证据缺口（独立组复现、强简单基线、边界条件），"
+        "而不是继续更换模型。",
+        "在同一评价单位下补一次独立组复现，并给出失效边界；不扩大模型搜索。",
+        ["结论的外部效度", "最强简单基线是否已排除", "边界条件是否清楚"]),
+    "VALID_NEGATIVE_RESULT": (
+        "REASSESS_FAILED_PREMISE_AND_ALTERNATIVES",
+        "仅否定本探针实际测试的前提；检查失败边界与替代解释，不据此终止整个方向。",
+        "写出被否定的前提、仍成立的相邻条件，以及一个能区分替代解释的最小实验。",
+        ["失败是前提错还是范围错", "替代解释是否仍可检验"]),
+}
+
+
+def _situation_action(situation: str, feedback: dict | None,
+                      execution_evidence: dict) -> dict | None:
+    spec = _SITUATION_TEXT.get(situation)
+    if spec is None:
+        return None
+    action_type, recommendation, minimal, open_questions = spec
+    compatible = (feedback or {}).get("compatible") or []
+    contradicted = (feedback or {}).get("contradicted") or []
+    return {
+        "action_type": action_type,
+        "linked_case_id": None,
+        "basis": {
+            "run_ref": (feedback or {}).get("run_ref") or "",
+            "declared_validity": (feedback or {}).get("validity"),
+            "declared_outcome": (feedback or {}).get("outcome"),
+            "prediction_review": (feedback or {}).get("prediction_review"),
+            "pre_result_provenance": (feedback or {}).get("provenance"),
+            "evidence_refs": list((feedback or {}).get("evidence_refs") or []),
+            "execution_evidence_status": execution_evidence.get("status"),
+        },
+        "differentiates": ([[a, b] for a in compatible[:2] for b in contradicted[:2]]
+                           if situation == "COMPETING_EXPLANATIONS_SPLIT" else []),
+        "recommendation": _clip(recommendation, 300),
+        "why_this_case_applies": _clip(
+            "依据本次 Run 的声明有效性与预测对照；案例只作为补充，不决定结论。", 180),
+        "minimal_validation": _clip(minimal, 260),
+        "open_questions": open_questions[:3],
+        "applicability": "仅适用于本 Run 声明的探针、评价单位与比较参照",
+        "exploratory_lead_only": False,
+        "independent_confirmation": "NOT_A_SCIENTIFIC_PROOF",
+        "status": "PROPOSED_NOT_EXECUTED",
+        "execution_evidence_status": execution_evidence.get("status"),
+        "author_decision_required": False,
+        "decision_authority": "PD-RW_WORKFLOW_AND_AUTHOR_ONLY",
+        "automatic_go_stop": False,
+        "no_writes": True,
+    }
+
+
+def _strategy_scope_change(event: dict, trigger: str,
+                           matched_signals: dict | None) -> str | None:
+    """Only a claim/strategy-scope change justifies the author H6/H8 option.
+
+    A keyword-similar case that merely carries applicability risk is not, by
+    itself, a reason to ask the author to re-decide the core task.
+    """
+    scope = str(event.get("strategy_scope") or event.get("claim_scope") or "")
+    scope = scope.strip().upper()
+    if scope in STRATEGY_SCOPES:
+        return "DECLARED_" + scope
+    if event.get("main_claim_changed") is True or event.get("task_scope_changed") is True:
+        return "DECLARED_SCOPE_FLAG"
+    if trigger == "T2":
+        signals = set((matched_signals or {}).get("T2") or [])
+        if signals & T2_STRATEGY_SIGNALS:
+            return "T2_MATERIAL_CHANGE_SIGNAL"
+        return None
+    # G3 is the H8/H10 claim-or-closure checkpoint: the claim decision itself.
+    return "CLAIM_CHECKPOINT_G3" if trigger == "G3" else None
+
+
 def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
-                       execution_evidence: dict) -> dict:
+                       execution_evidence: dict,
+                       run_feedback: dict | None = None,
+                       matched_signals: dict | None = None) -> dict:
     """检索 -> 证据分级 -> 前提比对 -> 风险/成功条件 -> 1–3 项下一行动.
 
     Every action cites a concrete case, the declared current-task premises and
@@ -715,6 +908,16 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
 
     actions: list[dict] = []
     leads: list[dict] = []
+    situation = _run_situation(run_feedback, execution_evidence)
+    situation_action = _situation_action(situation, run_feedback, execution_evidence)
+    if situation_action is not None:
+        # The Run-level action comes first: a case hint cannot outrank the
+        # question of whether this Run may be interpreted at all.
+        actions.append({
+            "action_id": "NA-1",
+            **situation_action,
+            "task_premises_ref": "next_actions.task_premises",
+        })
     for rank, _, exp, case in ranked:
         cid = exp["case_id"]
         if len(actions) >= MAX_NEXT_ACTIONS:
@@ -768,7 +971,20 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
     # when the checkpoint is about claims/strategy AND a real risk exists.
     risk = [cid for cid, s in states.items()
             if s == "ADMISSIBLE_WITH_RISK" and cid not in excluded]
-    if trigger in {"G3", "T2"} and risk and actions and len(actions) < MAX_NEXT_ACTIONS:
+    strategy_basis = _strategy_scope_change(event, trigger, matched_signals)
+    risk_noted: list[dict] = []
+    if risk and not (trigger in {"G3", "T2"} and strategy_basis and actions
+                     and len(actions) < MAX_NEXT_ACTIONS):
+        # A similar case plus an applicability warning is not an approval node.
+        risk_noted = [{
+            "case_id": cid,
+            "reason": "ADMISSIBLE_WITH_RISK",
+            "author_decision_required": False,
+            "note": ("案例适用风险仅作为上下文；未涉及核心 Task、主 Claim 或重大策略调整时，"
+                     "不触发作者选择。"),
+        } for cid in risk[:2]]
+    if trigger in {"G3", "T2"} and risk and strategy_basis and actions \
+            and len(actions) < MAX_NEXT_ACTIONS:
         cid = risk[0]
         case = by_id.get(cid) or {}
         actions.append({
@@ -781,13 +997,14 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
             "applicability_basis": _applicability_basis(
                 cid, {"transfer_classification": "APPLICABILITY_RISK"},
                 case, reviews),
+            "strategy_scope_basis": strategy_basis,
             "recommendation": _clip(
                 f"提交作者决定：案例 {cid} 的机制前提与当前声明存在适用风险，"
                 f"是否调整 H6 核心策略或 H8 主 Claim 的表述范围？"
                 f"本工具不选择策略、不升级结论。", 260),
             "why_this_case_applies": _clip(
                 f"case_admissibility[{cid}] = ADMISSIBLE_WITH_RISK；"
-                f"仍需原始 Run 与原文边界逐行核对。", 180),
+                f"策略范围依据 {strategy_basis}；仍需原始 Run 与原文边界逐行核对。", 200),
             "minimal_validation": "由作者核对原始 Run/协议后再决定；不自动执行",
             "status": "PROPOSED_NOT_EXECUTED",
             "execution_evidence_status": "AUTHOR_DECISION_PENDING",
@@ -797,6 +1014,25 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
             "no_writes": True,
         })
 
+    case_ids = [x["case_id"] for x in experiences]
+    decision_basis = {
+        "question": _clip(_text(event.get("query")), 180),
+        "scope": {"task_id": _clip(_text(event.get("task_id")), 60),
+                  "h_stage": _clip(_text(event.get("h_stage")), 8),
+                  "milestone": _clip(_text(event.get("milestone")), 40)},
+        "evidence": {
+            "run_ref": (run_feedback or {}).get("run_ref") or "",
+            "run_evidence_refs": list((run_feedback or {}).get("evidence_refs") or []),
+            "case_index_sha256": ((cl.get("cases") or {}).get("source_verification")
+                                  or {}).get("index_sha256"),
+        },
+        # The gate cannot verify a decision-time receipt; claiming otherwise
+        # would repeat the defect WP9-A fixes in feedback_link.
+        "pre_decision_cases": ("NOT_VERIFIABLE_AT_GATE" if case_ids
+                              else "NO_CASE_RETRIEVED"),
+        "post_run_cases": case_ids[:5],
+        "selected": None,
+    }
     return {
         "status": ("ACTIONS_PROPOSED_NOT_EXECUTED" if actions else
                    "UNKNOWN_NO_ACTIONABLE_ADMISSIBLE_CASE"),
@@ -806,6 +1042,11 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
         "pipeline": list(DECISION_PIPELINE),
         "task_premises": premises,
         "execution_evidence": execution_evidence,
+        "situation": {"kind": situation,
+                      "run_feedback_declared": run_feedback is not None,
+                      "scientific_inference_verified": False},
+        "decision_basis": decision_basis,
+        "applicability_risk_noted": risk_noted,
         "actions": actions,
         "exploratory_leads_not_promoted": leads[:3],
         "unknown_reasons": ([] if actions else
@@ -1089,7 +1330,9 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
     triage = triage_anomaly(e) if trig["trigger"] == "T1" else None
     execution_evidence = verify_execution_evidence(settings, e)
     next_actions = build_next_actions(trig["trigger"], e, cl, advisory,
-                                      execution_evidence)
+                                      execution_evidence,
+                                      run_feedback=_declared_run_feedback(e),
+                                      matched_signals=trig.get("matched_signals"))
     record = {
         "retrieval_executed": True,
         "retrieval_tool": "case_learning.case_search",
