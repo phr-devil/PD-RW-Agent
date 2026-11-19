@@ -124,6 +124,35 @@ def assess_proposal(packet: dict) -> dict:
             "automatic_stop": False,
         })
 
+    # A verified-looking *declared* success is not a universally applicable
+    # mechanism or automatic GO. Only exact premise/scope yields an advisory
+    # candidate; actual Run evidence and scientific transfer need review.
+    positive_lessons = packet.get("prior_positive_lessons", [])
+    if not isinstance(positive_lessons, list) or len(positive_lessons) > 10:
+        raise AgentError("SCIENCE_PACKET_INVALID", "At most ten prior positive lessons")
+    positive_candidates = []
+    for lesson in positive_lessons:
+        if not isinstance(lesson, dict):
+            raise AgentError("SCIENCE_PACKET_INVALID", "Positive lessons must be objects")
+        old_id = _id(lesson.get("premise_id"), "prior positive premise ID")
+        old_scope = _scope(lesson.get("scope", {}))
+        refs = _refs(lesson.get("evidence_refs", []), "positive evidence refs")
+        validity = lesson.get("validity")
+        if not isinstance(validity, str) or validity not in {"VALID_POSITIVE", "INVALID", "UNKNOWN"}:
+            raise AgentError("SCIENCE_PACKET_INVALID", "Positive lesson validity must be explicit")
+        if old_id != premise_id:
+            continue
+        category = ("DECLARED_SAME_PREMISE_SCOPE_POSITIVE_CANDIDATE"
+                    if old_scope == scope and validity == "VALID_POSITIVE" and refs
+                    else "SCOPE_DIFFERS_REVIEW" if old_scope != scope
+                    else "POSITIVE_EVIDENCE_INSUFFICIENT")
+        positive_candidates.append({
+            "premise_id": old_id, "status": category,
+            "prior_validity_declared": validity,
+            "evidence_refs": refs, "scientific_equivalence_verified": False,
+            "automatic_go": False,
+        })
+
     probes = packet.get("probes", [])
     if not isinstance(probes, list) or not 1 <= len(probes) <= MAX_PROBES:
         raise AgentError("SCIENCE_PACKET_INVALID", "Use 1..6 candidate probes")
@@ -176,12 +205,14 @@ def assess_proposal(packet: dict) -> dict:
         "claim_type": claim_type,
         "claim_evidence_refs": claim_refs,
         "premise_candidates": negative_candidates,
+        "positive_premise_candidates": positive_candidates,
         "prechecks": prechecks,
         "probe_comparisons": summaries,
         "declared_probe_efficiency": summarize_declared_probe_frontier(summaries),
         "no_claim_of_novelty_or_scientific_validity": True,
         "original_user_authorization": "UNVERIFIED",
         "automatic_stop": False,
+        "automatic_go": False,
         "guidance": ("Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; "
                      "verify original Run and named literature before choosing a Task or Probe."),
     }
