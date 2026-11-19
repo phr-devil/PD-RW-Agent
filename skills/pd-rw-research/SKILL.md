@@ -2,14 +2,15 @@
 name: pd-rw-research
 display_name: PD-RW 科研 Agent
 display_name_en: PD-RW Research Agent
-description: Start new PD-RW projects with one specific H6 plan choice or resume existing projects with evidence-aware, authorized DEV continuation.
-description_zh: 按用户启动配置自主筛选研究方案，在 H6 等待具体方案选择，并恢复已授权科研项目。
+description: Start high-impact PD-RW research with one specific H6 plan choice, or resume evidence-aware authorized DEV for a fast credible publication path.
+description_zh: 以尽快形成高水平、高引用潜力且证据可靠的科研成果为目标，筛选科研方案、完成一次H6选择并续做已授权项目。
 description_en: Bounded PD-RW project recovery and evidence-aware execution routing.
 examples_zh:
   - "按 PD-RW 启动新科研项目并提出 H6 科研方案"
   - "按 PD-RW 继续已存在的项目 19"
   - "恢复项目状态并继续已授权 DEV 工作"
   - "依据 PD-RW 检查实验并交付"
+  - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
 version: 0.7.9
