@@ -25,6 +25,7 @@ import json
 import os
 import re
 from collections import OrderedDict
+from datetime import datetime
 from pathlib import Path
 
 from .config import read_json
@@ -575,11 +576,66 @@ def _filters(filters: dict | None, query: str, norm, profile: dict | None = None
     return q
 
 
+VISIBILITY_KEYS = ("visibility_time", "library_added_at", "as_of_visible_at")
+
+
+def _timestamp(value):
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
+def _as_of_view(index_bundle: dict, as_of: str | None) -> tuple[dict, dict]:
+    """Restrict to cases that were visibly in the library at ``as_of``.
+
+    Default (``as_of=None``) changes nothing: real research retrieval must not
+    be blocked merely because a card lacks a history field. When a caller does
+    ask for strict replay, a card without a trustworthy visibility time is
+    EXCLUDED rather than assumed visible -- the safe direction.
+    """
+    if as_of is None:
+        return index_bundle, {"strict_historical_mode": False}
+    if not isinstance(as_of, str):
+        raise AgentError("AS_OF_INVALID", "as_of must be an ISO timestamp string")
+    cutoff = _timestamp(as_of)
+    if cutoff is None:
+        raise AgentError("AS_OF_INVALID", "as_of requires an ISO timestamp with timezone")
+    visible, unknown = [], []
+    for case in index_bundle["data"]["cases"]:
+        stamp = None
+        for key in VISIBILITY_KEYS:
+            stamp = _timestamp(case.get(key))
+            if stamp is not None:
+                break
+        if stamp is None:
+            unknown.append(case["case_id"])
+        elif stamp <= cutoff:
+            visible.append(case)
+    data = {**index_bundle["data"], "cases": visible, "case_count": len(visible)}
+    return {**index_bundle, "data": data}, {
+        "strict_historical_mode": True,
+        "as_of": as_of,
+        "visible_cases": len(visible),
+        "excluded_unknown_visibility": len(unknown),
+        "excluded_unknown_case_ids": unknown[:5],
+        "visibility_basis": "CASE_METADATA_VISIBILITY_TIME",
+        "blocked": ("NO_CASE_IN_INDEX_CARRIES_A_VISIBILITY_TIME"
+                    if unknown and not visible else None),
+        "zero_hit_meaning": ("在 as_of 可见范围内未命中；不等于不存在历史证据"),
+        "same_source_note": "同源案例仍只算一份独立经验，不因时间过滤而重复计数",
+    }
+
+
 def search(index_bundle: dict, filters: dict | None, query: str, limit: int = 5,
-           profile: dict | None = None) -> dict:
+           profile: dict | None = None, as_of: str | None = None) -> dict:
     """Call the existing score_case/compact/divergence_note; no new ranking."""
     if type(limit) is not int or limit < 1:
         raise AgentError("LIMIT_INVALID", "limit must be a positive integer")
+    index_bundle, as_of_block = _as_of_view(index_bundle, as_of)
     retriever = load_retriever(index_bundle["root"])
 
     def score_all(q: dict) -> list[tuple]:
@@ -642,7 +698,7 @@ def search(index_bundle: dict, filters: dict | None, query: str, limit: int = 5,
     while len(slim) > 1 and len(json.dumps(slim, ensure_ascii=False)) > MAX_TOTAL_CHARS:
         slim.pop()
     verification = verify_sources(index_bundle, [{"case_id": r["case_id"]} for r in slim])
-    return {
+    out = {
         "status": "MATCHES_FOUND" if slim else "NO_CASE_MATCH",
         "query": query, "filters": {k: v for k, v in q.items() if v},
         "total_matches": len(scored), "returned": len(slim),
@@ -659,6 +715,10 @@ def search(index_bundle: dict, filters: dict | None, query: str, limit: int = 5,
         "token_budget": {"max_cases": cap, "max_total_chars": MAX_TOTAL_CHARS,
                          "payload_chars": len(json.dumps(slim, ensure_ascii=False))},
     }
+    # Only present in strict replay: the default path must stay byte-stable.
+    if as_of_block.get("strict_historical_mode"):
+        out["as_of"] = as_of_block
+    return out
 
 
 def _source_independence(index_bundle: dict, results: list[dict]) -> dict:
@@ -1221,7 +1281,8 @@ def _cached(name: str, payload: dict, sha: str, producer):
 
 def case_search(settings, query: str, filters: dict | None, limit: int = 5,
                 task_profile: dict | None = None, max_experiences: int = 5,
-                *, index_override: dict | None = None) -> dict:
+                *, index_override: dict | None = None,
+                as_of: str | None = None) -> dict:
     if not isinstance(query, str) or len(query.strip()) < 2:
         raise AgentError("QUERY_REQUIRED", "Use a query of at least two characters")
     root = resolve_root(settings)
@@ -1234,12 +1295,14 @@ def case_search(settings, query: str, filters: dict | None, limit: int = 5,
     validated_profile = _validate_profile(task_profile) if task_profile else None
     payload = {"query": query, "filters": filters or {}, "limit": limit,
                "profile": validated_profile, "max_experiences": max_experiences,
+               "as_of": as_of,
                # A stale index must not reuse a previously "source_verified"
                # advisory even though index.json's sha256 is unchanged.
                "index_stale": bool(bundle["index_stale"])}
 
     def produce():
-        found = search(bundle, filters, query, limit, profile=validated_profile)
+        found = search(bundle, filters, query, limit, profile=validated_profile,
+                       as_of=as_of)
         rev = review(task_profile, found, filters) if task_profile else None
         # The success-transfer detail needs the DECLARED current-task premises;
         # without them only a placeholder could be produced.
@@ -1252,6 +1315,8 @@ def case_search(settings, query: str, filters: dict | None, limit: int = 5,
                "index_stale": bool(found["source_verification"]["index_stale"]),
                "warning": WARNING, "notice": NOTICE,
                "automatic_go_stop": False}
+        if found.get("as_of"):
+            out["as_of"] = found["as_of"]
         return _cap_total(compact_for_search(out))
 
     return _cached("case_search", payload, bundle["sha256"], produce)
