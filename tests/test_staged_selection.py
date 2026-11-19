@@ -18,6 +18,7 @@ def early(stage="H3"):
     return {
         "schema_version": "pdrw-early-plan-v1", "stage":stage,
         "research_line_ref":"project-line-1", "scope_ref":"original-startup",
+        "hard_constraints_sha256":"d"*64,
         "upstream_choices": {} if stage=="H3" else {"H3":dict(H3)},
         "options":[{"id":"option-a", "question_or_evidence_path":"first scientifically meaningful path",
                     "paper_value":"specific audience and reusable finding",
@@ -42,6 +43,7 @@ def h6():
     return {
         "schema_version":"pdrw-h6-plan-v3", "scope_ref":"original-startup",
         "research_line_ref":"project-line-1", "upstream_choices":{"H3":dict(H3),"H4":dict(H4)},
+        "hard_constraints_sha256":"d"*64,
         "options":[{"id":"A", "scientific_question":"important question",
                     "core_task":"real prediction task",
                     "dataset_or_proof_path":"licensed DEV dataset",
@@ -95,6 +97,16 @@ class ThreeCardTests(unittest.TestCase):
         c["original_user_message_ref"] = "message-h3"
         self.assertEqual(review_h6_plan_choice(p,c)["status"],
                          "REUSED_UPSTREAM_AUTHOR_MESSAGE")
+
+    def test_modified_hard_constraints_change_card_fingerprint(self):
+        p = early("H3")
+        choice = response(p, "message-h3")
+        p["hard_constraints_sha256"] = "e"*64
+        self.assertEqual(review_early_choice(p, choice)["status"], "CHOICE_PLAN_MISMATCH")
+        q = h6()
+        _, original = validate_h6_plan(q)
+        q["hard_constraints_sha256"] = "e"*64
+        self.assertNotEqual(validate_h6_plan(q)[1], original)
 
     def test_missing_pivot_envelope_is_rejected(self):
         p = h6()
