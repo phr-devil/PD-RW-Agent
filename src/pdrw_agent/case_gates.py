@@ -1087,36 +1087,55 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
         })
 
     case_ids = [x["case_id"] for x in experiences]
+    evidence = {
+        "run_ref": (run_feedback or {}).get("run_ref") or "",
+        "run_evidence_refs": list((run_feedback or {}).get("evidence_refs") or []),
+        "case_index_sha256": ((cl.get("cases") or {}).get("source_verification")
+                              or {}).get("index_sha256"),
+    }
     decision_basis = {
         "question": _clip(_text(event.get("query")), 180),
         "scope": {"task_id": _clip(_text(event.get("task_id")), 60),
                   "h_stage": _clip(_text(event.get("h_stage")), 8),
                   "milestone": _clip(_text(event.get("milestone")), 40)},
-        "evidence": {
-            "run_ref": (run_feedback or {}).get("run_ref") or "",
-            "run_evidence_refs": list((run_feedback or {}).get("evidence_refs") or []),
-            "proposal_sha256": (run_feedback or {}).get("proposal_sha256") or "",
-            "feedback_link_status": (run_feedback or {}).get("link_status") or "",
-            "case_index_sha256": ((cl.get("cases") or {}).get("source_verification")
-                                  or {}).get("index_sha256"),
-        },
-        # Credibility is reported as declared-vs-effective, never summed up into
-        # a single "verified" label.
-        "credibility": {
-            "run_feedback_declared_only": run_feedback is not None,
-            "pre_result_provenance_declared": (run_feedback or {}).get("provenance") or "",
-            "pre_result_provenance_effective":
-                (run_feedback or {}).get("provenance_effective") or "",
-            "provenance_basis": (run_feedback or {}).get("provenance_basis") or "",
+        "evidence": evidence,
+    }
+    if run_feedback is not None:
+        # Additive only when a Run was actually judged, so a checkpoint without
+        # Run feedback keeps its previous shape and size.
+        evidence["proposal_sha256"] = run_feedback.get("proposal_sha256") or ""
+        evidence["feedback_link_status"] = run_feedback.get("link_status") or ""
+        # Credibility is reported as declared-vs-effective, never summed up
+        # into a single "verified" label.
+        decision_basis["credibility"] = {
+            "run_feedback_declared_only": True,
+            "pre_result_provenance_declared": run_feedback.get("provenance") or "",
+            "pre_result_provenance_effective": run_feedback.get("provenance_effective") or "",
+            "provenance_basis": run_feedback.get("provenance_basis") or "",
             "scientific_inference_verified": False,
-        },
+        }
+    decision_basis.update({
         # The gate cannot verify a decision-time receipt; claiming otherwise
         # would repeat the defect WP9-A fixes in feedback_link.
         "pre_decision_cases": ("NOT_VERIFIABLE_AT_GATE" if case_ids
                               else "NO_CASE_RETRIEVED"),
         "post_run_cases": case_ids[:5],
         "selected": None,
-    }
+    })
+    situation_block = {"kind": situation,
+                       "run_feedback_declared": run_feedback is not None,
+                       "scientific_inference_verified": False}
+    if run_feedback is not None:
+        situation_block.update({
+            "run_feedback_declared_only": True,
+            "provenance_basis": run_feedback.get("provenance_basis") or "",
+            "prediction_verification_reported_by_binder": bool(
+                run_feedback.get("link_status") in VERIFIED_PROVENANCE_STATUSES
+                and run_feedback.get("provenance_effective")
+                == "PRE_RESULT_PROVENANCE_VERIFIED"
+                and run_feedback.get("prediction_review")
+                == "DECLARED_PREDICTION_CONTRAST"),
+        })
     return {
         "status": ("ACTIONS_PROPOSED_NOT_EXECUTED" if actions else
                    "UNKNOWN_NO_ACTIONABLE_ADMISSIBLE_CASE"),
@@ -1126,17 +1145,7 @@ def build_next_actions(trigger: str, event: dict, cl: dict, advisory: dict,
         "pipeline": list(DECISION_PIPELINE),
         "task_premises": premises,
         "execution_evidence": execution_evidence,
-        "situation": {"kind": situation,
-                      "run_feedback_declared": run_feedback is not None,
-                      "run_feedback_declared_only": True,
-                      "provenance_basis": (run_feedback or {}).get("provenance_basis") or "",
-                      "prediction_verification_reported_by_binder": bool(
-                          (run_feedback or {}).get("link_status") in VERIFIED_PROVENANCE_STATUSES
-                          and (run_feedback or {}).get("provenance_effective")
-                          == "PRE_RESULT_PROVENANCE_VERIFIED"
-                          and (run_feedback or {}).get("prediction_review")
-                          == "DECLARED_PREDICTION_CONTRAST"),
-                      "scientific_inference_verified": False},
+        "situation": situation_block,
         "decision_basis": decision_basis,
         "applicability_risk_noted": risk_noted,
         "actions": actions,
