@@ -73,7 +73,7 @@ def validate_h6_plan(plan: dict) -> tuple[dict, str]:
     if set(plan) != expected:
         raise AgentError("H6_PLAN_INVALID", "Missing or unexpected versioned H6 plan fields")
     _required(plan["scope_ref"], "scope_ref", 240)
-    if version == PLAN_VERSION:
+    if version in {PLAN_VERSION, STAGED_PLAN_VERSION}:
         _required(plan["research_line_ref"], "research_line_ref", 240)
     _required(plan["recommendation_rationale"], "recommendation_rationale", 1000)
     if version == STAGED_PLAN_VERSION:
