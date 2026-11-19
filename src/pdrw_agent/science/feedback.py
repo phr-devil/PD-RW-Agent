@@ -3,6 +3,13 @@
 No filesystem writes, scientific validity certification, authorization, or
 automatic GO/STOP. The proposal digest detects inconsistencies between supplied
 objects; it does NOT prove the proposal existed before the observation.
+
+This module only sees declared objects. ``science.feedback_link`` adds the
+project-file binding (existence, hashes, record time) on top of it and is the
+entry to use when a real project is available. ``consulted_case_ids`` here is a
+declared list with no timing evidence, so it is reported with
+``DECLARED_ONLY_TIMING_UNVERIFIED``; never read it as proof that a case was
+consulted before the decision.
 """
 from __future__ import annotations
 
@@ -127,6 +134,17 @@ def review_probe_feedback(packet: dict) -> dict:
         "unspecified_predictions": unspecified,
         "evidence_refs": refs,
         "consulted_case_ids": consulted,
+        # Same name/type as before; the semantics are now stated so a downstream
+        # summary cannot turn a declared list into decision-time evidence.
+        "consulted_case_ids_semantics": "DECLARED_ONLY_TIMING_UNVERIFIED",
+        "case_timing": {
+            "usage_status": "UNKNOWN_NO_RECEIPT",
+            "declared_case_ids": consulted,
+            "pre_decision_case_ids": [],
+            "post_run_related_case_ids": [],
+            "note": ("本模块只在声明对象之间比对；检索时间与事前使用必须由项目内检索收据"
+                     "（pdrw-case-usage-receipt-v1）经 feedback_link 核验。"),
+        },
         "next_science_action": (
             "VERIFY_ORIGINAL_RUN_AND_RECONSIDER_COMPETING_EXPLANATIONS"
             if distinction == "DECLARED_PREDICTION_CONTRAST"
@@ -155,7 +173,12 @@ def main(argv: list[str] | None = None) -> int:
         result = review_probe_feedback(read_json(args.packet, limit=128 * 1024))
     except (ValueError, OSError, TypeError, KeyError) as exc:
         result = failure(exc)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    try:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        # Same fallback as the main CLI: a cp1252 console cannot render the
+        # Chinese advisory text, and a crash there is not a scientific result.
+        print(json.dumps(result, ensure_ascii=True, indent=2))
     return 2 if result["status"] == "ERROR" else 0
 
 

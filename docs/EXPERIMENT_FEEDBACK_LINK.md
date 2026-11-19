@@ -176,8 +176,52 @@ same IDs, otherwise `RECEIPT_VERIFIED_RETRIEVAL_ONLY`.
 
 ## Connecting the Run to the next action
 
-`case_gate_check` accepts an optional bounded `run_feedback` object in the
-event (values copied from the binder output; the gate does not re-verify them):
+Do **not** hand-write the gate input. Project the link result:
+
+```sh
+python -m pdrw_agent.science.cli feedback-link \
+  --link link.json --project-root <project> --as-run-feedback
+```
+
+or call `pdrw_agent.science.feedback_link.to_run_feedback(result)` in Python.
+The projection is **downgrade-only** and emits exactly the bounded dialect
+`case_gate_check` accepts:
+
+| Field | Source | Rule |
+| --- | --- | --- |
+| `run_ref` | link Run ref | echo |
+| `validity` / `outcome` | declared observation | echo, unknown words become `UNKNOWN` |
+| `prediction_review` | `provenance.prediction_comparison` | only a real contrast becomes `DECLARED_PREDICTION_CONTRAST`; `NOT_COMPARABLE`/`NOT_PERFORMED` become empty |
+| `provenance` | `provenance.pre_result_provenance` | echoed as a declaration only; the gate reports `provenance_effective` as unverified regardless |
+| `compatible` / `contradicted` | link `feedback` | kept only for a declared contrast, dropped for a conflict or missing evidence |
+| `evidence_refs` | `observation_preserved` | bounded echo |
+| `link_status` | link `status` | declared; lets the gate tell a record conflict from a measured negative |
+| `proposal_sha256` | `prereg.proposal_sha256` | declared digest, for traceability only — it proves no binding by itself |
+
+`case_gate_check` treats this whole object as **declared** input and never
+re-reads the Run. Since the event is public JSON, no field in it is a
+credential: a `link_status`, a digest or a word like "verified" can be typed by
+whoever builds the call, so the gate never reports a verified provenance. It
+reports `provenance` (what was claimed) next to
+`provenance_effective = PRE_RESULT_RECORD_UNVERIFIED` and
+`provenance_basis = DECLARED_INPUT_ONLY_GATE_PERFORMS_NO_BINDING`, plus the four
+checks it did **not** run:
+
+```json
+"checks_by_gate": {
+  "file_binding": "NOT_PERFORMED_BY_GATE",
+  "historical_order": "NOT_PERFORMED_BY_GATE",
+  "run_validity": "NOT_PERFORMED_BY_GATE",
+  "scientific_truth": "NOT_PERFORMED_BY_GATE"
+}
+```
+
+File consistency, historical order, Run validity and scientific truth are
+separate questions and stay separate. Only `feedback_link` — which reads the
+frozen record and the Run evidence — may say that a concrete check passed; its
+own output carries `verification_axes` for exactly that purpose.
+
+Example event:
 
 ```json
 "run_feedback": {
@@ -185,7 +229,8 @@ event (values copied from the binder output; the gate does not re-verify them):
   "prediction_review": "DECLARED_PREDICTION_CONTRAST",
   "provenance": "PRE_RESULT_PROVENANCE_VERIFIED",
   "compatible": ["real-gain"], "contradicted": ["leakage-explains-gain"],
-  "evidence_refs": ["DEV/runs/RUN-002/metrics.json"]
+  "evidence_refs": ["DEV/runs/RUN-002/metrics.json"],
+  "link_status": "ADVISORY_FEEDBACK_ONLY", "proposal_sha256": "<64 hex>"
 }
 ```
 
@@ -193,18 +238,33 @@ event (values copied from the binder output; the gate does not re-verify them):
 
 | Situation | First action |
 | --- | --- |
+| `RUN_RECORD_CONFLICT` | resolve the conflicting Run record first; the earlier contrast is void |
+| `RUN_EVIDENCE_MISSING` | locate or re-measure the cited evidence before comparing |
+| `MEASUREMENT_AXES_CHANGED` | restore the frozen axes or re-declare a new probe; not a failed hypothesis |
 | `PROTOCOL_OR_EXECUTION_DEFECT` / `EXECUTION_UNVERIFIED` | fix or locate the execution record first |
 | `RUN_NOT_EXECUTED` | confirm the blocker, rerun the same probe |
 | `INCONCLUSIVE_MEASUREMENT` | quantify noise before adding data |
 | `NO_VALID_INFERENCE` / `NO_DISCRIMINATING_CONTRAST` | repair evidence / design a discriminating probe |
 | `COMPETING_EXPLANATIONS_SPLIT` | verify the Run, then a probe that separates the surviving explanations |
-| `SUPPORTS_DECLARED_HYPOTHESIS` | keep the champion, fill the paper evidence gap |
-| `VALID_NEGATIVE_RESULT` | reassess the failed premise and alternatives, never stop the project |
+| `SUPPORTS_DECLARED_HYPOTHESIS` | keep the champion, fill the paper evidence gap (verify the Run first) |
+| `DECLARED_NEGATIVE_RESULT_UNVERIFIED` | verify the Run, then reassess the failed premise and alternatives; never stop the project |
+
+The two result-bearing kinds are deliberately worded as declarations.
+`VALID_NEGATIVE_RESULT` is reserved for a path that actually verified the Run,
+which the gate does not have; an unverified negative must not borrow that name.
+`next_actions.situation` also carries `kind_scope = DECLARED_ONLY`,
+`verification = NOT_VERIFIABLE_AT_GATE` and
+`prediction_verification_performed = false`.
 
 Every action carries `basis`, `applicability`, `minimal_validation`,
 `open_questions` and `automatic_go_stop: false`. `next_actions.decision_basis`
-summarises what was used (`run_ref`, evidence refs, case index sha) and leaves
+summarises what was used (`run_ref`, evidence refs,
+`proposal_sha256_declared`, `feedback_link_status_declared`, case index sha),
+records `credibility` as declared-vs-effective with `checks_by_gate`, and leaves
 `selected: null` — the choice stays with the researcher and PD-RW.
+
+The judged Run is part of the gate fingerprint, so two calls that differ only in
+`run_feedback` are answered separately instead of reusing the first result.
 
 ## Recording the outcome
 

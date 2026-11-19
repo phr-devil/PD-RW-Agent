@@ -12,7 +12,7 @@ from pathlib import Path
 from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
-from .feedback_link import review_linked_feedback
+from .feedback_link import review_linked_feedback, to_run_feedback
 from .plan_selection import review_h6_plan_choice
 from .staged_selection import review_early_choice
 from .h6_bridge import to_pd_rw_h6_checkpoint
@@ -81,6 +81,8 @@ def main() -> int:
                       help="Optional CASE_LIBRARY root; candidates only, never GO/STOP")
     link.add_argument("--mirror-manifest", type=Path,
                       help="Optional case-knowledge manifest for published-subset scope")
+    link.add_argument("--as-run-feedback", action="store_true",
+                      help="Emit only the case_gate_check run_feedback projection")
     for cmd in ("replay-check", "replay-blind"):
         p = sub.add_parser(cmd)
         p.add_argument("--root", type=Path, required=True)
@@ -91,6 +93,7 @@ def main() -> int:
             p.add_argument("--seed", type=int, required=True)
             p.add_argument("--private-key", type=Path, required=True)
     args = cli.parse_args()
+    link_status = None
     try:
         if args.action in {"decision", "lessons"}:
             packet = read_json(args.packet, limit=128 * 1024)
@@ -114,6 +117,9 @@ def main() -> int:
                 case_root=args.case_index,
                 mirror_manifest=args.mirror_manifest,
             )
+            if args.as_run_feedback:
+                link_status = result.get("status")
+                result = to_run_feedback(result)
         elif args.action == "h6-review":
             plan = read_json(args.plan, limit=64 * 1024)
             choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
@@ -135,7 +141,12 @@ def main() -> int:
                 result = result["review_packet"]
     except (ValueError, OSError, TypeError, KeyError) as exc:
         result = failure(exc)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    try:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        # Same fallback as the main CLI: a cp1252 console cannot render the
+        # Chinese advisory text, and a crash there is not a scientific result.
+        print(json.dumps(result, ensure_ascii=True, indent=2))
     if result.get("status") == "ERROR":
         return 2
     # H6 is never authenticated by this CLI: nonzero prevents shell wrappers
@@ -144,7 +155,7 @@ def main() -> int:
         return 3
     # A link that could not be verified must not look like a completed check.
     if args.action == "feedback-link":
-        return 0 if result.get("status") == "ADVISORY_FEEDBACK_ONLY" else 3
+        return 0 if (link_status or result.get("status")) == "ADVISORY_FEEDBACK_ONLY" else 3
     return 3 if result.get("status") in {"NOT_REPLAYABLE", "EVIDENCE_BINDING_FAILED"} else 0
 
 
