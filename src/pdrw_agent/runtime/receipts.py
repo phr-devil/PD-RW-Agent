@@ -23,6 +23,7 @@ _SCHEMA_LOCK = threading.Lock()
 BUSY_TIMEOUT_MS = 10_000
 _RETRYABLE = ("locked", "busy", "readonly", "read-only")
 _MAX_OPEN_RETRIES = 4
+_MAX_TX_RETRIES = 5
 
 
 def _assert_context(settings: Settings, project_id: str, task_id: str | None = None) -> None:
@@ -199,6 +200,28 @@ def _public(row: sqlite3.Row) -> dict:
             "artifact_sha256", "created_at", "updated_at")}
 
 
+def _write_txn(path: Path, work):
+    """Run a ``BEGIN IMMEDIATE`` transaction, retrying transient lock errors.
+
+    The GitHub Windows runner failed ``BEGIN IMMEDIATE`` under 8-way cold-start
+    contention even with a 10 s busy timeout, while the same test passes on
+    Linux and locally. Retrying the whole idempotent block keeps a persistent
+    failure visible (the last error is re-raised) instead of hiding it.
+    """
+    last: sqlite3.Error | None = None
+    for attempt in range(_MAX_TX_RETRIES):
+        try:
+            with _open(path) as db:
+                db.execute("BEGIN IMMEDIATE")
+                return work(db)
+        except sqlite3.Error as exc:
+            last = exc
+            if not _retryable(exc) or attempt == _MAX_TX_RETRIES - 1:
+                raise
+            time.sleep(0.05 * (2 ** attempt))
+    raise last  # type: ignore[misc]
+
+
 def begin_operation(settings: Settings, project_id: str, operation_id: str,
                     task_id: str, action: str) -> dict:
     _identifier(operation_id, "operation_id")
@@ -207,8 +230,8 @@ def begin_operation(settings: Settings, project_id: str, operation_id: str,
         raise AgentError("INVALID_ACTION", "Only ordinary DEV actions may create operational receipts")
     _assert_context(settings, project_id)
     path = _db_path(settings, project_id, create=True)
-    with _open(path) as db:
-        db.execute("BEGIN IMMEDIATE")
+
+    def work(db):
         existing = db.execute(
             "SELECT * FROM operations WHERE project_id=? AND operation_id=?",
             (project_id, operation_id)).fetchone()
@@ -231,8 +254,10 @@ def begin_operation(settings: Settings, project_id: str, operation_id: str,
                    (project_id, operation_id, task_id, action, "PLANNED", 0, now, now))
         row = db.execute("SELECT * FROM operations WHERE project_id=? AND operation_id=?",
                          (project_id, operation_id)).fetchone()
-    return {"status": "RECEIPT_CREATED", "receipt": _public(row),
-            "execution_authorized": False}
+        return {"status": "RECEIPT_CREATED", "receipt": _public(row),
+                "execution_authorized": False}
+
+    return _write_txn(path, work)
 
 
 def _artifact_digest(settings: Settings, project_id: str, rel: str) -> str:
@@ -267,8 +292,7 @@ def checkpoint_operation(settings: Settings, project_id: str, operation_id: str,
     if path is None or not path.is_file():
         raise AgentError("RECEIPT_NOT_FOUND", "No operational receipt database exists")
     # Existing DB only; never create a receipt store from a checkpoint.
-    with _open(path) as db:
-        db.execute("BEGIN IMMEDIATE")
+    def work(db):
         row = db.execute("SELECT * FROM operations WHERE project_id=? AND operation_id=?",
                          (project_id, operation_id)).fetchone()
         if row is None:
@@ -293,8 +317,10 @@ def checkpoint_operation(settings: Settings, project_id: str, operation_id: str,
                     project_id, operation_id, expected_revision))
         row = db.execute("SELECT * FROM operations WHERE project_id=? AND operation_id=?",
                          (project_id, operation_id)).fetchone()
-    return {"status": "CHECKPOINT_SAVED", "receipt": _public(row),
-            "scientific_evidence_verified": False}
+        return {"status": "CHECKPOINT_SAVED", "receipt": _public(row),
+                "scientific_evidence_verified": False}
+
+    return _write_txn(path, work)
 
 
 def execution_status(settings: Settings, project_id: str,

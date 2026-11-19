@@ -75,16 +75,18 @@ class ReceiptConcurrencyTests(unittest.TestCase):
                 op = f"op-{round_no}"
 
                 def begin(_):
-                    return self.svc.call(
+                    out = self.svc.call(
                         "begin_operation_receipt", project_id="p",
                         operation_id=op, task_id="dev-task",
-                        action="DEV_CODE")["status"]
+                        action="DEV_CODE")
+                    return (out["status"] if out["status"] != "ERROR"
+                            else "ERROR:" + str(out.get("error_code")))
 
                 with ThreadPoolExecutor(max_workers=8) as pool:
                     results = list(pool.map(begin, range(8)))
                 self.assertEqual(results.count("RECEIPT_CREATED"), 1, results)
                 self.assertEqual(results.count("ALREADY_RECEIPTED"), 7, results)
-                self.assertNotIn("ERROR", results)
+                self.assertFalse([r for r in results if r.startswith("ERROR")], results)
                 rows = self.svc.call("get_execution_status", project_id="p")["operations"]
                 self.assertEqual(len(rows), 1, rows)
 
