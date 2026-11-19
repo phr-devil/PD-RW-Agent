@@ -1,11 +1,11 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.7.** Read this section only; everything below the
+**Current release: 0.9.8.** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.7` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `0.9.8` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
 | Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
@@ -26,6 +26,17 @@ science check in 0.9.7. It validates a `pdrw-candidate-card-v1` card's declared
 relations and returns finding codes plus the cheapest check; no MCP tool, no
 profile count and no payload of an existing tool changed. It reads no project
 file, no Run and no literature, and it exits 3 like the other card reviews.
+As of 0.9.8 the card can also express a theory or simulation path
+(`ANALYTIC_DERIVATION`, `INSTANCE`, `REPLICATE`), so its form check no longer
+removes a legal PD-RW evidence path.
+
+`decision.assess_proposal` gained three declaration-level outputs in 0.9.8, all
+additive: `probe_findings` (`REFERENCE_NOT_LEGAL`, `PROBE_UNIT_NOT_INDEPENDENT`),
+a `DECLARED_CONFLICT` downgrade of the `group_independence` precheck when a probe
+counts repeated units, and `no_decisive_probe` when no candidate separates a
+hypothesis pair. The `declared_probe_efficiency` frontier is empty in that case
+instead of naming the cheapest uninformative probe. Payload grows 2 813 → 2 965
+characters on a clean two-probe packet and 7 400 → 8 640 on three defective ones.
 
 Nothing here authorizes anything: Python and MCP **cannot** approve a download,
 a SEALED read, a manuscript, a figure, a payment or a submission, and no
@@ -146,7 +157,7 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.7 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.8 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
 

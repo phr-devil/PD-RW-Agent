@@ -1,21 +1,38 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.7 (candidate value, novelty and identifiability).**
+> **Current release — 0.9.8 (holdout-checked candidate paths and probe contradictions).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
 > projection from an evidence-linked Run to the next action, and one read-only
 > **candidate review** for the question chosen at H3. No event field
 > authenticates itself: `case_gate_check` reports what was claimed next to what
-> it actually checked, and `candidate-review` reports which declared relation is
-> unstated or self-contradictory. No scientific rule, H-node, permission gate or
-> tool count changed: MCP stays 11/21/24, no tool was added, and the case
-> library / Runs / frozen protocols are untouched.
+> it actually checked, `candidate-review` reports which declared relation is
+> unstated or self-contradictory, and `decision` reports when a probe's
+> reference is not a legal baseline, when its unit contradicts a declared
+> independent group check, and when no candidate probe separates any hypothesis.
+> Theory and simulation paths are representable (`ANALYTIC_DERIVATION`,
+> `INSTANCE`/`REPLICATE`), so a form check cannot eliminate a legal direction.
+> No scientific rule, H-node, permission gate or tool count changed: MCP stays
+> 11/21/24, no tool was added, and the case library / Runs / frozen protocols are
+> untouched.
 > [Architecture](docs/ARCHITECTURE.md) · [Runtime](docs/RUNTIME_AND_MCP.md) ·
 > [Preservation map](docs/DECISION_COVERAGE.md) ·
 > [Feedback contract](docs/EXPERIMENT_FEEDBACK_LINK.md).
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v0.9.8 holdout and experiment-design checks:** two capabilities were tested
+> on cases that were *not* used to build them (CASE-12/13/17 and
+> INT-SUCCESS-03/04, EXT-N06): the candidate review hit 3/3 documented defects
+> with 0 false positives on the 3 successful directions, while both
+> non-experimental directions were rejected **before** the fix because the card
+> could not express a proof or a simulation replicate. `assess_proposal` now
+> reports `REFERENCE_NOT_LEGAL`, `PROBE_UNIT_NOT_INDEPENDENT` and
+> `no_decisive_probe`; previously a probe whose reference was a test-label oracle
+> sat on the "cheap" frontier, windows counted as independent units while
+> `group_independence` stayed PASS, and a packet where nothing separated anything
+> still named a probe to run. No score, no ranking, no new approval.
 
 > **v0.9.7 candidate review (science capability, not new process):** at H3 the
 > only checks were card *shape* and author-choice binding, and the H6 warning

@@ -44,7 +44,14 @@ share one `failure_premise`: those are one option, not a comparison.
 
 Answer the questions in the card, or drop the candidate. The review reads no literature, Run or
 project file; `score_provided`, `scientific_truth_verified`, `automatic_go` and `automatic_stop`
-are always false, and the CLI exits 3. It is not an H3 approval, not a ranking and not a
+are always false, and the CLI exits 3.
+
+Theory and simulation are legal PD-RW evidence paths, so the card can express them: `truth_kind`
+accepts `ANALYTIC_DERIVATION`, and `evaluation_unit` accepts `INSTANCE` (independent problem
+instances) or `REPLICATE` (independent simulation runs) alongside the experimental units. Leave
+`independent_units` null when a count is not meaningful — an unstated count is reported as
+`NOT_DECLARED`, never as a defect and never as a reason to drop the direction. A finding is a
+question to answer, not an elimination. It is not an H3 approval, not a ranking and not a
 substitute for reading the nearest paper. Precedent: CASE-10, CASE-11, CASE-14, CASE-21.
 
 ## Versioned read-only card contracts
