@@ -1082,6 +1082,11 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
         "source_verification_present": bool(
             (cl.get("cases") or {}).get("source_verification")),
         "no_match": advisory["no_match"],
+        # Audit trail for the WP6-A recall path: PRIMARY means the original
+        # single-keyword AND search matched; TOKEN_UNION_FALLBACK means the
+        # long question was widened to core concepts before ranking.
+        "retrieval_mode": (cl.get("cases") or {}).get("retrieval_mode", "PRIMARY"),
+        "recall_terms": (cl.get("cases") or {}).get("recall_terms") or [],
     }
     verification = verify_gate_record(record, sha)
     downgrade = []

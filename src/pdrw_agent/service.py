@@ -6,7 +6,8 @@ from .schemas import failure, classify_storage_error
 from .projects import get_project_context
 from .rules import get_applicable_rules
 from .memory import search_research_memory
-from . import case_bridge, case_export, case_learning, case_gates
+from . import (case_bridge, case_export, case_gates, case_knowledge,
+               case_learning)
 from .evidence import find_experiment_evidence
 from .experiments import check_duplicate_experiment
 from .runtime.receipts import begin_operation, checkpoint_operation, execution_status
@@ -48,6 +49,10 @@ class ResearchService:
             "case_gate_check": case_gates.case_gate_check,
             "project_case_bridge": case_bridge.project_case_bridge,
             "export_case_markdown": case_export.export_case_markdown,
+            "build_case_knowledge": case_knowledge.build,
+            "verify_case_knowledge":
+                lambda _settings, **inputs: case_knowledge.verify(settings=_settings,
+                                                                 **inputs),
             "find_experiment_evidence": find_experiment_evidence,
             "check_duplicate_experiment": check_duplicate_experiment,
             "get_resume_context": get_resume_context,

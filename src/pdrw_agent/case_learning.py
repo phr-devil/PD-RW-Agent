@@ -327,6 +327,219 @@ def _tokens(text: str) -> list[str]:
     return [t for t in re.findall(r"[\w\u4e00-\u9fff-]+", text) if len(t) >= 2]
 
 
+# --------------------------------------------------------------------------
+# Recall for long natural-language questions (WP6-A)
+#
+# The reused retriever ANDs a single keyword substring, so one long question
+# sentence would return nothing and silently hide applicable risk. This path
+# only runs when the primary query already returned zero candidates, so the
+# existing behaviour and ranking are unchanged for every other call.
+# --------------------------------------------------------------------------
+_WORD_TERM = re.compile(r"[A-Za-z][A-Za-z0-9_-]{3,}")
+_CJK_RUN = re.compile(r"[\u4e00-\u9fff]+")
+TERM_STOP = {
+    "the", "and", "for", "with", "that", "this", "from", "our", "are", "was",
+    "were", "have", "has", "not", "but", "can", "does", "did", "how", "what",
+    "which", "when", "why", "using", "use", "based", "into", "than", "then",
+    "数据", "我们", "需要", "是否", "一个", "这个", "可以", "必须", "问题",
+    "分析", "结果", "模型", "方法", "实验", "研究", "论文", "如果", "因为",
+    "所以", "以及", "进行", "使用", "通过", "没有", "已经", "应该", "可能",
+    "如何", "什么", "哪些", "这样", "那样", "同时", "而且", "但是", "由于",
+}
+_CJK_STOP_CHARS = set("的了在和与或是有对为上个我你他它这那很都也就要会能")
+MAX_RECALL_TERMS = 4
+
+# Concept aliases: the library is written in a specific research vocabulary, so
+# an everyday word ("同一个人") must be allowed to reach the vocabulary term
+# ("受试者"). This is a fixed, auditable mapping - not a learned index - and it
+# only widens recall; ranking still decides what is shown.
+CONCEPT_ALIASES = {
+    ("受试者", "被试", "同一个人", "个体", "subject"): ["受试者", "subject"],
+    ("泄漏", "泄露", "虚高", "高估", "作弊", "非法信息"): ["泄漏", "leak"],
+    ("滑窗", "滑动窗口", "窗口"): ["滑窗", "window"],
+    ("排行榜", "榜单", "提交次数", "public"): ["排行榜", "leaderboard"],
+    ("消融", "ablation"): ["消融", "ablation"],
+    ("基线", "baseline", "对照"): ["基线", "baseline"],
+    ("泛化", "generaliz", "外推"): ["泛化", "generaliz"],
+    ("标签", "标注", "label"): ["标签", "label"],
+    ("噪声", "noise", "干扰"): ["噪声", "noise"],
+    ("复现", "重复实验", "reproduc"): ["复现", "reproduc"],
+    ("校准", "标定", "calibrat"): ["校准", "calibrat"],
+    ("迁移", "transfer"): ["迁移", "transfer"],
+    ("触觉", "压力", "法向力", "tactile"): ["触觉", "tactile"],
+    ("可穿戴", "imu", "活动识别", "步态", "har"): ["可穿戴", "har", "imu"],
+    ("真值", "ground truth", "金标准"): ["真值", "truth"],
+    ("划分", "切分", "k折", "k-fold", "交叉验证"): ["划分", "fold"],
+    ("预注册", "预登记", "preregist"): ["预注册", "preregist"],
+    ("功效", "样本量", "mde", "power"): ["功效", "power"],
+    ("统计显著", "显著性", "多重比较"): ["显著", "多重比较"],
+}
+
+
+def core_terms(query: str, limit: int = 48) -> list[str]:
+    """Concept candidates from a long question, without a segmenter.
+
+    Latin words are taken whole; CJK runs are expanded into 2-4 character
+    n-grams, longest first, so a specific phrase outranks a generic bigram.
+    """
+    out, seen = [], set()
+    lower = (query or "").lower()
+    for triggers, aliases in CONCEPT_ALIASES.items():
+        if any(t in lower for t in triggers):
+            for alias in aliases:
+                if alias not in seen:
+                    seen.add(alias)
+                    out.append(alias)
+    for word in _WORD_TERM.findall(query or ""):
+        token = word.lower()
+        if token in TERM_STOP or token in seen:
+            continue
+        seen.add(token)
+        out.append(token)
+    for run in _CJK_RUN.findall(query or ""):
+        for size in (4, 3, 2):
+            for start in range(len(run) - size + 1):
+                gram = run[start:start + size]
+                if gram in seen or gram in TERM_STOP:
+                    continue
+                if all(ch in _CJK_STOP_CHARS for ch in gram):
+                    continue
+                seen.add(gram)
+                out.append(gram)
+                if len(out) >= limit:
+                    return out
+    return out[:limit]
+
+
+def recall_terms(index_bundle: dict, query: str,
+                 limit: int = MAX_RECALL_TERMS) -> list[str]:
+    """Keep only terms that actually occur in the library, most specific first.
+
+    A long phrase (3-4 characters) pins the exact concept; a bigram keeps recall
+    wide when the exact phrase is worded differently in the library. Both are
+    needed, which is why the list mixes lengths instead of taking only the
+    longest grams.
+    """
+    cases = index_bundle["data"]["cases"]
+    blobs = [(c["case_id"], str(c.get("search_blob") or "").lower()) for c in cases]
+    if not blobs:
+        return []
+    ceiling = max(3, int(len(blobs) * 0.8))
+    scored = []
+    for term in core_terms(query, limit=64):
+        df = sum(1 for _, blob in blobs if term in blob)
+        if 0 < df <= ceiling:
+            scored.append((len(term), df, term))
+    long_terms = sorted([x for x in scored if x[0] >= 3],
+                        key=lambda x: (-x[0], -x[1], x[2]))
+    short_terms = sorted([x for x in scored if x[0] < 3],
+                         key=lambda x: (-x[1], -x[0], x[2]))
+    picked = [t for _, _, t in long_terms[:max(1, limit - 2)]]
+    for _, _, term in short_terms:
+        if len(picked) >= limit:
+            break
+        picked.append(term)
+    return picked
+
+
+def _applicability_overlap(profile: dict | None, case: dict) -> int:
+    """Cheap applicability re-ranking: shared condition/boundary wording."""
+    if not profile:
+        return 0
+    text = " ".join(list((case.get("applicability") or {}).get("conditions") or [])
+                    + list((case.get("applicability") or {}).get("boundaries") or [])
+                    + list(case.get("premises") or []))
+    hits = 0
+    for key in ("labels", "grouping", "evaluation_unit", "baseline", "boundaries",
+                "decision"):
+        for term in core_terms(str(profile.get(key) or ""), limit=8):
+            if term and term in text:
+                hits += 1
+    return hits
+
+
+def _case_text(case: dict) -> str:
+    app = case.get("applicability") or {}
+    return " ".join(list(case.get("premises") or [])
+                    + list(app.get("conditions") or [])
+                    + list(app.get("boundaries") or [])
+                    + list(case.get("counterexamples") or [])
+                    + list(case.get("transferable_lesson") or [])
+                    + [str(case.get("title") or "")]).lower()
+
+
+def _recall(index_bundle: dict, q: dict, query: str,
+            profile: dict | None) -> tuple[list[tuple], list[str]]:
+    """Union recall over core concepts, ranked by concept weight then fit.
+
+    Weight = matched concept length x bounded occurrence, so a case that
+    contains the specific phrase ("随机划分") outranks one that only shares a
+    generic bigram ("数据"). Applicability wording and the profile are the
+    second and third tie-breakers; the reused retriever score stays last
+    because it cannot be computed when no single keyword matches.
+    """
+    terms = recall_terms(index_bundle, query)
+    if not terms:
+        return [], []
+    retriever = load_retriever(index_bundle["root"])
+    cases = index_bundle["data"]["cases"]
+    broad = core_terms(query, limit=24)
+    pool: dict[str, dict] = {}
+    for term in terms:
+        q2 = dict(q)
+        q2["keyword"] = retriever.norm([term])
+        for score, cid, comp in _score_all(retriever, index_bundle, q2):
+            entry = pool.setdefault(cid, {"weight": 0, "coverage": 0,
+                                          "score": 0, "compact": comp})
+            entry["coverage"] += 1
+            entry["weight"] += len(term)
+            entry["score"] = max(entry["score"], score)
+    ranked = []
+    for cid, entry in pool.items():
+        record = next((c for c in cases if c["case_id"] == cid), {})
+        text = _case_text(record)
+        fit = sum(1 for t in broad if t in text) + _applicability_overlap(profile, record)
+        ranked.append((entry["weight"], entry["coverage"], fit,
+                       entry["score"], cid, entry["compact"]))
+    ranked.sort(key=lambda r: (-r[0], -r[1], -r[2], -r[3], r[4]))
+    return [(r[3], r[4], r[5]) for r in ranked], terms
+
+
+def _recall(index_bundle: dict, q: dict, query: str,
+            profile: dict | None) -> tuple[list[tuple], list[str]]:
+    """Union recall over core terms, ranked by coverage then applicability."""
+    terms = recall_terms(index_bundle, query)
+    if not terms:
+        return [], []
+    retriever = load_retriever(index_bundle["root"])
+    by_id = {c["case_id"]: c for c in index_bundle["data"]["cases"]}
+    pool: dict[str, dict] = {}
+    for term in terms:
+        q2 = dict(q)
+        q2["keyword"] = retriever.norm([term])
+        for score, cid, comp in _score_all(retriever, index_bundle, q2):
+            entry = pool.setdefault(cid, {"coverage": 0, "score": 0, "compact": comp})
+            entry["coverage"] += 1
+            entry["score"] = max(entry["score"], score)
+    ranked = []
+    for cid, entry in pool.items():
+        overlap = _applicability_overlap(profile, by_id.get(cid, {}))
+        rank = (entry["coverage"], overlap, entry["score"])
+        ranked.append((rank, cid, entry["compact"]))
+    ranked.sort(key=lambda r: (-r[0][0], -r[0][1], -r[0][2], r[1]))
+    return [(r[0][2], r[1], r[2]) for r in ranked], terms
+
+
+def _score_all(retriever, index_bundle: dict, q: dict) -> list[tuple]:
+    hits = []
+    for case in index_bundle["data"]["cases"]:
+        matched = retriever.score_case(case, q)
+        if matched:
+            hits.append((matched[0], case["case_id"], retriever.compact(case, matched)))
+    hits.sort(key=lambda h: (-h[0], h[1]))
+    return hits
+
+
 def _filters(filters: dict | None, query: str, norm, profile: dict | None = None,
              *, keyword_source: str = "query") -> dict:
     f = dict(_profile_filters(profile))
@@ -373,6 +586,7 @@ def search(index_bundle: dict, filters: dict | None, query: str, limit: int = 5,
 
     q = _filters(filters, query, retriever.norm, profile)
     scored = score_all(q)
+    retrieval_mode, used_terms = "PRIMARY", []
     # A generic default query (e.g. "case transfer review") may not exist in
     # any case blob. Retry once with a declared task term so a profile-driven
     # review does not silently lose all applicable-risk candidates.
@@ -382,6 +596,14 @@ def search(index_bundle: dict, filters: dict | None, query: str, limit: int = 5,
         if alt.get("keyword") != q.get("keyword"):
             q = alt
             scored = score_all(q)
+    if not scored:
+        # Long natural-language question: the single-keyword AND path cannot
+        # match it. Fall back to union recall over core concepts, then rank by
+        # coverage and applicability. Declared filters (mechanism/domain/...)
+        # are still applied, so an explicit "no such mechanism" stays empty.
+        scored, used_terms = _recall(index_bundle, q, query, profile)
+        if scored:
+            retrieval_mode = "TOKEN_UNION_FALLBACK"
     cap = min(limit, MAX_CASES)
     raw_results = [h[2] for h in scored[:cap]]
     slim = []
@@ -422,10 +644,37 @@ def search(index_bundle: dict, filters: dict | None, query: str, limit: int = 5,
         "applicability_divergence": retriever.divergence_note(slim, q["mechanism"]),
         "source_verification": verification,
         "warning": WARNING, "notice": NOTICE,
+        "retrieval_mode": retrieval_mode,
+        "recall_terms": used_terms,
+        "source_independence": _source_independence(index_bundle, slim),
         "retriever": "CASE_LIBRARY/scripts/search_cases.py (score_case/compact/divergence_note reused)",
         "automatic_go_stop": False,
         "token_budget": {"max_cases": cap, "max_total_chars": MAX_TOTAL_CHARS,
                          "payload_chars": len(json.dumps(slim, ensure_ascii=False))},
+    }
+
+
+def _source_independence(index_bundle: dict, results: list[dict]) -> dict:
+    """Flag cases that share a source: they are one piece of evidence, not two."""
+    from . import case_export  # local import: case_export depends on this module
+    by_id = {c["case_id"]: c for c in index_bundle["data"]["cases"]}
+    ids = {}
+    for r in results:
+        record = by_id.get(r.get("case_id"), {})
+        ids[r.get("case_id")] = set(case_export.normalise_identifiers(
+            record.get("source_refs"), record.get("evidence_paths")))
+    pairs = []
+    ordered = [r.get("case_id") for r in results]
+    for i, a in enumerate(ordered):
+        for b in ordered[i + 1:]:
+            if ids.get(a) and ids.get(b) and ids[a] & ids[b]:
+                pairs.append([a, b, sorted(ids[a] & ids[b])[:2]])
+    return {
+        "returned": len(ordered),
+        "independent_units": len(ordered) - len(pairs),
+        "same_source_pairs": pairs,
+        "note": ("同一来源的案例只算一份独立证据；相似度不等于证据独立性。"
+                 if pairs else "返回案例之间未发现共享文献标识。"),
     }
 
 

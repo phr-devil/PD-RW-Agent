@@ -13,7 +13,7 @@ examples_zh:
   - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.8.2
+version: 0.9.0
 author: phr-devil
 ---
 
@@ -59,6 +59,11 @@ Default MCP `research` exposes core+scientific+optional case tools (21 tools); `
 ## Case-library reuse (on demand, never a new retrieval loop)
 
 When `CASE_LIBRARY` is configured (`PDRW_CASE_LIBRARY_ROOT` or `case_library_root`), call `case_gate_check(event)` at **five triggers, priority G1 > G2 > G3 > T1 > T2**. Ordinary DEV iteration does not trigger. The earlier four on-demand points — a **new Task**, a **significant anomaly**, a **planned large resource investment**, and the **end of an effective experiment** — are covered by these five; do not re-run for every step. For unrelated general questions, do not load it.
+
+**Knowledge mirror (optional, local only).** `case-knowledge-build --out <dir>` renders the
+same cases into a read-only Markdown/JSONL mirror for ChatGPT/Codex; it never syncs, uploads
+or writes to `CASE_LIBRARY`, and `manifest.publishable` must be `true` before any publication
+step. Reuse `case_search`/`case_gate_check` for retrieval; the mirror is not a second index.
 
 **Three mandatory checkpoints** (each must actually retrieve AND judge applicability; a `CASE_CHECK: COMPLETED` text is not proof):
 

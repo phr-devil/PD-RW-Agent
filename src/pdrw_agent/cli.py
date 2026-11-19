@@ -82,6 +82,13 @@ def main() -> int:
     cb.add_argument("--detail", choices=("compact", "full"), default="compact")
     cx = sub.add_parser("case-export")
     cx.add_argument("--case-id", required=True)
+    kb = sub.add_parser("case-knowledge-build")
+    kb.add_argument("--out", required=True)
+    kb.add_argument("--full", action="store_true",
+                    help="Ignore previous state and rebuild from scratch")
+    kb.add_argument("--dry-run", action="store_true")
+    kv = sub.add_parser("case-knowledge-verify")
+    kv.add_argument("--dir", required=True)
     e = sub.add_parser("evidence")
     e.add_argument("--project-id", required=True)
     e.add_argument("--task-id", default="")
@@ -191,6 +198,12 @@ def main() -> int:
                                stage=options.stage, detail=options.detail)
         elif command == "case-export":
             out = service.call("export_case_markdown", case_id=options.case_id)
+        elif command == "case-knowledge-build":
+            out = service.call("build_case_knowledge", out_dir=options.out,
+                               incremental=not options.full,
+                               dry_run=options.dry_run)
+        elif command == "case-knowledge-verify":
+            out = service.call("verify_case_knowledge", out_dir=options.dir)
         elif command == "evidence":
             out = service.call("find_experiment_evidence", project_id=options.project_id,
                                task_id=options.task_id, run_id=options.run_id, limit=options.limit)

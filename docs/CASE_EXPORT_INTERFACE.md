@@ -1,4 +1,4 @@
-# CASE_LIBRARY → Markdown 经验卡导出接口（v0.8.2 契约，未实施同步）
+# CASE_LIBRARY → Markdown 经验卡导出接口（v1 契约，v0.8.2 引入，v0.9.0 起为批量导出的内层）
 
 本文件只定义**接口与数据映射**。本轮不创建 GitHub 私有仓库、不上传任何案例、
 不修改 `CASE_LIBRARY` 的 65 张原始案例，也不引入新的数据库框架。
@@ -80,3 +80,18 @@
 
 从本地 SQLite 行构造同一 record 形状 → 调用 `render_markdown_card()` →
 写入仓库外的导出目录 → 人工确认后才允许提交到私有 Markdown 仓库。
+
+## 7. v0.9.0 起的分层（WP6-A）
+
+本文件的 v1 契约（`render_markdown_card`，单卡即时渲染、不落盘）**保持不变**，
+作为最小可用接口继续存在。批量导出走另一层：
+
+| 层 | 入口 | 输出 |
+|---|---|---|
+| v1 单卡即时渲染 | `case_export.export_case_markdown(settings, case_id)` | 内存中的 Markdown，`no_writes=true` |
+| v2 知识 Schema | `case_export.to_knowledge_record` + `render_knowledge_card` | Schema 1.0 卡（证据等级、同源簇、阶段路由、源摘要） |
+| 镜像构建 | `case_knowledge.build(settings, out_dir)` | `manifest.json` / `INDEX.md` / `cases/` / `indexes/` / `docs/` |
+
+v2 与 v1 共享同一条读取路径（`case_learning.resolve_root` + `load_index` + 卡 front matter），
+因此不会出现两套"案例记录"。完整字段表与闸门见
+[`docs/CASE_KNOWLEDGE_MIRROR.md`](CASE_KNOWLEDGE_MIRROR.md)。
