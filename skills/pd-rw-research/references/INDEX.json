@@ -22,9 +22,14 @@
         "H3 opportunity selection",
         "H6 plan ranking",
         "stalled scientific evidence",
-        "major research pivot"
+        "major research pivot",
+        "first Pilot",
+        "negative DEV result",
+        "modest positive result",
+        "traditional-model improvement",
+        "evidence-to-paper transition"
       ],
-      "scope": "Fast paper-evidence path, reuse/citation potential and evidence-driven adaptive contribution",
+      "scope": "On-demand paper-first opportunities, pilot/negative/positive interpretation and scholarly reuse (guidance only)",
       "authority": "ADAPTER_GUIDANCE_ONLY"
     },
     {

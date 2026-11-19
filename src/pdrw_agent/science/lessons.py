@@ -11,7 +11,7 @@ from ..schemas import AgentError
 
 OUTCOMES = {
     "ENGINEERING_FAILURE", "INVALID_EXPERIMENT", "INCONCLUSIVE",
-    "VALID_NEGATIVE", "VALID_POSITIVE",
+    "VALID_NEGATIVE", "VALID_POSITIVE", "NOT_RUN",
 }
 
 
@@ -53,7 +53,7 @@ def compile_declared_lessons(packet: dict) -> dict:
     entries = packet.get("observations")
     if not isinstance(entries, list) or not 1 <= len(entries) <= 20:
         raise AgentError("LESSON_PACKET_INVALID", "1..20 observations are required")
-    items, negatives = [], []
+    items, negatives, positives = [], [], []
     seen = set()
     for observation in entries:
         if not isinstance(observation, dict):
@@ -70,9 +70,18 @@ def compile_declared_lessons(packet: dict) -> dict:
             "run_id": run_id, "outcome_declared": outcome,
             "evidence_refs": refs, "source_verified": False,
             "negative_scientific_evidence": False,
+            "positive_scientific_evidence": False,
             "science_record_written": False,
         }
-        if outcome == "VALID_NEGATIVE":
+        # Positive as well as negative lessons are scoped only when actual
+        # premise and applicability metadata are supplied. Both remain
+        # unverified declarations; missing positive scope never becomes a
+        # universal success rule.
+        scoped = (outcome == "VALID_NEGATIVE"
+                  or (outcome == "VALID_POSITIVE"
+                      and observation.get("tested_premise_id") is not None
+                      and observation.get("scope") is not None))
+        if scoped:
             premise = _nonempty(observation.get("tested_premise_id"),
                                 "tested_premise_id", 80)
             scope = _scope(observation.get("scope"))
@@ -80,24 +89,39 @@ def compile_declared_lessons(packet: dict) -> dict:
             item.update({
                 "premise_id": premise, "scope": scope,
                 "declared_premise_fingerprint_sha256": identity,
-                "negative_scientific_evidence": "DECLARED_NOT_INDEPENDENTLY_VERIFIED",
                 "scientific_equivalence_verified": False,
             })
-            negatives.append({
+            candidate = {
                 "premise_id": premise, "scope": scope,
-                "validity": "VALID_NEGATIVE", "evidence_refs": refs,
+                "validity": outcome, "evidence_refs": refs,
                 "fingerprint_sha256": identity,
-            })
+            }
+            if outcome == "VALID_NEGATIVE":
+                item["negative_scientific_evidence"] = "DECLARED_NOT_INDEPENDENTLY_VERIFIED"
+                negatives.append(candidate)
+            else:
+                item["positive_scientific_evidence"] = "DECLARED_NOT_INDEPENDENTLY_VERIFIED"
+                positives.append(candidate)
         else:
-            item["next"] = ("FIX_ENGINEERING_OR_EVALUATION_FIRST"
-                            if outcome in {"ENGINEERING_FAILURE", "INVALID_EXPERIMENT"}
-                            else "REVIEW_ORIGINAL_EVIDENCE_NO_AUTO_SCIENTIFIC_INFERENCE")
+            item["next"] = (
+                "FIX_ENGINEERING_OR_EVALUATION_FIRST"
+                if outcome in {"ENGINEERING_FAILURE", "INVALID_EXPERIMENT"}
+                else "NOT_RUN_IS_NOT_SCIENTIFIC_EVIDENCE"
+                if outcome == "NOT_RUN"
+                else "POSITIVE_SCOPE_REQUIRED_FOR_TRANSFER"
+                if outcome == "VALID_POSITIVE"
+                else "REVIEW_ORIGINAL_EVIDENCE_NO_AUTO_SCIENTIFIC_INFERENCE"
+            )
         items.append(item)
     return {
         "status": "DECLARED_LESSONS_ONLY", "items": items,
         "candidate_prior_negative_lessons": negatives,
+        "candidate_prior_positive_lessons": positives,
         "all_sources_verified": False,
         "semantic_equivalence_verified": False,
         "stop_or_go_authorized": False,
-        "note": "Only VALID_NEGATIVE declarations yield candidates; verify original Run validity and scope before use.",
+        "automatic_project_stop": False,
+        "note": ("Only scoped VALID_NEGATIVE/VALID_POSITIVE declarations yield lesson candidates; "
+                 "verify original Run and exact applicability before reuse. "
+                 "NOT_RUN, INVALID and INCONCLUSIVE are not evidence of scientific failure."),
     }
