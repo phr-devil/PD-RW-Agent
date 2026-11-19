@@ -77,10 +77,10 @@ def review_probe_feedback(packet: dict) -> dict:
         if observed.get(axis) != probe[axis]:
             raise AgentError("FEEDBACK_NOT_COMPARABLE", f"Changed {axis} since prior proposal")
     validity = observed.get("validity")
-    if validity not in VALIDITY:
+    if not isinstance(validity, str) or validity not in VALIDITY:
         raise AgentError("FEEDBACK_PACKET_INVALID", "Invalid declared Run validity")
     outcome = observed.get("outcome", "UNKNOWN")
-    if outcome not in OUTCOMES:
+    if not isinstance(outcome, str) or outcome not in OUTCOMES:
         raise AgentError("FEEDBACK_PACKET_INVALID", "Invalid qualitative outcome")
     refs = _references(observed.get("evidence_refs", []))
     if validity == "VALID" and (not refs or outcome == "UNKNOWN"):
