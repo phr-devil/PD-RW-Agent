@@ -10,6 +10,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        authority_ref:
+          - d4056fc10af89c3ecfd41ece15c55440d21c33e1 # current PD-RW v1.14
+          - 68e29c367583d5c96ef70180819f8b3322ea840d # historical PD-RW v1.13
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout PD-RW-Agent
@@ -18,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: phr-devil/Problem-Data-Research-Workflow
-          ref: 68e29c367583d5c96ef70180819f8b3322ea840d
+          ref: ${{ matrix.authority_ref }}
           path: pd-rw-fixture
           persist-credentials: false
       - uses: actions/setup-python@v5
