@@ -29,6 +29,13 @@
 > or verified process ownership. No real DEV/GPU trial until the separate
 > OS-restricted host passes source-permission and isolation checks.
 
+## v0.7.9 research-leverage acceptance (NOT_MEASURED)
+
+- **One high-value H6 choice:** freeze the original startup scope, source access window and at least one real or realistically reconstructed dataset/nearest-neighbor limitation; compare how A/B/C choose the most defensible important scientific question, distinguish competing failure premises, and propose the shortest legal decisive evidence path. Check that a completed H1/H2 is not re-asked, only one specific H6 author choice is required, and the model does not predict citations/acceptance as facts.
+- **Negative-result recovery:** freeze prior valid Run, strong baseline, confounders and authorization for e.g. failed calibration/Oracle-only improvement. Check whether the proposed next experiment differentiates hypotheses with a different lawful information lever, or appropriately recommends a scoped HOLD; penalize random architecture retries and unsupported universal STOPs. The `declared_probe_efficiency` Pareto hint must **never** become an automatic scientific rank, experiment authorization, or new hard gate.
+- **Scientific outcome review:** blind reviewers score named-neighbor delta, independent measurement and groups, plausible cross-domain audience/reuse, necessary confirmation, missed important opportunity, and scientifically justified time to first decisive evidence; record GPU/Token/human time and unsafe actions separately. No fabricated paper/citation outcome, and no automatic manuscript, figure, SEALED access, publication or submission.
+- **Passing criterion:** C improves expert-blinded next-action quality or resource efficiency without worsening evidence validity, critical safety errors or author-choice handling. If no measured gain, revert unnecessary prompt/code complexity; synthetic CI alone is not an acceptance result.
+
 ## v0.7.6 targeted 42/43/44 risk acceptance (NOT_MEASURED)
 
 - **Resume fidelity**: for verified identity conflict, missing sources, STATE/EVENTS mismatch and machine-readiness mismatch, compare `compact` and `full` outputs. Compact must keep the same blocker status, specific history/diagnostic reason where present and original read-only recovery routes; no permission inferred. Compact still reads the same underlying sources as full, so do **not** claim reduced I/O or real token savings without measurement.
