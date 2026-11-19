@@ -259,6 +259,11 @@ def verify_sources(index_bundle: dict, results: list[dict]) -> dict:
             grade = "REVIEW_REQUIRED"
         if "PREPRINT" in status.upper():
             grade += "+PREPRINT_NOT_PEER_REVIEWED"
+        # An author report explicitly marked non-peer-reviewed is not an
+        # independent scientific confirmation, even if its own numbers were
+        # re-read from the original file.
+        if "NON_PEER_REVIEWED" in status.upper():
+            grade += "+NON_PEER_REVIEWED"
         if c.get("origin") == "EXTERNAL" and not refs:
             grade += "+SOURCE_REFS_MISSING"
         reasons = []
@@ -277,6 +282,8 @@ def verify_sources(index_bundle: dict, results: list[dict]) -> dict:
             caveats.append("INTERNAL_REPORT_NOT_INDEPENDENTLY_RECOMPUTED")
         if "SECONDARY_ONLY" in levels:
             caveats.append("SECONDARY_NUMBERS_NOT_ADMITTED")
+        if "NON_PEER_REVIEWED" in status.upper():
+            caveats.append("AUTHOR_REPORT_NOT_PEER_REVIEWED_EXPLORATORY_ONLY")
         out[cid] = {
             "evidence_grade": grade,
             "evidence_levels": levels,
@@ -777,7 +784,8 @@ def classify_transfer(comparisons: dict, grade: str, mechanism_matched: bool,
     if scope_conflicts:
         return "CONDITIONS_DIFFER", scope_conflicts + ["EVIDENCE_GRADE_ALSO_LIMITED:" + grade]
     if "UNVERIFIED" in grade or "STALE" in grade or "REVIEW_REQUIRED" in grade \
-            or "NON_DECISION" in grade or "ABSTRACT" in grade or "LIMITATION" in grade:
+            or "NON_DECISION" in grade or "ABSTRACT" in grade or "LIMITATION" in grade \
+            or "NON_PEER_REVIEWED" in grade.upper():
         return "EVIDENCE_INSUFFICIENT", ["EVIDENCE_GRADE_NOT_DECISION_GRADE: " + grade]
     core_bad = [d for d in CORE_DIMENSIONS
                 if comparisons[d]["status"] in {"NO_TEXT_OVERLAP", "NOT_IN_CASE"}]
@@ -910,6 +918,31 @@ def _success_transfer_detail(case: dict, profile: dict | None,
     }
 
 
+def _source_groups(pairs: list) -> dict[str, str]:
+    """Union same-source case IDs; the group label is the smallest member.
+
+    Two cards describing the same paper or the same Run are one independent
+    experience. Grouping does not merge their content or drop either card.
+    """
+    parent: dict[str, str] = {}
+
+    def find(x: str) -> str:
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for pair in pairs:
+        if not isinstance(pair, (list, tuple)) or len(pair) < 2:
+            continue
+        a, b = str(pair[0]), str(pair[1])
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[max(ra, rb)] = min(ra, rb)
+    return {node: find(node) for node in parent}
+
+
 def decision_brief(search_result: dict, review_result: dict | None,
                    max_experiences: int = 5,
                    task_profile: dict | None = None) -> dict:
@@ -926,6 +959,15 @@ def decision_brief(search_result: dict, review_result: dict | None,
         grade = info.get("evidence_grade", "UNVERIFIED")
         roles = set(info.get("role_classes", []))
         v = case["verdict"]
+        # An INVALID case records a broken measurement, not a failed mechanism.
+        # Treating it as a negative warning would turn an execution defect into
+        # scientific evidence against the next direction.
+        if str(v).upper() == "INVALID":
+            candidates_only.append({
+                "case_id": cid,
+                "reason": "CASE_VERDICT_INVALID_NOT_A_SCIENTIFIC_NEGATIVE",
+                "retained_as": "CANDIDATE_ONLY_NOT_DECISION_INPUT"})
+            continue
         # A case with explicitly different declared conditions must not be
         # transferred as an active negative warning against a new direction.
         if reviews.get(cid, {}).get("classification") == "CONDITIONS_DIFFER":
@@ -996,7 +1038,20 @@ def decision_brief(search_result: dict, review_result: dict | None,
             take(negatives.pop(0))
         if successes and len(picked) < cap:
             take(successes.pop(0))
-    return {
+    # Same paper / same Run / aggregate cards are ONE independent experience.
+    # Both cards stay visible; only the independence count is deduplicated.
+    # The annotation is only emitted when a shared source actually exists, so
+    # the common single-source payload pays no extra bytes.
+    groups = _source_groups((search_result.get("source_independence") or {}).get(
+        "same_source_pairs") or [])
+    if groups:
+        seen_groups: set[str] = set()
+        for item in picked:
+            group = groups.get(item["case_id"], item["case_id"])
+            item["source_group_id"] = group
+            item["independent_evidence_unit"] = group not in seen_groups
+            seen_groups.add(group)
+    brief = {
         "status": "DECISION_EXPERIENCES_ONLY",
         "returned": len(picked),
         "negative_warning_count": sum(1 for x in picked if x["polarity"] == "NEGATIVE_WARNING"),
@@ -1011,6 +1066,13 @@ def decision_brief(search_result: dict, review_result: dict | None,
         "automatic_go_stop": False,
         "warning": WARNING, "notice": NOTICE,
     }
+    if groups:
+        # Only paid for when a shared source exists; absence means every
+        # returned case is its own independent unit.
+        brief["independent_source_units"] = len(
+            {groups.get(x["case_id"], x["case_id"]) for x in picked})
+        brief["same_source_deduplicated"] = True
+    return brief
 
 
 # --------------------------------------------------------------------------
@@ -1093,6 +1155,9 @@ def _retain(out: dict, k: int) -> dict:
             1 for e in exps if e["polarity"] == "SUCCESS_TRANSFER")
         brief["exploratory_lead_count"] = sum(
             1 for e in exps if e.get("exploratory_lead_only"))
+        if brief.get("same_source_deduplicated"):
+            brief["independent_source_units"] = len({
+                e.get("source_group_id", e.get("case_id")) for e in exps})
         brief["candidates_only_not_admitted"] = [
             c for c in brief.get("candidates_only_not_admitted", [])
             if c.get("case_id") in ids][:3]

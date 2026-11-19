@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pdrw_agent import case_learning
+from pdrw_agent import case_gates, case_learning
 from pdrw_agent.config import Settings
 from pdrw_agent.service import ResearchService
 
@@ -406,6 +406,65 @@ class CaseLearningTests(unittest.TestCase):
                               str(cand.structured_content or cand.content))
 
         asyncio.run(exercise())
+
+
+class CaseEvidenceSemanticsTests(unittest.TestCase):
+    """Result class, source independence and INVALID evidence stay distinct."""
+
+    def _result(self, cid: str, verdict: str) -> dict:
+        return {
+            "case_id": cid, "title": cid, "score": 1, "verdict": verdict,
+            "origin": "EXTERNAL", "evidence_class": "VERIFIED_SUCCESS",
+            "all_mechanisms": ["GROUP_INDEPENDENCE"], "matched_mechanisms": [],
+            "matched_domains": [], "evidence_levels": ["ORIGINAL_VERIFIED"],
+            "premises": ["分组独立"], "applicability": {"conditions": ["受试者独立"],
+                                                      "boundaries": ["仅限所测数据集"]},
+            "counterexamples": ["若分组泄漏则增益消失"],
+            "transferable_lesson": "先分组再比较", "next_minimal_check": ["成对报告差值"],
+            "source_refs": ["10.1000/x"], "evidence_paths": ["cases/external/x.md"],
+            "secondary_claims_not_admitted_count": 0, "scope_warning": "", "status": "ACTIVE",
+        }
+
+    def _search(self, ids: list[tuple[str, str]], pairs: list[list[str]]) -> dict:
+        return {
+            "status": "MATCHES_FOUND",
+            "results": [self._result(cid, verdict) for cid, verdict in ids],
+            "source_verification": {"per_case": {
+                cid: {"evidence_grade": "DECISION_GRADE",
+                      "evidence_levels": ["ORIGINAL_VERIFIED"],
+                      "role_classes": ["PRIMARY_EMPIRICAL"], "caveats": []}
+                for cid, _ in ids}},
+            "source_independence": {"returned": len(ids), "independent_units": 1,
+                                    "same_source_pairs": pairs},
+        }
+
+    def test_invalid_result_is_not_a_scientific_negative(self):
+        brief = case_learning.decision_brief(self._search([("T-INV", "INVALID")], []), None)
+        self.assertEqual(brief["experiences"], [])
+        self.assertEqual(brief["candidates_only_not_admitted"][0]["reason"],
+                         "CASE_VERDICT_INVALID_NOT_A_SCIENTIFIC_NEGATIVE")
+        self.assertFalse(brief["automatic_go_stop"])
+
+    def test_same_source_cases_are_one_independent_unit(self):
+        pairs = [["T-A", "T-B", ["10.1000/x"]]]
+        brief = case_learning.decision_brief(
+            self._search([("T-A", "SUCCESS"), ("T-B", "SUCCESS")], pairs), None)
+        self.assertEqual(brief["returned"], 2)
+        self.assertEqual(brief["independent_source_units"], 1)
+        self.assertTrue(brief["same_source_deduplicated"])
+        self.assertEqual([e["independent_evidence_unit"] for e in brief["experiences"]],
+                         [True, False])
+
+    def test_gate_reports_independent_source_units(self):
+        pairs = [["T-A", "T-B", ["10.1000/x"]]]
+        cl = {"cases": self._search([("T-A", "SUCCESS"), ("T-B", "SUCCESS")], pairs),
+              "case_review": {"comparisons": []},
+              "decision_experiences": {"experiences": []}}
+        advisory = case_gates._advisory_from_case_search(cl, "0" * 64, "TEST")
+        independence = advisory["evidence_independence"]
+        self.assertEqual(independence["admissible_cases"], 2)
+        self.assertEqual(independence["independent_source_units"], 1)
+        self.assertEqual(independence["strength"], "SINGLE_INDEPENDENT_SOURCE")
 
 
 if __name__ == "__main__":

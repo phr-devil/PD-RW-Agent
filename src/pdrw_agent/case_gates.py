@@ -473,6 +473,24 @@ def _advisory_from_case_search(cl: dict, index_sha256: str, trigger: str) -> dic
     gate_status = "ADVISORY_AVAILABLE" if admissible else "UNKNOWN"
     if gate_status == "UNKNOWN" and not unknown_reasons:
         unknown_reasons.append("NO_ADMISSIBLE_DECISION_GRADE_CASE")
+    # Two admissible cards from the same paper or the same Run are one
+    # experience. Counting them as two would inflate the apparent independent
+    # support without adding a second observation.
+    admissible_ids = {c["case_id"] for c in admissible}
+    pairs = [p for p in ((cases.get("source_independence") or {}).get("same_source_pairs") or [])
+             if isinstance(p, (list, tuple)) and len(p) >= 2
+             and p[0] in admissible_ids and p[1] in admissible_ids]
+    groups = case_learning._source_groups(pairs)
+    units = len({groups.get(cid, cid) for cid in admissible_ids})
+    evidence_independence = {
+        "admissible_cases": len(admissible_ids),
+        "independent_source_units": units,
+        "same_source_pairs": [list(p[:3]) for p in pairs[:2]],
+        "strength": ("NO_ADMISSIBLE_CASE" if not admissible_ids
+                     else "SINGLE_INDEPENDENT_SOURCE" if units <= 1
+                     else "MULTIPLE_INDEPENDENT_SOURCES"),
+        "note": "同源案例只算一份独立经验",
+    }
     conditions_differ = [cid for cid, state in admissibility.items()
                          if state == "UNKNOWN_CONDITIONS_DIFFER"]
     excluded = set(conditions_differ)
@@ -496,6 +514,7 @@ def _advisory_from_case_search(cl: dict, index_sha256: str, trigger: str) -> dic
         "unknown_reasons": unknown_reasons[:6],
         "case_admissibility": admissibility,
         "evidence_tiers": evidence_tiers,
+        "evidence_independence": evidence_independence,
         "conditions_differ_not_transferred": conditions_differ,
         "compact_cases": compact_cases[:MAX_CASES],
         "concrete_checks": concrete_checks[:MAX_CASES],
@@ -1143,6 +1162,7 @@ def case_gate_check(settings, event: dict, detail: str = "compact",
             for c in advisory["compact_cases"]],
         "case_admissibility": advisory["case_admissibility"],
         "evidence_tiers": advisory["evidence_tiers"],
+        "evidence_independence": advisory["evidence_independence"],
         "conditions_differ_not_transferred": advisory["conditions_differ_not_transferred"],
         "concrete_checks": advisory["concrete_checks"],
         "decision_experiences": advisory["experiences"],
