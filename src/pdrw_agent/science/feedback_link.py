@@ -7,6 +7,24 @@ match, and that the declaration is dated before the Run. Byte identity and
 declared timestamps are *not* proof of historical order, so this module keeps
 ``historical_order_verified`` false and reports what it actually checked.
 
+Three states are reported separately, never collapsed into one another:
+
+``DECLARED_PREDICTION_COMPARED``
+    A prediction/observation contrast was actually computed. Advisory only.
+``PRE_RESULT_PROVENANCE_VERIFIED``
+    The frozen record is a project file, names the proposal digest that the
+    proposal file still matches, its own timestamp precedes the Run, and no
+    declared timestamp contradicts it.
+``PRE_RESULT_RECORD_UNVERIFIED``
+    Anything less. The observation is preserved; no prediction verification is
+    claimed. A link object written after the Run can always claim an earlier
+    ``declared_at``, so a self-declared time is never promoted on its own.
+
+Case timing is likewise explicit: a case retrieved now (after the Run) is
+``post_run_related_case_ids``, never pre-decision evidence. Pre-decision use
+requires a bounded usage receipt stored inside the project and dated before
+the frozen decision.
+
 No writes, no ledger, no MCP tool, no authorization, no automatic GO/STOP.
 Ordinary code changes and routine DEV must not call it: only a Run that really
 judges a scientific hypothesis has anything to compare.
@@ -19,40 +37,42 @@ from datetime import datetime
 from pathlib import Path
 
 from ..schemas import AgentError
-from .feedback import proposal_sha256, review_probe_feedback
+from .feedback import HEX64, proposal_sha256, review_probe_feedback
 
 LINK_SCHEMA = "pdrw-probe-feedback-link-v1"
+CASE_RECEIPT_SCHEMA = "pdrw-case-usage-receipt-v1"
 MAX_LINK_BYTES = 128 * 1024
 MAX_EVIDENCE_REFS = 12
+MAX_PRE_DECISION_CASES = 8
 MAX_QUERY = 400
 PROTECTED_PARTS = {"sealed", "holdout", "confirmation"}
 # Run records use a coarser vocabulary than the feedback contract. PARTIAL and
 # CRASH are execution defects, never scientific negatives, so they map to the
 # non-inferential INVALID state.
 RUN_RECORD_STATUS = {
-    "VALID": {"VALID"},
+    # A correctly executed Run may still be inconclusive: that is a valid
+    # execution, not a defect and not a scientific negative.
+    "VALID": {"VALID", "INCONCLUSIVE"},
+    "INCONCLUSIVE": {"INCONCLUSIVE"},
     "INVALID": {"INVALID"},
     "PARTIAL": {"INVALID"},
     "CRASH": {"INVALID"},
     "NOT_RUN": {"NOT_RUN", "INVALID"},
 }
 RULE_KEYS = ("prediction", "hypoth", "decision_rule", "ex_ante", "expected", "mechanism_probe")
+PROVENANCE_VERIFIED = "PRE_RESULT_PROVENANCE_VERIFIED"
+PROVENANCE_UNVERIFIED = "PRE_RESULT_RECORD_UNVERIFIED"
+COMPARISON_PERFORMED = "DECLARED_PREDICTION_COMPARED"
+CASE_INFLUENCE_VERIFIED = "VERIFIED_IN_FROZEN_DECLARATION"
+CASE_INFLUENCE_RETRIEVAL = "RECEIPT_VERIFIED_RETRIEVAL_ONLY"
+CASE_INFLUENCE_UNKNOWN = "UNKNOWN_NO_RECEIPT"
+CASE_INFLUENCE_DECLARED_ONLY = "NOT_CLAIMED"
 
 
 def _bounded(value, field: str, limit: int = 240) -> str:
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
         raise AgentError("FEEDBACK_LINK_INVALID", f"{field} must be a bounded nonempty string")
     return value
-
-
-def _iso(value, field: str) -> datetime:
-    try:
-        parsed = datetime.fromisoformat(value)
-    except (TypeError, ValueError):
-        raise AgentError("FEEDBACK_LINK_INVALID", f"{field} requires an ISO timestamp with timezone")
-    if parsed.tzinfo is None:
-        raise AgentError("FEEDBACK_LINK_INVALID", f"{field} requires an explicit timezone")
-    return parsed
 
 
 def _sha256(path: Path) -> str:
@@ -106,6 +126,27 @@ def _read_json(path: Path, limit: int = MAX_LINK_BYTES) -> dict:
     return parsed
 
 
+def _parse_iso(value):
+    """Lenient ISO parse used only for consistency checks, never as proof."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip())
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
+def _record_case_ids(record: dict) -> list[str]:
+    """Case IDs the FROZEN record itself cites, if any (bounded)."""
+    for key in ("consulted_case_ids", "pre_decision_case_ids", "case_ids_used"):
+        value = record.get(key)
+        if isinstance(value, list) and len(value) <= MAX_PRE_DECISION_CASES:
+            if all(isinstance(x, str) and 0 < len(x) <= 80 for x in value):
+                return list(value)
+    return []
+
+
 def _prereg(root: Path, block: dict) -> dict:
     if not isinstance(block, dict):
         raise AgentError("FEEDBACK_LINK_INVALID", "prereg must be an object")
@@ -113,32 +154,83 @@ def _prereg(root: Path, block: dict) -> dict:
     path = _resolve(root, ref)
     actual = _sha256(path)
     declared = block.get("sha256")
-    if declared is not None and _bounded(declared, "prereg.sha256", 64) != actual:
+    if declared is not None and _bounded(declared, "prereg.sha256", 64).lower() != actual:
         return {"ref": ref, "sha256": actual, "reason": "PREREG_HASH_MISMATCH",
-                "proposal": None, "declared_prediction_fields": []}
+                "proposal": None, "declared_prediction_fields": [],
+                "declared_at": None, "declared_at_source": "NONE",
+                "record_frozen_at": None, "link_declared_at": block.get("declared_at"),
+                "declared_at_conflict": False, "proposal_binding": "NONE",
+                "record_binds_proposal": False, "record_case_ids": []}
     record = _read_json(path)
-    proposal = block.get("proposal")
+    proposal = None
+    binding = "NONE"
     if isinstance(block.get("proposal_ref"), str):
-        proposal = _read_json(_resolve(root, _bounded(block["proposal_ref"], "prereg.proposal_ref")))
+        proposal = _read_json(
+            _resolve(root, _bounded(block["proposal_ref"], "prereg.proposal_ref")))
+        binding = "PROJECT_FILE"
+    elif isinstance(block.get("proposal"), dict):
+        # The link is written after the Run: an inline object is not the frozen
+        # artifact, so it can never support verified provenance.
+        proposal = block["proposal"]
+        binding = "INLINE_LINK_OBJECT"
+
+    record_frozen = record.get("frozen_at")
+    link_declared = block.get("declared_at")
+    frozen_dt, link_dt = _parse_iso(record_frozen), _parse_iso(link_declared)
+    conflict = bool(frozen_dt and link_dt and
+                    abs((frozen_dt - link_dt).total_seconds()) > 60)
+    stamps = [x for x in (frozen_dt, link_dt) if x]
+    # Conservative: if either declared time is later, the earlier one is not
+    # evidence that the prediction existed first.
+    effective = max(stamps) if stamps else None
+    source = ("RECORD_FROZEN_AT" if frozen_dt and effective is frozen_dt
+              else "LINK_DECLARED_AT" if link_dt and effective is link_dt else "NONE")
     base = {
         "ref": ref,
         "sha256": actual,
-        "declared_at": block.get("declared_at") or record.get("frozen_at"),
+        "declared_at": (effective.isoformat() if effective
+                        else record_frozen or link_declared),
+        "declared_at_source": source,
+        "record_frozen_at": record_frozen,
+        "link_declared_at": link_declared,
+        "declared_at_conflict": conflict,
         "record_keys": sorted(str(key) for key in record)[:40],
         "declared_prediction_fields": sorted(
             str(key) for key in record
             if any(marker in str(key).casefold() for marker in RULE_KEYS))[:8],
+        "record_case_ids": _record_case_ids(record),
     }
     if not isinstance(proposal, dict):
         # The declaration exists but was never written in the feedback schema.
         # Guessing which prose sentence was the prediction would be fabrication.
-        return {**base, "reason": "PREREG_WITHOUT_FEEDBACK_PROPOSAL", "proposal": None}
+        return {**base, "reason": "PREREG_WITHOUT_FEEDBACK_PROPOSAL",
+                "proposal": None, "proposal_binding": binding,
+                "record_binds_proposal": False}
     try:
         digest = proposal_sha256(proposal)
     except AgentError:
-        return {**base, "reason": "DECLARED_PROPOSAL_NOT_ASSESSABLE", "proposal": None}
+        return {**base, "reason": "DECLARED_PROPOSAL_NOT_ASSESSABLE", "proposal": None,
+                "proposal_binding": binding, "record_binds_proposal": False}
+    record_digest = None
+    for key in ("proposal_sha256", "prior_proposal_sha256", "proposal_digest",
+                "proposal_ref_sha256"):
+        value = record.get(key)
+        if isinstance(value, str) and HEX64.fullmatch(value.strip().lower()):
+            record_digest = value.strip().lower()
+            break
+    binds = bool(record_digest) and record_digest == digest
+    if record_digest is not None and not binds:
+        # The frozen record names a different proposal: the file was replaced
+        # or the link points at another snapshot. Comparing predictions now
+        # would verify nothing, so the proposal is dropped but the Run stays.
+        return {**base, "reason": "PROPOSAL_CHANGED_SINCE_FREEZE", "proposal": None,
+                "proposal_binding": binding, "record_binds_proposal": False,
+                "record_proposal_sha256": record_digest,
+                "computed_proposal_sha256": digest}
     return {**base, "reason": "PREREG_RECORD_PRESENT", "proposal": proposal,
-            "proposal_sha256": digest}
+            "proposal_sha256": digest, "proposal_binding": binding,
+            "record_binds_proposal": binds,
+            "record_proposal_sha256": record_digest}
 
 
 def _run(root: Path, block: dict) -> dict:
@@ -185,6 +277,97 @@ def _run(root: Path, block: dict) -> dict:
         "observation": observation,
         "started_at": block.get("started_at"),
     }
+
+
+def _case_usage(root: Path, block, *, decision_at, run_started,
+                frozen_case_ids: list[str]) -> dict:
+    """Split a case list into pre-decision use and post-Run relevance.
+
+    A receipt proves *retrieval*, not influence. Without one, a declared
+    pre-decision list stays UNKNOWN instead of being inferred from similarity.
+    """
+    pre = block.get("pre_decision") if isinstance(block, dict) else None
+    if not isinstance(pre, dict):
+        return {"status": "NOT_DECLARED", "pre_decision_case_ids": [],
+                "declared_case_ids": [], "case_influence_verified": CASE_INFLUENCE_DECLARED_ONLY,
+                "retrieved_at": None, "checks": {}, "receipt_ref": None}
+    ids = pre.get("case_ids") or []
+    if (not isinstance(ids, list) or len(ids) > MAX_PRE_DECISION_CASES
+            or any(not isinstance(x, str) or not x.strip() or len(x) > 80 for x in ids)):
+        raise AgentError("FEEDBACK_LINK_INVALID",
+                         "pre_decision.case_ids must be at most 8 bounded case IDs")
+    ids = [x.strip() for x in ids]
+    if len(set(ids)) != len(ids):
+        raise AgentError("FEEDBACK_LINK_INVALID", "Duplicate pre-decision case ID")
+    ref = pre.get("receipt_ref")
+    if not isinstance(ref, str) or not ref.strip():
+        # Declaring "I consulted these" after the Run is exactly the claim that
+        # cannot be checked. Keep the declaration visible, not the conclusion.
+        return {"status": "UNKNOWN_NO_RECEIPT", "pre_decision_case_ids": [],
+                "declared_case_ids": ids,
+                "case_influence_verified": CASE_INFLUENCE_UNKNOWN,
+                "retrieved_at": None, "receipt_ref": None,
+                "checks": {"receipt_present": False},
+                "note": "缺少检索收据：不得把声明的事前案例当作已使用证据。"}
+    path = _resolve(root, _bounded(ref, "pre_decision.receipt_ref"))
+    actual = _sha256(path)
+    declared_sha = pre.get("receipt_sha256")
+    if not isinstance(declared_sha, str) or declared_sha.strip().lower() != actual:
+        return {"status": "RECEIPT_SHA_MISMATCH" if isinstance(declared_sha, str)
+                else "RECEIPT_SHA_UNVERIFIED",
+                "pre_decision_case_ids": [], "declared_case_ids": ids,
+                "case_influence_verified": CASE_INFLUENCE_UNKNOWN,
+                "retrieved_at": None, "receipt_ref": ref, "receipt_sha256": actual,
+                "checks": {"receipt_present": True,
+                           "receipt_sha256_matches": False}}
+    receipt = _read_json(path)
+    checks = {"receipt_present": True, "receipt_sha256_matches": True}
+    if receipt.get("schema_version") != CASE_RECEIPT_SCHEMA:
+        return {"status": "RECEIPT_SCHEMA_INVALID", "pre_decision_case_ids": [],
+                "declared_case_ids": ids,
+                "case_influence_verified": CASE_INFLUENCE_UNKNOWN,
+                "retrieved_at": None, "receipt_ref": ref, "receipt_sha256": actual,
+                "checks": checks}
+    retrieved_dt = _parse_iso(receipt.get("retrieved_at"))
+    checks["retrieved_at_has_timezone"] = retrieved_dt is not None
+    if retrieved_dt is None:
+        return {"status": "RECEIPT_TIME_UNVERIFIED", "pre_decision_case_ids": [],
+                "declared_case_ids": ids,
+                "case_influence_verified": CASE_INFLUENCE_UNKNOWN,
+                "retrieved_at": receipt.get("retrieved_at"), "receipt_ref": ref,
+                "receipt_sha256": actual, "checks": checks}
+    boundary = decision_at or run_started
+    checks["retrieved_before_decision"] = bool(boundary and retrieved_dt < boundary)
+    checks["retrieved_before_run"] = bool(run_started and retrieved_dt < run_started)
+    if boundary is not None and retrieved_dt >= boundary:
+        return {"status": "RECEIPT_AFTER_DECISION", "pre_decision_case_ids": [],
+                "declared_case_ids": ids,
+                "case_influence_verified": CASE_INFLUENCE_UNKNOWN,
+                "retrieved_at": receipt.get("retrieved_at"), "receipt_ref": ref,
+                "receipt_sha256": actual, "checks": checks}
+    returned = receipt.get("case_ids")
+    returned_ids = [str(x) for x in returned] if isinstance(returned, list) else []
+    checks["declared_ids_returned"] = set(ids) <= set(returned_ids)
+    if not checks["declared_ids_returned"]:
+        return {"status": "DECLARED_CASE_NOT_IN_RECEIPT", "pre_decision_case_ids": [],
+                "declared_case_ids": ids,
+                "case_influence_verified": CASE_INFLUENCE_UNKNOWN,
+                "retrieved_at": receipt.get("retrieved_at"), "receipt_ref": ref,
+                "receipt_sha256": actual, "checks": checks}
+    in_frozen = bool(frozen_case_ids) and set(ids) <= set(frozen_case_ids)
+    checks["cited_by_frozen_record"] = in_frozen
+    return {"status": "VERIFIED", "pre_decision_case_ids": ids,
+            "declared_case_ids": ids,
+            # Retrieval is verified. Influence on the decision is not, unless
+            # the frozen record itself cites the same IDs.
+            "case_influence_verified": (CASE_INFLUENCE_VERIFIED if in_frozen
+                                        else CASE_INFLUENCE_RETRIEVAL),
+            "retrieved_at": receipt.get("retrieved_at"),
+            "receipt_ref": ref, "receipt_sha256": actual,
+            "receipt_index_sha256": receipt.get("index_sha256"),
+            "checks": checks,
+            "note": ("检索收据只证明在决策前检索过这些案例，不证明它们改变了决策；"
+                     "只有冻结记录自身引用同一组案例时才可称事前使用。")}
 
 
 def _run_classification(run_record: dict) -> str | None:
@@ -310,11 +493,11 @@ def review_linked_feedback(link: dict, *, project_root, case_root=None,
     run = _run(root, link.get("run"))
     observation = run["observation"]
 
+    declared_dt = _parse_iso(prereg.get("declared_at"))
+    started_dt = _parse_iso(run.get("started_at"))
     order = "NOT_EVALUATED"
-    if prereg.get("proposal") is not None and prereg.get("declared_at") and run.get("started_at"):
-        declared_at = _iso(prereg["declared_at"], "prereg.declared_at")
-        started_at = _iso(run["started_at"], "run.started_at")
-        order = "DECLARED_BEFORE_RUN" if declared_at < started_at else "DECLARED_AFTER_RUN"
+    if declared_dt and started_dt:
+        order = "DECLARED_BEFORE_RUN" if declared_dt < started_dt else "DECLARED_AFTER_RUN"
 
     conflict = _status_conflict(run["run_record"] or {}, observation)
     feedback = None
@@ -354,14 +537,46 @@ def review_linked_feedback(link: dict, *, project_root, case_root=None,
             else:
                 raise
 
+    # Provenance is judged separately from whether the comparison ran. Byte
+    # equality proves the objects agree, never that the prediction came first.
+    checks = {
+        "prereg_record_readable": prereg.get("reason") != "PREREG_HASH_MISMATCH",
+        "proposal_from_project_file": prereg.get("proposal_binding") == "PROJECT_FILE",
+        "frozen_record_binds_proposal_digest": bool(prereg.get("record_binds_proposal")),
+        "declaration_time_from_frozen_record":
+            prereg.get("declared_at_source") == "RECORD_FROZEN_AT",
+        "declared_time_matches_link": not prereg.get("declared_at_conflict", False),
+        "declared_before_run": order == "DECLARED_BEFORE_RUN",
+        "run_evidence_unchanged": not run["evidence_problems"],
+    }
+    provenance = (PROVENANCE_VERIFIED if all(checks.values())
+                  else PROVENANCE_UNVERIFIED)
+    if feedback is None:
+        comparison = ("NOT_COMPARABLE" if status == "NOT_COMPARABLE" else "NOT_PERFORMED")
+    elif feedback["declared_prediction_review"] == "NO_VALID_SCIENTIFIC_INFERENCE":
+        comparison = "NO_VALID_SCIENTIFIC_INFERENCE"
+    else:
+        comparison = COMPARISON_PERFORMED
+
     cases_block = link.get("cases") if isinstance(link.get("cases"), dict) else {}
+    usage = _case_usage(root, cases_block, decision_at=declared_dt,
+                        run_started=started_dt,
+                        frozen_case_ids=prereg.get("record_case_ids") or [])
     cases = case_context(case_root, cases_block.get("query", ""),
                          filters=cases_block.get("filters"),
                          limit=cases_block.get("limit", 3),
                          profile=cases_block.get("profile"),
                          mirror_manifest=mirror_manifest)
-    if feedback is not None and cases.get("experiences"):
-        feedback["consulted_case_ids"] = [x["case_id"] for x in cases["experiences"]][:8]
+    post_run_ids = [x["case_id"] for x in cases.get("experiences", [])]
+    if feedback is not None:
+        # Compatibility: the field keeps its name and type, but it may now only
+        # carry PRE-decision IDs. Filling it from a post-Run retrieval was the
+        # defect this field previously caused.
+        feedback["consulted_case_ids"] = list(usage["pre_decision_case_ids"])
+        feedback["consulted_case_ids_semantics"] = (
+            "PRE_DECISION_VERIFIED_ONLY_NEVER_POST_RUN")
+        feedback["post_run_related_case_ids"] = post_run_ids
+        feedback["case_influence_verified"] = usage["case_influence_verified"]
 
     return {
         "schema_version": LINK_SCHEMA,
@@ -372,7 +587,12 @@ def review_linked_feedback(link: dict, *, project_root, case_root=None,
             "ref": prereg.get("ref"),
             "sha256": prereg.get("sha256"),
             "declared_at": prereg.get("declared_at"),
+            "declared_at_source": prereg.get("declared_at_source"),
+            "declared_at_conflict": prereg.get("declared_at_conflict", False),
+            "record_frozen_at": prereg.get("record_frozen_at"),
             "proposal_bound": prereg.get("proposal") is not None,
+            "proposal_binding": prereg.get("proposal_binding"),
+            "record_binds_proposal": bool(prereg.get("record_binds_proposal")),
             "proposal_sha256": prereg.get("proposal_sha256"),
             "declared_prediction_fields": prereg.get("declared_prediction_fields", []),
         },
@@ -385,8 +605,26 @@ def review_linked_feedback(link: dict, *, project_root, case_root=None,
             "evidence_problems": run["evidence_problems"],
         },
         "order_check": order,
+        "provenance": {
+            "pre_result_provenance": provenance,
+            "prediction_comparison": comparison,
+            "checks": checks,
+            "note": ("PRE_RESULT_PROVENANCE_VERIFIED 只表示冻结记录可读、由项目文件约束其提案摘要、"
+                     "记录自身时间早于 Run 且无时间冲突；仍不等于科学结论成立。"),
+        },
         "feedback": feedback,
         "case_context": cases,
+        "case_timing": {
+            "pre_decision_case_ids": list(usage["pre_decision_case_ids"]),
+            "declared_pre_decision_case_ids": list(usage.get("declared_case_ids", [])),
+            "post_run_related_case_ids": post_run_ids,
+            "case_influence_verified": usage["case_influence_verified"],
+            "usage_status": usage["status"],
+            "retrieved_at": usage.get("retrieved_at"),
+            "checks": usage.get("checks", {}),
+            "note": ("本次检索发生在 Run 之后，只能作为结果解释。事前使用必须有决策前的检索收据；"
+                     "相似性不能推断使用时间。"),
+        },
         "observation_preserved": {
             "run_ref": observation.get("run_ref"),
             "probe_id": observation.get("probe_id"),
@@ -395,7 +633,7 @@ def review_linked_feedback(link: dict, *, project_root, case_root=None,
             "evidence_refs": observation.get("evidence_refs", []),
         },
         "prediction_verification_performed": bool(
-            feedback and status == "ADVISORY_FEEDBACK_ONLY" and order == "DECLARED_BEFORE_RUN"),
+            comparison == COMPARISON_PERFORMED and provenance == PROVENANCE_VERIFIED),
         "historical_order_verified": False,
         "original_run_verified": False,
         "scientific_inference_verified": False,

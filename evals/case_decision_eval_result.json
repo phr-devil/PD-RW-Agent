@@ -184,7 +184,7 @@
         "proactive_behaviour_in_live_session": "NOT_MEASURED",
         "requests_case_gate_check": true,
         "status": "STATIC_DEPLOYMENT_CHECK_ONLY",
-        "version": "0.8.2"
+        "version": "0.9.3"
       },
       "passed": true
     }
@@ -246,13 +246,13 @@
     "wall_time_delta": "NOT_MEASURED",
     "workbuddy_a_b_c_decision_quality": "NOT_MEASURED"
   },
-  "report_sha256": "a19f8e30969f4e53b7eab42a7b0016de9b1197cd571ba7c3d7e842424c56e885",
+  "report_sha256": "1b4f0400ec35e3539c09b678e6689c01543178f61125fbf2281b4e99bd0bb23f",
   "report_type": "WP4_CASE_DECISION_VERIFICATION",
   "token_cost": {
     "compact_payload_chars": {
-      "V1": 14444,
-      "V2": 12077,
-      "V3": 14717
+      "V1": 15512,
+      "V2": 12824,
+      "V3": 15787
     },
     "note": "Deterministic tool-output SIZE proxy only. Real LLM tokens / wall time are NOT_MEASURED."
   }
