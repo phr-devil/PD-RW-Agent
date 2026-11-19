@@ -9,6 +9,7 @@ from pdrw_agent.science.plan_selection import (
     review_h6_plan_choice, validate_h6_plan
 )
 from pdrw_agent.schemas import AgentError
+from pdrw_agent.science.h6_bridge import to_pd_rw_h6_checkpoint
 
 H3 = {"plan_sha256":"a"*64, "original_user_message_ref":"message-h3", "choice":"option-a"}
 H4 = {"plan_sha256":"b"*64, "original_user_message_ref":"message-h4", "choice":"option-b"}
@@ -113,6 +114,22 @@ class ThreeCardTests(unittest.TestCase):
         del p["options"][0]["adaptive_pivot_envelope"]
         with self.assertRaises(AgentError):
             validate_h6_plan(p)
+
+    def test_h6_checkpoint_carries_exact_card_linkage(self):
+        p = h6()
+        _, digest = validate_h6_plan(p)
+        choice = {"schema_version":"pdrw-h6-choice-v1",
+                  "plan_sha256":digest, "kind":"USER_SELECTED",
+                  "original_user_message_ref":"message-h6",
+                  "selected_option_id":"A", "allowed_option_ids":[],
+                  "delegated_scope":None}
+        checkpoint = to_pd_rw_h6_checkpoint(p, choice)
+        self.assertEqual(checkpoint["h6_card_sha256_declared"], digest)
+        self.assertEqual(checkpoint["h6_upstream_choices_declared"],
+                         p["upstream_choices"])
+        self.assertEqual(checkpoint["h6_hard_constraints_sha256_declared"],
+                         p["hard_constraints_sha256"])
+        self.assertFalse(checkpoint["h6_user_message_authenticated"])
 
     def test_early_plan_rejects_fake_multiple_options(self):
         p = early()
