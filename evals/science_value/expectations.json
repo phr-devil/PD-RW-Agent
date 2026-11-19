@@ -1,0 +1,58 @@
+{
+  "note": "Historical defect documented by CASE_LIBRARY for each frozen card. This is a regression expectation, not an expert benchmark of model judgment.",
+  "cases": {
+    "SC-01-REDUNDANCY-BOUND": {
+      "precedent": [
+        "CASE-21",
+        "CASE-14"
+      ],
+      "expected_flags": [
+        "NOVELTY_FROM_ABSENCE",
+        "NEIGHBOR_UNVERIFIED",
+        "REPLICATION_ONLY",
+        "NON_DISCRIMINATING",
+        "CONFIRMATION_CIRCULAR"
+      ]
+    },
+    "SC-02-MU-FROM-SLIDE": {
+      "precedent": [
+        "CASE-10",
+        "CASE-11"
+      ],
+      "expected_flags": [
+        "TRUTH_NOT_INDEPENDENT",
+        "UNIT_NOT_INDEPENDENT"
+      ]
+    },
+    "SC-03-FRAME-POWER": {
+      "precedent": [
+        "CASE-11"
+      ],
+      "expected_flags": [
+        "UNIT_NOT_INDEPENDENT"
+      ]
+    },
+    "SC-04-FIRST-MU": {
+      "precedent": [
+        "CASE-14",
+        "CASE-21"
+      ],
+      "expected_flags": [
+        "NOVELTY_FROM_ABSENCE"
+      ]
+    },
+    "SC-05-K1-CALIBRATION": {
+      "precedent": [
+        "INT-SUCCESS-01"
+      ],
+      "expected_flags": []
+    },
+    "SC-06-SIMPLE-BASELINE": {
+      "precedent": [
+        "INT-SUCCESS-05",
+        "EXT-N08"
+      ],
+      "expected_flags": []
+    }
+  }
+}

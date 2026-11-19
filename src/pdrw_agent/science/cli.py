@@ -13,6 +13,7 @@ from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
 from .feedback_link import review_linked_feedback, to_run_feedback
+from .candidate_review import review_candidates
 from .plan_selection import review_h6_plan_choice
 from .staged_selection import review_early_choice
 from .h6_bridge import to_pd_rw_h6_checkpoint
@@ -73,6 +74,12 @@ def main() -> int:
     early = sub.add_parser("early-review", help="Review independent H3 or H4 author selection")
     early.add_argument("--plan", type=Path, required=True)
     early.add_argument("--choice", type=Path, help="Declared response; NEVER approval")
+    cand = sub.add_parser("candidate-review",
+                          help="Review 1-6 declared H3 candidate cards (value/novelty/evidence)")
+    cand.add_argument("--card", type=Path, action="append", default=[],
+                      help="One pdrw-candidate-card-v1 JSON file; repeat for comparison")
+    cand.add_argument("--cards", type=Path,
+                      help="Bundle file with a top-level 'cards' list")
     link = sub.add_parser("feedback-link",
                           help="Bind a pre-result proposal to a real Run (read-only)")
     link.add_argument("--link", type=Path, required=True)
@@ -110,6 +117,19 @@ def main() -> int:
             plan = read_json(args.plan, limit=64 * 1024)
             choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
             result = review_early_choice(plan, choice)
+        elif args.action == "candidate-review":
+            if args.card and args.cards:
+                raise AgentError("CANDIDATE_CARD_INVALID", "Use either --card or --cards, not both")
+            if args.cards:
+                bundle = read_json(args.cards, limit=256 * 1024)
+                if not isinstance(bundle, dict) or not isinstance(bundle.get("cards"), list):
+                    raise AgentError("CANDIDATE_CARD_INVALID", "Bundle needs a top-level 'cards' list")
+                cards = bundle["cards"]
+            elif args.card:
+                cards = [read_json(path, limit=64 * 1024) for path in args.card]
+            else:
+                raise AgentError("CANDIDATE_CARD_INVALID", "Supply at least one --card or --cards")
+            result = review_candidates(cards)
         elif args.action == "feedback-link":
             result = review_linked_feedback(
                 read_json(args.link, limit=128 * 1024),
@@ -151,7 +171,7 @@ def main() -> int:
         return 2
     # H6 is never authenticated by this CLI: nonzero prevents shell wrappers
     # from treating a valid declaration or a pending response as execution approval.
-    if args.action in {"early-review", "h6-review"}:
+    if args.action in {"early-review", "h6-review", "candidate-review"}:
         return 3
     # A link that could not be verified must not look like a completed check.
     if args.action == "feedback-link":
