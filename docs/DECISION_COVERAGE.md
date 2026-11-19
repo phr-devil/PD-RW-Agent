@@ -153,3 +153,39 @@ touched; the 0.9.4 constraint map above still applies unchanged.
    `to_run_feedback` instead of hand-writing the object is `NOT_MEASURED`.
 3. Token and wall-clock cost: characters are recorded, tokens are `NOT_MEASURED`.
 4. Research gain from the clarified boundary: `NOT_MEASURED`.
+
+## ARCH-CLOSEOUT — a cache key may not be shorter than its input (2026-11-20)
+
+Baseline `cca068f` (v0.9.5, PR #19). This round touched two functions'
+inputs in `case_gates.py`; no rule, tool, permission, H-node, payload shape or
+`next_actions` type changed.
+
+| # | Defect | Evidence it was real | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 1 | `gate_fingerprint` hashed `run_feedback` clipped to 900 chars and a derived `evidence_declaration` string clipped to 500, so two **legal** declarations (`MAX_TEXT_CHARS` = 1200) that differed past the clip shared one key and the second call was served the first call's cached advisory | reproduced before any change: a 1033-char `run_feedback` differing only in its last field produced the same digest; an 8-ref declaration differing in `outcome_class` produced the same digest. Over stdio, a declared `ENGINEERING_FAILURE` was answered with `VALID_SCIENTIFIC_NEGATIVE` and `cache_hit=true` | digest built from `_fingerprint_inputs` (every field, plus a structured declaration); `FINGERPRINT_DISPLAY_CLIP` + `_fingerprint_display` produce the returned basis only; `CASE_GATES_VERSION` 1.2 → 1.3 | `test_closeout_fingerprint` (7), `test_a_changed_declaration_tail_is_not_answered_from_cache` |
+| 2 | `triage_anomaly` echoed a declared `VALID_SCIENTIFIC_NEGATIVE` even when the same call declared a Run state that cannot support it, so one payload said "valid scientific negative" while its first next action said "find the real Run record first" | reproduced over stdio with `validity=INVALID`: `category=VALID_SCIENTIFIC_NEGATIVE`, `situation=EXECUTION_UNVERIFIED` | `_declared_category_conflict` is a pure declaration cross-check (no file read, no approval): `category` stays declared, `category_effective` becomes `UNKNOWN`, `status` becomes `UNKNOWN`, and the reason is listed. The other three classes are untouched | `test_closeout_t1_triage` (6) |
+
+### Preservation in this round
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| H3/H4/H6/H8 + H7 in-scope DEV autonomy | unchanged | full suite 488/488 under the v1.13 root (`68e29c3`) **and** the v1.14 read-only worktree (`d4056fc`); `V114BoundaryTests`, `test_h6_plan_selection`, `test_v061_history` |
+| SEALED, source tiers, `as_of`, DEV/VAL isolation | unchanged | `test_wp9_*`, `test_science_feedback_link`, `SealedBoundaryUnchangedTests` |
+| CLI / MCP surfaces | unchanged: 24 tools, profiles 11/21/24, no tool added | `test_mcp`, stdio trial reports 21 tools under `research` |
+| `next_actions` / `status` names | unchanged for every non-contradictory input | `case_decision_eval` 10/10, `case_gate_eval` 17/17 |
+| Original research data, Runs, STATE, `CASE_LIBRARY`, frozen A/B/C | untouched | `case_gate_eval` library digest before = after; `git status` |
+
+### Unverified in this round
+
+1. **A real model session was not run.** `~/.workbuddy/mcp.json` still declares
+   the stdio server, but this session exposes no `pd-rw-research` tools and the
+   connector list is empty, so no LLM tool call could be made. The three
+   scenarios were driven by a scripted stdio client (`audit/closeout/mcp_trial.py`);
+   that proves the interface, not that a model calls the tool or follows the
+   Skill. `REAL_LLM_END_TO_END = NOT_MEASURED (BLOCKED_BY_HOST_TOOL_MOUNT)`.
+2. Token and wall-clock cost in a real conversation: `NOT_MEASURED` (character
+   counts are recorded; the cache hit is 5.8 ms vs 11.4 ms server-side only).
+3. Research value of the two fixes: `NOT_MEASURED`. Fix 1 removes a wrong
+   advisory; it does not by itself improve a research decision.
+4. `PRESERVATION_UNVERIFIED` is unchanged: "retrieval / hash / CI is not proof"
+   still exists only in original user messages.

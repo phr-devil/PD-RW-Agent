@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.5 (declared-vs-verified feedback boundary).**
+> **Current release — 0.9.6 (declared-vs-verified feedback boundary).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts) and one **downgrade-only**
 > projection from an evidence-linked Run to the next action. No event field
@@ -14,6 +14,22 @@
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v0.9.6 bounded-input cache key (freeze candidate):** the gate fingerprint
+> hashed only the first 900 characters of `run_feedback` and the first 500 of a
+> derived evidence declaration. Two *legal* declarations that differed later
+> therefore shared one key, and the second call was answered from the first
+> call's advisory — a declared `ENGINEERING_FAILURE` came back as
+> `VALID_SCIENTIFIC_NEGATIVE`. The digest now covers the complete bounded input
+> (the event validator already caps each field at 1200 characters and the event
+> at 20 fields); clipping survives only in the returned, human-auditable basis.
+> A T1 declaration of a valid negative that contradicts its own declared Run
+> state is still echoed as `category`, but reported as
+> `category_effective = UNKNOWN`. `CASE_GATES_VERSION` 1.2 → 1.3. No tool,
+> rule, permission, H-node or `next_actions` shape changed: MCP stays 11/21/24.
+> Scripted stdio calls confirm both fixes; **a real model session was not
+> available in this round**, so model adherence, Token cost and research gain
+> remain `NOT_MEASURED`.
 
 > **v0.9.0–v0.9.3 (summary):** evidence-linked probe feedback, a judged-Run
 > next action, separate pre-decision/post-Run case timing, a strict `as_of`

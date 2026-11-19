@@ -1,6 +1,6 @@
 # PD-RW-Agent architecture and change contract
 
-This file describes **where each responsibility lives** in v0.9.5 and what each
+This file describes **where each responsibility lives** in v0.9.6 and what each
 layer is forbidden to do. It is an adapter map, not a scientific rule source:
 PD-RW `WORKFLOW.md` / `AGENTS.md` remain the only owners of scientific meaning.
 
@@ -54,6 +54,12 @@ it lists `file_binding`, `historical_order`, `run_validity` and
 re-opened the original file may describe a check as passed — today that is
 `science.feedback_link`, whose `verification_axes` block does exactly that.
 
+The same rule reaches the gate's own cache: the fingerprint hashes the
+**complete** bounded event (20 fields × 1200 characters, enforced by the event
+validator), because a key computed from a clipped field would let a changed
+declaration reuse an earlier advisory. Clipping is a display concern and lives
+only in the returned basis (`gate_fingerprint(...)[1]`).
+
 ## AI context budget
 
 1. WorkBuddy discovers the Skill through YAML `description`.
@@ -86,7 +92,7 @@ re-opened the original file may describe a check as passed — today that is
 | `scripts/context.py action-review` | Wraps PD-RW `core.execution_preflight` | Advisory only; grants nothing |
 | `scripts/context.py delivery-review` | Wraps PD-RW `core.delivery_check` | Existence/path-only; no content or SEALED clearance |
 
-## Not implemented (honest scope for v0.9.5)
+## Not implemented (honest scope for v0.9.6)
 
 - No original-user-message authentication, tool interceptor, sandbox or OS ACL.
 - No re-reading of a Run inside `case_gate_check`: it reports declared feedback

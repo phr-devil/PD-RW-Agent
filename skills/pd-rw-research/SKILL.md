@@ -13,7 +13,7 @@ examples_zh:
   - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.9.5
+version: 0.9.6
 author: phr-devil
 ---
 
@@ -77,7 +77,7 @@ step. Reuse `case_search`/`case_gate_check` for retrieval; the mirror is not a s
 
 **Two conditional triggers:**
 
-- **T1** important anomaly, core mechanism unsupported, severe evaluation problem, repeated ineffective attempts or consecutive valid negative results → first distinguish engineering error / invalid experiment / insufficient evidence / valid scientific negative, then suggest ONE next decisive action.
+- **T1** important anomaly, core mechanism unsupported, severe evaluation problem, repeated ineffective attempts or consecutive valid negative results → first distinguish engineering error / invalid experiment / insufficient evidence / valid scientific negative, then suggest ONE next decisive action. Quote `anomaly_triage.category_effective`, not `category`: the second is your own declaration, and a declared negative contradicted by the same Run's declaration is reported as `UNKNOWN`.
 - **T2** significant resource increase or change of core algorithm strategy, data scope, evaluation criterion or scientific question. Ordinary code changes, tuning, tests, plotting and same-scope DEV iteration do **not** trigger.
 
 ### H3/H4/H6 cards stay authoritative; the bridge only reads them
