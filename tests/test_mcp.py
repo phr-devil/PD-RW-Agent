@@ -35,12 +35,15 @@ class MCPTests(unittest.TestCase):
                         "audit_scientific_experiment", "review_evidenced_lesson",
                         "review_lesson_applicability",
                         "search_research_memory", "find_experiment_evidence",
+                        "review_case_transfer", "extract_case_candidates",
+                        "case_gate_check", "project_case_bridge",
                         "check_duplicate_experiment",
                         "get_resume_context", "get_execution_status",
                         "begin_operation_receipt", "checkpoint_operation_receipt",
                         "preview_experiment_record", "prepare_handoff",
                     })
                     self.assertNotIn("record_experiment_result", names)
+                    self.assertNotIn("write_case_to_library", names)
                     response = await client.call_tool(
                         "get_project_context", {"project_id": "missing"})
                     self.assertFalse(response.is_error)
@@ -63,7 +66,7 @@ class MCPTests(unittest.TestCase):
             settings = Settings.load(str(mapping), str(rules))
 
             async def check():
-                for profile, expected_count in (("minimal", 11), ("research", 17)):
+                for profile, expected_count in (("minimal", 11), ("research", 21)):
                     async with Client(create_server(settings, profile=profile)) as client:
                         response = await client.list_tools()
                         names = {t.name for t in response.tools}
@@ -71,6 +74,8 @@ class MCPTests(unittest.TestCase):
                         self.assertIn("get_resume_context", names)
                         self.assertNotIn("get_host_diagnostic_status", names)
                         self.assertEqual("audit_scientific_experiment" in names,
+                                         profile == "research")
+                        self.assertEqual("case_gate_check" in names,
                                          profile == "research")
             asyncio.run(check())
 

@@ -4,6 +4,8 @@ import hashlib
 import os
 import re
 import sqlite3
+import threading
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +13,16 @@ from ..config import Settings, under_root
 from ..schemas import AgentError
 from ..projects import get_project_context
 from .schema import migrate_runtime_db
+
+# Cold-start race: several callers opening a brand-new SQLite file at the same
+# time can observe "attempt to write a readonly database" on Windows, because
+# the first connection is still creating the file/journal while the others try
+# to run CREATE TABLE. Serialize *schema initialization* (not every operation)
+# and make the first connection finish the file before anyone else opens it.
+_SCHEMA_LOCK = threading.Lock()
+BUSY_TIMEOUT_MS = 10_000
+_RETRYABLE = ("locked", "busy", "readonly", "read-only")
+_MAX_OPEN_RETRIES = 4
 
 
 def _assert_context(settings: Settings, project_id: str, task_id: str | None = None) -> None:
@@ -74,32 +86,108 @@ def _db_path(settings: Settings, project_id: str, *, create: bool) -> Path | Non
     return dest / "runtime.sqlite"
 
 
+_SCHEMA_SQL = """
+    CREATE TABLE IF NOT EXISTS operations (
+      project_id TEXT NOT NULL, operation_id TEXT NOT NULL,
+      task_id TEXT NOT NULL, action TEXT NOT NULL,
+      phase TEXT NOT NULL, revision INTEGER NOT NULL,
+      artifact_ref TEXT NOT NULL DEFAULT '',
+      artifact_sha256 TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      PRIMARY KEY (project_id, operation_id)
+    )
+"""
+_SCHEMA_READY: set[str] = set()
+
+
+def _retryable(exc: sqlite3.Error) -> bool:
+    text = str(exc).casefold()
+    return any(word in text for word in _RETRYABLE)
+
+
+def _connect(path: Path) -> sqlite3.Connection:
+    """Open one writable connection, retrying only transient SQLite errors.
+
+    Real SQLite failures are re-raised unchanged so the service can classify
+    them as storage errors rather than hiding them behind INVALID_INPUT.
+    """
+    last: sqlite3.Error | None = None
+    for attempt in range(_MAX_OPEN_RETRIES):
+        try:
+            connection = sqlite3.connect(str(path), timeout=BUSY_TIMEOUT_MS / 1000)
+            connection.row_factory = sqlite3.Row
+            connection.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+            return connection
+        except sqlite3.Error as exc:
+            last = exc
+            if not _retryable(exc) or attempt == _MAX_OPEN_RETRIES - 1:
+                break
+            time.sleep(0.01 * (2 ** attempt))
+    raise last  # type: ignore[misc]
+
+
+def _ensure_schema(path: Path) -> None:
+    """Finish first-time DB creation before any other connection opens it.
+
+    On Windows, concurrent sqlite3.connect() calls on a not-yet-existing file
+    can fall back to a read-only handle ("attempt to write a readonly
+    database"). A process lock serializes cold start; bounded retries cover
+    cross-process contention. Idempotent by design (CREATE TABLE IF NOT EXISTS).
+    """
+    key = str(path)
+    if key in _SCHEMA_READY and path.is_file():
+        return
+    with _SCHEMA_LOCK:
+        if key in _SCHEMA_READY and path.is_file():
+            return
+        last: sqlite3.Error | None = None
+        for attempt in range(_MAX_OPEN_RETRIES):
+            connection = None
+            try:
+                connection = _connect(path)
+                connection.execute(_SCHEMA_SQL)
+                connection.commit()
+                _SCHEMA_READY.add(key)
+                return
+            except sqlite3.Error as exc:
+                last = exc
+                if not _retryable(exc) or attempt == _MAX_OPEN_RETRIES - 1:
+                    break
+                time.sleep(0.01 * (2 ** attempt))
+            finally:
+                if connection is not None:
+                    try:
+                        connection.close()
+                    except sqlite3.Error:
+                        pass
+        raise last  # type: ignore[misc]
+
+
 @contextmanager
 def _open(path: Path, *, write: bool = True):
-    # Read-only status must not create a DB, journal or missing schema.
-    uri = path.resolve().as_uri() + "?mode=ro"
-    connection = sqlite3.connect(str(path) if write else uri,
-                                 timeout=10, uri=not write)
-    connection.row_factory = sqlite3.Row
+    """Write paths cold-start safely; read-only status never creates a DB.
+
+    Cloud read semantics are kept verbatim: ``mode=ro`` URI, no journal and
+    no schema change. The local cold-start fix is applied to write paths
+    only — schema creation completes once under a process lock before any
+    concurrent open, and versioned migrations still run.
+    """
+    if not write:
+        uri = path.resolve().as_uri() + "?mode=ro"
+        connection = sqlite3.connect(uri, timeout=BUSY_TIMEOUT_MS / 1000,
+                                     uri=True)
+        connection.row_factory = sqlite3.Row
+        try:
+            connection.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+            yield connection
+        finally:
+            connection.close()
+        return
+    _ensure_schema(path)
+    connection = _connect(path)
     try:
-        connection.execute("PRAGMA busy_timeout=10000")
-        if write:
-            connection.execute("""
-            CREATE TABLE IF NOT EXISTS operations (
-              project_id TEXT NOT NULL, operation_id TEXT NOT NULL,
-              task_id TEXT NOT NULL, action TEXT NOT NULL,
-              phase TEXT NOT NULL, revision INTEGER NOT NULL,
-              artifact_ref TEXT NOT NULL DEFAULT '',
-              artifact_sha256 TEXT NOT NULL DEFAULT '',
-              created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-              PRIMARY KEY (project_id, operation_id)
-            )
-        """)
-        if write:
-            with connection:
-                migrate_runtime_db(connection)
-                yield connection
-        else:
+        with connection:
+            migrate_runtime_db(connection)
             yield connection
     finally:
         connection.close()
@@ -178,6 +266,7 @@ def checkpoint_operation(settings: Settings, project_id: str, operation_id: str,
     path = _db_path(settings, project_id, create=False)
     if path is None or not path.is_file():
         raise AgentError("RECEIPT_NOT_FOUND", "No operational receipt database exists")
+    # Existing DB only; never create a receipt store from a checkpoint.
     with _open(path) as db:
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT * FROM operations WHERE project_id=? AND operation_id=?",

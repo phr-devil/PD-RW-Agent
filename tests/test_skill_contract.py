@@ -24,6 +24,38 @@ class SkillContractTests(unittest.TestCase):
             if line.startswith("version = "))
         self.assertIn("version: " + expected, front)
 
+    def test_case_library_reuse_is_on_demand_and_advisory(self):
+        text = ENTRY.read_text(encoding="utf-8")
+        self.assertIn("Case-library reuse (on demand", text)
+        self.assertIn("new Task", text)
+        self.assertIn("significant anomaly", text)
+        self.assertIn("large resource investment", text)
+        self.assertIn("end of an effective experiment", text)
+        self.assertIn("query_fingerprint", text)
+        self.assertIn("keyword similarity != scientific premise equivalence", text)
+        self.assertIn("APPLICABILITY_RISK", text)
+        self.assertIn("EVIDENCE_INSUFFICIENT", text)
+        self.assertIn("never output GO/STOP", text)
+        self.assertIn("CANDIDATE_ONLY", text)
+
+    def test_five_case_triggers_priority_and_enforcement_level(self):
+        text = ENTRY.read_text(encoding="utf-8")
+        for marker in ("G1 · H2–H3", "G2 · H4 and H6–H7", "G3 · H8/H10",
+                       "**T1**", "**T2**", "G1 > G2 > G3 > T1 > T2",
+                       "case_gate_check(event)", "gate_fingerprint",
+                       "CASE_CHECK: COMPLETED", "verify_gate_record",
+                       "enforcement_level.hard_gate=false", "UNKNOWN",
+                       "NOT a WorkBuddy host state-transition hard gate"):
+            self.assertIn(marker, text)
+
+    def test_h3_h4_h6_bridge_keeps_cards_and_marks_unknown(self):
+        text = ENTRY.read_text(encoding="utf-8")
+        for marker in ("project_case_bridge", "unknown_dimensions",
+                       "early_stage_no_experiment_profile_required",
+                       "card_rewritten", "never rewrites, approves, rejects",
+                       "no complete experiment profile"):
+            self.assertIn(marker, text)
+
     def test_registered_project_uses_compact_resume_without_redundant_context(self):
         text = ENTRY.read_text(encoding="utf-8")
         self.assertIn("MCP-first for a registered, permitted project", text)

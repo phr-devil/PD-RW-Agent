@@ -47,6 +47,41 @@ def main() -> int:
     m = sub.add_parser("memory")
     m.add_argument("--query", required=True)
     m.add_argument("--limit", type=int, default=5)
+    m.add_argument("--mechanism", default="")
+    m.add_argument("--domain", default="")
+    m.add_argument("--applicability", default="")
+    m.add_argument("--verdict", default="")
+    m.add_argument("--evidence-level", default="")
+    m.add_argument("--origin", default="")
+    m.add_argument("--keyword", default="")
+    m.add_argument("--max-experiences", type=int, default=5)
+    m.add_argument("--legacy-only", action="store_true")
+    m.add_argument("--case-scope", choices=("auto", "force", "off"), default="auto",
+                   help="auto = skip full CASE_LIBRARY for general lookups")
+    m.add_argument("--task-profile-file", help="JSON file with the 8-dimension task profile")
+    cr = sub.add_parser("case-review")
+    cr.add_argument("--task-profile-file", required=True)
+    cr.add_argument("--query", default="case transfer review")
+    cr.add_argument("--limit", type=int, default=5)
+    cr.add_argument("--mechanism", default="")
+    cr.add_argument("--domain", default="")
+    cr.add_argument("--verdict", default="")
+    cr.add_argument("--evidence-level", default="")
+    cc = sub.add_parser("case-candidates")
+    cc.add_argument("--project-id", required=True)
+    cc.add_argument("--observations-file", required=True)
+    cc.add_argument("--evidence-root", default="")
+    cc.add_argument("--evidence-manifest", default="")
+    cg = sub.add_parser("case-gate")
+    cg.add_argument("--event-file", required=True)
+    cg.add_argument("--detail", choices=("compact", "full"), default="compact")
+    cb = sub.add_parser("case-bridge")
+    cb.add_argument("--stage-card-file", required=True)
+    cb.add_argument("--stage", choices=("H3", "H4", "H6", "H7", "H8", "H9", "H10"),
+                    default="")
+    cb.add_argument("--detail", choices=("compact", "full"), default="compact")
+    cx = sub.add_parser("case-export")
+    cx.add_argument("--case-id", required=True)
     e = sub.add_parser("evidence")
     e.add_argument("--project-id", required=True)
     e.add_argument("--task-id", default="")
@@ -121,7 +156,41 @@ def main() -> int:
         elif command == "rules":
             out = service.call("get_applicable_rules", topic=options.topic)
         elif command == "memory":
-            out = service.call("search_research_memory", query=options.query, limit=options.limit)
+            profile = (read_json(Path(options.task_profile_file))
+                       if options.task_profile_file else None)
+            out = service.call(
+                "search_research_memory", query=options.query, limit=options.limit,
+                mechanism=options.mechanism, domain=options.domain,
+                applicability=options.applicability, verdict=options.verdict,
+                evidence_level=options.evidence_level, origin=options.origin,
+                keyword=options.keyword, max_experiences=options.max_experiences,
+                include_cases=not options.legacy_only,
+                case_scope=options.case_scope, task_profile=profile)
+        elif command == "case-review":
+            filters = {k: v for k, v in {
+                "mechanism": options.mechanism, "domain": options.domain,
+                "verdict": options.verdict,
+                "evidence_level": options.evidence_level}.items() if v}
+            out = service.call("review_case_transfer",
+                               task_profile=read_json(Path(options.task_profile_file)),
+                               filters=filters, query=options.query, limit=options.limit)
+        elif command == "case-candidates":
+            manifest = (read_json(Path(options.evidence_manifest))
+                        if options.evidence_manifest else None)
+            out = service.call("extract_case_candidates", project_id=options.project_id,
+                               observations=read_json(Path(options.observations_file))["observations"],
+                               evidence_root=options.evidence_root or None,
+                               evidence_manifest=manifest)
+        elif command == "case-gate":
+            packet = read_json(Path(options.event_file))
+            event = packet.get("event", packet) if isinstance(packet, dict) else packet
+            out = service.call("case_gate_check", event=event, detail=options.detail)
+        elif command == "case-bridge":
+            card = read_json(Path(options.stage_card_file))
+            out = service.call("project_case_bridge", stage_card=card,
+                               stage=options.stage, detail=options.detail)
+        elif command == "case-export":
+            out = service.call("export_case_markdown", case_id=options.case_id)
         elif command == "evidence":
             out = service.call("find_experiment_evidence", project_id=options.project_id,
                                task_id=options.task_id, run_id=options.run_id, limit=options.limit)

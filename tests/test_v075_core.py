@@ -13,10 +13,14 @@ class CoreConvergenceTests(unittest.TestCase):
         core = tools_for_profile("minimal")
         research = tools_for_profile("research")
         diagnostic = tools_for_profile("diagnostic")
-        self.assertEqual((len(core), len(research), len(diagnostic)), (11, 17, 20))
+        # v0.8.2 integration adds four optional CASE_LIBRARY advisory tools to
+        # research/diagnostic only; the lean minimal profile is unchanged.
+        self.assertEqual((len(core), len(research), len(diagnostic)), (11, 21, 24))
         self.assertTrue(core < research < diagnostic)
         self.assertNotIn("get_host_diagnostic_status", research)
         self.assertIn("audit_scientific_experiment", research)
+        self.assertIn("case_gate_check", research)
+        self.assertNotIn("case_gate_check", core)
         with self.assertRaises(ValueError):
             tools_for_profile("unrestricted")
 

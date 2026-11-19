@@ -80,6 +80,10 @@
 
 > Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled in the Agent adapter (including caller-supplied callback) pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
 
+> **v0.5.4 local increment:** read-only, advisory reuse of `CASE_LIBRARY` (`review_case_transfer`, `extract_case_candidates`, and an additive `case_library` field on `search_research_memory`). No writes to CASE_LIBRARY / STATE / Run / SEALED and no GO/STOP. Setup, restart steps and the ON/OFF ablation are in [RUNTIME_AND_MCP.md](docs/RUNTIME_AND_MCP.md#v054-local-increment-case_library-advisory-reuse) and `evals/case_learning_ablation.py`.
+
+> **v0.5.5 local increment:** `case_gate_check` adds 3 advisory mandatory checkpoints (G1 H2–H3, G2 H6–H7, G3 H8–H10) and 2 conditional triggers (T1 anomalies/negatives, T2 material decision changes), with fingerprint-based cache reuse, real-retrieval + applicability verification and UNKNOWN marking. It reuses the existing retriever; no second database, no GO/STOP, and **no WorkBuddy host state-transition hard gate** (`enforcement_level.hard_gate=false`). See [RUNTIME_AND_MCP.md](docs/RUNTIME_AND_MCP.md#v055-local-increment-five-case-application-gates) and `evals/case_gate_eval.py`.
+
 ## v0.5.2 evidence-binding and negative lesson preview (optional local Python only)
 
 Local `src/pdrw_agent/science/` helpers review **declared** competing hypotheses, classify failure types, compare exact premise/scope identities, bind cited IDs to hash-checked frozen sources, and validate/blind A/B/C replay packets. Byte matches do not prove science or historical authenticity.
