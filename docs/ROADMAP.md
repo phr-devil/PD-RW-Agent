@@ -1,5 +1,12 @@
 # Implementation roadmap (not a second research workflow)
 
+## v0.8.1 lean-science restoration (UNMEASURED)
+
+- No new author nodes, second science policy, private database, paid API, autonomous paper drafting, execution permission or OS-privilege claim. Existing PD-RW v1.14 remains the scientific authority.
+- Default Skill owns only the short outcome/5-boundary overview, current project recovery and event-specific routing; deeper research-leverage guidance loads only at question selection, meaningful Pilot, significant negative/positive Run or paper/pivot transition.
+- Protect small credible Q2+ contributions, legacy/simple improvements, exploratory UNKNOWN, meaningful negative mechanisms and verified successes alongside failures. Distinguish NOT_RUN/INVALID/INCONCLUSIVE from a premise-scoped VALID_NEGATIVE. Do not auto-stop a project, grant training, or infer novelty from a result.
+- Validate: (1) no new author ask for authorized ordinary DEV; (2) no project STOP from one negative pilot; (3) positive scoped lessons remain source-unverified advisory; (4) no double loading/audit without changed evidence; (5) no auto manuscript/figure; (6) real WorkBuddy A/B/C on frozen source windows. CI checks only contracts; research quality and Token savings are NOT_MEASURED.
+
 ## v0.8.0 publication-first H3/H4/H6 (unmeasured)
 
 - New PD-RW v1.4 projects: agent-led deep topic search and author H3 decision, separate H4 dataset/proof decision, H5 proposed final question, and author H6 concrete paper Task / bounded adaptive pivot. Each card has a material hash, distinct original user-message ref, and H4/H6 upstream binding. Historical v1.3 projects retain their decisions.
