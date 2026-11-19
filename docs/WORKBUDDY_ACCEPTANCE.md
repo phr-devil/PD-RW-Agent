@@ -1,4 +1,4 @@
-# WorkBuddy on-device acceptance (v0.7.6)
+# WorkBuddy on-device acceptance (v0.7.9)
 
 > Required next gate: run actual WorkBuddy comparisons with the same frozen sources and unchanged PD-RW authority. A=PD-RW only, B=PD-RW+Skill, C=PD-RW+Skill+Python/MCP. For C use the `research` profile and one compact resume call; verify real tool traces rather than assuming Skill import invokes MCP.
 > Record project/Task identity accuracy, original evidence fidelity, duplicate/unknown job re-execution, legal DEV continuity, unexpected approvals, unauthorized actions, model/tool tokens, and manual interventions. Public GitHub contains neither private runs nor user transcripts. **NOT_MEASURED** remains until raw client results are available.
