@@ -6,6 +6,7 @@ Scientific rules and actual Run evidence remain with PD-RW.
 from __future__ import annotations
 from itertools import combinations
 from ..schemas import AgentError
+from .probe_frontier import summarize_declared_probe_frontier
 
 OUTCOMES = {"INCREASE", "DECREASE", "NO_CHANGE", "UNKNOWN"}
 COSTS = {"LOW", "MEDIUM", "HIGH", "UNKNOWN"}
@@ -177,6 +178,7 @@ def assess_proposal(packet: dict) -> dict:
         "premise_candidates": negative_candidates,
         "prechecks": prechecks,
         "probe_comparisons": summaries,
+        "declared_probe_efficiency": summarize_declared_probe_frontier(summaries),
         "no_claim_of_novelty_or_scientific_validity": True,
         "original_user_authorization": "UNVERIFIED",
         "automatic_stop": False,
