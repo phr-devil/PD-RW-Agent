@@ -18,6 +18,7 @@ _OPTION = {"id", "question_or_evidence_path", "paper_value",
            "nearest_prior", "truth_and_independence", "discriminating_probe",
            "cost_and_risk"}
 _PLAN = {"schema_version", "stage", "research_line_ref", "scope_ref",
+         "hard_constraints_sha256",
          "upstream_choices", "options", "recommended_option_id",
          "recommendation_rationale"}
 _CHOICE = {"schema_version", "plan_sha256", "kind",
@@ -60,6 +61,9 @@ def validate_early_plan(plan):
         raise AgentError("EARLY_PLAN_INVALID", "Unsupported early plan version/stage")
     for name in ("research_line_ref", "scope_ref", "recommendation_rationale"):
         _text(plan[name], name)
+    if (not isinstance(plan["hard_constraints_sha256"], str)
+            or not _HASH.fullmatch(plan["hard_constraints_sha256"])):
+        raise AgentError("EARLY_PLAN_INVALID", "HARD constraint snapshot digest required")
     upstream = () if plan["stage"] == "H3" else ("H3",)
     validate_upstream_choices(plan["upstream_choices"], upstream)
     options = plan["options"]
