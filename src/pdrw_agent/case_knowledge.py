@@ -573,6 +573,7 @@ def build_plan(settings, *, state: dict | None = None) -> dict:
                                            if t not in case_export.STAGE_ROUTING}),
         },
         "publishable": publish["publishable"],
+        "publish_state": _publish_state_label(publish["publishable"]),
         "publish_blockers": publish["blockers"],
         "privacy_blocked_cases": blockers,
         "files": [{"path": p, "sha256": hashes[p], "bytes": len(files[p].encode("utf-8"))}
@@ -584,6 +585,12 @@ def build_plan(settings, *, state: dict | None = None) -> dict:
                                       sort_keys=True, indent=1) + "\n"
     return {"files": files, "manifest": manifest, "cases": cases,
             "library": library, "publish": publish, "privacy_blockers": blockers}
+
+
+def _publish_state_label(publishable: bool) -> str:
+    """Explicit preview/publish distinction: a build never publishes anything."""
+    return ("READY_FOR_CONFIRMED_PUBLICATION" if publishable
+            else "BLOCKED_NOT_PUBLISHABLE")
 
 
 def _count(cases: list[dict], key: str) -> dict:
@@ -813,6 +820,7 @@ def build(settings, out_dir, *, incremental: bool = True,
             "written": changed, "reused": len(reused),
             "deleted": stale_files,
             "publishable": manifest["publishable"],
+            "publish_state": manifest["publish_state"],
             "publish_blockers": manifest["publish_blockers"],
             "content_sha256": manifest["content_sha256"],
             "generation": state["generation"],

@@ -213,6 +213,7 @@ class KnowledgeMirrorTests(unittest.TestCase):
         manifest = json.loads((self.fx.out / "manifest.json").read_text(encoding="utf-8"))
         self.assertFalse(manifest["publishable"])
         self.assertIn("PRIVACY_OR_CONTENT_BLOCKER", manifest["publish_blockers"])
+        self.assertEqual(manifest["publish_state"], "BLOCKED_NOT_PUBLISHABLE")
         self.assertIn("ABSOLUTE_LOCAL_PATH", manifest["privacy_blocked_cases"]["T-09"])
         card = (self.fx.out / "cases" / "T-09.md").read_text(encoding="utf-8")
         self.assertIn("发布阻断", card)
@@ -415,6 +416,7 @@ class RealLibraryKnowledgeTests(unittest.TestCase):
         self.assertEqual(manifest["case_count"], manifest["source"]["cases_in_index"])
         self.assertEqual(len(cards), len(set(cards)))
         self.assertTrue(manifest["publishable"], manifest["publish_blockers"])
+        self.assertEqual(manifest["publish_state"], "READY_FOR_CONFIRMED_PUBLICATION")
 
     def test_every_stage_index_has_candidates(self):
         for stage in case_knowledge.STAGES:
@@ -441,6 +443,28 @@ class RealLibraryKnowledgeTests(unittest.TestCase):
                          rows["EXT-N02"]["source_group_id"])
         self.assertNotEqual(rows["EXT-REPAIR-01"]["source_group_id"],
                             rows["EXT-X1"]["source_group_id"])
+
+    def test_stage_questions_reach_candidates(self):
+        """Engineering only: a stage question must not return an empty pool.
+
+        Whether the returned cases are the *scientifically* best ones is not
+        measured here; the retriever is the same one the MCP tools use.
+        """
+        bundle = case_learning.load_index(REAL_LIBRARY)
+        known = {c["case_id"] for c in bundle["data"]["cases"]}
+        questions = {
+            "H3": "这个触觉跨受试者题目是否只是已有基准的复现，还有没有论文价值",
+            "H4": "只有受试者编号，没有独立真值，评价路径怎样才算独立评价",
+            "H6": "计划用小样本消融证明新模块有效，担心复杂基线比简单基线更强",
+            "H7": "实验失败了，指标比基线差很多，是数据泄漏还是机制不成立",
+            "H8": "核心贡献被质疑只是排行榜调参，是否要转向新的科学问题",
+        }
+        for stage, question in questions.items():
+            result = case_learning.search(bundle, None, question, limit=3)
+            self.assertEqual(result["status"], "MATCHES_FOUND", stage)
+            ids = [r["case_id"] for r in result["results"]]
+            self.assertTrue(ids, stage)
+            self.assertTrue(set(ids) <= known, stage)
 
     def test_tampering_is_detected(self):
         copy = Path(self.temp.name) / "copy"
