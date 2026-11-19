@@ -13,7 +13,7 @@ examples_zh:
   - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.9.2
+version: 0.9.3
 author: phr-devil
 ---
 
@@ -115,32 +115,33 @@ Host CPU synthetic checks and `preflight_execution_plan(plan)` are diagnostic on
 
 ## Optional experiment feedback (only for a meaningful hypothesis-judging Run)
 
-Only when a real Run actually judged a pre-declared hypothesis, and an original
-pre-result proposal still exists, run the local read-only binder:
+Only when a real Run judged a pre-declared hypothesis and the original pre-result
+proposal still exists, run `python -m pdrw_agent.science.cli feedback-link --link
+<link.json> --project-root <project>`. It verifies files/hashes, compares declared
+categorical predictions, and attaches at most three case candidates. Rules:
 
-```sh
-python -m pdrw_agent.science.cli feedback-link --link <link.json> --project-root <project>
-```
-
-It verifies the declaration/Run files and hashes, compares declared categorical
-predictions with the declared observation, and attaches at most three case
-candidates. Rules:
-
-- No pre-result record, a hash mismatch, or a declaration dated after the Run =>
-  `PRE_RESULT_RECORD_UNVERIFIED`: keep the observation and continue exploring,
-  but never claim the prediction was verified. Declared timestamps and equal
-  hashes are not proof of temporal order.
-- `INVALID` / `INCONCLUSIVE` / `NOT_RUN` never become scientific negatives; a
-  changed observable, evaluation unit or comparison reference is
-  `NOT_COMPARABLE`, not a failed hypothesis.
-- A positive result keeps its success conditions **and** boundaries; a negative
-  result challenges only the premise actually tested, never the whole project.
-- Cases are candidates: `REVIEW_REQUIRED`, preprint, internal-report and
-  abstract-only cards stay exploratory; same-paper/same-Run cards count as one
-  independent unit; a missing match is `NOT_FOUND_WITHIN_SCOPE`.
-- Write the advisory contrast and the changed next step in the existing
-  `RESEARCH_RECORD.md`; touch `PAPER_BLUEPRINT.md` only when a Claim changes.
-  Do not create a second ledger and do not add an approval step.
+- Report three states separately: `DECLARED_PREDICTION_COMPARED` (contrast
+  computed, advisory), `PRE_RESULT_PROVENANCE_VERIFIED` (project-file record binds
+  the proposal digest, its own time precedes the Run, no conflict),
+  `PRE_RESULT_RECORD_UNVERIFIED` (anything less — never call it verified). A
+  self-declared time, an inline proposal or equal hashes prove no order.
+- `INVALID`/`INCONCLUSIVE`/`NOT_RUN` never become scientific negatives; a changed
+  observable, unit or comparison reference is `NOT_COMPARABLE`. A positive keeps
+  its conditions and boundaries; a negative challenges only the tested premise.
+- Cases are candidates: `REVIEW_REQUIRED`, preprint and internal-report cards stay
+  exploratory; same-paper/same-Run cards count once; a miss is
+  `NOT_FOUND_WITHIN_SCOPE`, never "no evidence".
+- Timing is explicit: retrieval now is `post_run_related_case_ids`, never
+  pre-decision use. Pre-decision IDs need a `pdrw-case-usage-receipt-v1` receipt
+  in the project dated before the frozen decision; otherwise UNKNOWN.
+- After a judged Run, pass a bounded `run_feedback` object to `case_gate_check`
+  (`run_ref`, `validity`, `outcome`, `prediction_review`, `provenance`,
+  `compatible`, `contradicted`, `evidence_refs`). The first next action then
+  follows the Run situation (repair protocol, check execution, reassess the
+  premise, keep the champion, or design a discriminating probe), not keywords.
+- Write the contrast and the changed next step in the existing
+  `RESEARCH_RECORD.md`; `PAPER_BLUEPRINT.md` only when a Claim changes. No second
+  ledger, no approval step.
 
 Ordinary code changes, debugging and routine DEV must not invoke it. No MCP
 tool is registered for it. See `docs/EXPERIMENT_FEEDBACK_LINK.md`.
