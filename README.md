@@ -1,5 +1,7 @@
 # PD-RW-Agent
 
+> **v0.7.9 research outcome alignment:** For the user's explicit goal, optimize **time to credible high-tier, high-citation-potential scientific results** (Q1 preferred; credible Q2+ minimum as defined by PD-RW). The WorkBuddy Skill now compares scientific importance, named nearest-neighbor delta, reusable knowledge and the shortest legitimate evidence path at H6 / meaningful pivots. Optional `science.cli decision` adds conservative declared probe-cost Pareto hints. This is **advisory**: no citation/acceptance forecast, no extra H6 gate, no new research executor or permissions, and **real WorkBuddy research gains remain NOT_MEASURED**. [Scope](skills/pd-rw-research/references/research-leverage.md).
+
 > **v0.7.8 H6 decision closure preview:** New projects reuse user startup scope, AI researches H3-H5, and the Skill requires one specific H6 author choice. A hash-bound **read-only** Python checker rejects stale or malformed *declared* choices but cannot authenticate a user or enforce WorkBuddy actions. No new MCP tools. [Audit and limits](docs/V077_H6_PLAN_CHOICE.md).
 
 > **v0.7.6 targeted science/runtime patch:** Compact resume keeps specific blocker reasons and source-reported read-only recovery routes. Optional hash-bound DEV/VAL Run matrix coverage is checked within existing `audit_scientific_experiment`; it never certifies metric validity or a preregistered plan. No new MCP tools or execution permissions. **Real 42/43/44 WorkBuddy comparisons remain NOT_MEASURED.** [Scope and limitations](docs/V076_TARGETED_AUDIT.md).
