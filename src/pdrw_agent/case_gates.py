@@ -28,7 +28,7 @@ from collections import OrderedDict
 from . import case_learning
 from .schemas import AgentError
 
-CASE_GATES_VERSION = "1.2"
+CASE_GATES_VERSION = "1.3"
 GATE_CACHE_SIZE = 32
 MAX_EVENT_FIELDS = 20
 MAX_TEXT_CHARS = 1200
@@ -286,10 +286,46 @@ def determine_trigger(event) -> dict:
     }
 
 
+# Only this class asserts a scientific conclusion; the other three are already
+# self-limiting. So only it can be contradicted by the same call's Run state.
+SCIENTIFIC_CONCLUSION_CLASSES = frozenset({"VALID_SCIENTIFIC_NEGATIVE"})
+_CATEGORY_COMPATIBLE_SITUATIONS = frozenset({"DECLARED_NEGATIVE_RESULT_UNVERIFIED"})
+
+
+def _declared_category_conflict(e: dict, category: str) -> dict | None:
+    """A T1 declaration cannot outlive its own call's contradictory Run state.
+
+    Pure declaration cross-check: no file is read, so this is a consistency
+    rule, not a new gate and not an approval step.
+    """
+    if category not in SCIENTIFIC_CONCLUSION_CLASSES:
+        return None
+    if not isinstance(e.get("run_feedback"), dict) or not e["run_feedback"]:
+        return None
+    feedback = _declared_run_feedback(e)
+    situation = _run_situation(feedback, {})
+    if situation in _CATEGORY_COMPATIBLE_SITUATIONS:
+        return None
+    return {
+        "reason": "DECLARED_OUTCOME_CLASS_CONTRADICTED_BY_DECLARED_RUN",
+        "declared_situation": situation,
+        "declared_validity": feedback["validity"],
+        "declared_link_status": feedback["link_status_declared"],
+        "meaning": ("同一调用声明为科学负结果，但随附的 Run 声明不支持该结论："
+                    "保留声明供审计，有效分类降为 UNKNOWN。"),
+    }
+
+
 def triage_anomaly(event) -> dict:
     """T1: distinguish four outcome classes BEFORE suggesting a next action.
 
     All categories are DECLARED only; an unverified outcome stays UNKNOWN.
+    `category` echoes the caller's declaration unchanged. When that declaration
+    asserts a scientific conclusion while the SAME call declares a Run state
+    that cannot support one (invalid, unexecuted, conflicting or not
+    comparable), the declared category is kept for audit but the effective
+    category is downgraded to UNKNOWN: the tool must not restate the caller's
+    optimistic class as its own triage.
     """
     e = _canonical_event(event)
     declared = str(e.get("outcome_class") or "UNKNOWN").strip().upper()
@@ -305,12 +341,25 @@ def triage_anomaly(event) -> dict:
         reasons.append("OUTCOME_CLASS_UNKNOWN")
     if not has_refs:
         reasons.append("EVIDENCE_REFS_NOT_DECLARED_DO_NOT_TREAT_AS_VERIFIED_NEGATIVE")
+    conflict = _declared_category_conflict(e, category)
+    effective = "UNKNOWN" if conflict else category
+    if conflict:
+        status = "UNKNOWN"
+        reasons.append(conflict["reason"] + ":" + conflict["declared_situation"])
     return {
         "status": status, "category": category,
+        "category_declared": category,
+        "category_effective": effective,
+        "category_scope": "DECLARED_ONLY",
         "category_meaning": OUTCOME_CLASSES[category],
+        "declaration_conflict": conflict,
         "evidence_refs_declared": has_refs,
         "verification": "DECLARED_ONLY_NOT_INDEPENDENTLY_VERIFIED",
         "next_decisive_action": (
+            "先核实 Run 记录与原始日志：本次声明的分类与同一 Run 的声明状态矛盾，"
+            "核实前不得当作有效科研负结果；确认后按原 Run/日志区分上述类别，再从"
+            "适用案例的 next_minimal_check 选一项最小判别检查"
+            if conflict else
             "先按原 Run/日志区分上述类别，再从适用案例的 next_minimal_check "
             "选一项最小判别检查；不得把工程错误或证据不足升级为科研负结果"),
         "unknown_reasons": reasons,
@@ -320,6 +369,70 @@ def triage_anomaly(event) -> dict:
 
 
 # --- 2. Fingerprint + retrieval-record verification ------------------------
+# Display-only bounds for the returned basis. These are NOT the hash bounds:
+# `_canonical_event` already caps every legal field at MAX_TEXT_CHARS, so
+# clipping a field before hashing would let two materially different
+# declarations share one cache key and reuse the wrong advisory.
+FINGERPRINT_DISPLAY_CLIP = {
+    "decision": 400, "hypothesis": 600, "protocol": 600, "query": 300,
+    "run_feedback": 900, "evidence_declaration": 500,
+}
+
+
+def _json_safe(value):
+    """Keep list/scalar structure, stringify exotic leaves, stay JSON-safe."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return str(value)
+
+
+def _fingerprint_inputs(e: dict, trigger: str, index_sha256: str,
+                        index_stale: bool) -> dict:
+    """Every input a legal event can carry, bounded only by the event limits."""
+    return {
+        "tool": "case_gate_check",
+        "gate_version": CASE_GATES_VERSION,
+        "trigger": trigger,
+        "project_id": str(e.get("project_id") or ""),
+        "task_id": str(e.get("task_id") or ""),
+        "decision": _text(e.get("decision")),
+        "hypothesis": _text(e.get("hypothesis")),
+        "protocol": _text(e.get("protocol")),
+        "case_library_version": str(e.get("case_library_version") or ""),
+        "case_library_index_sha256": index_sha256,
+        "case_library_index_stale": bool(index_stale),
+        "h_stage": str(e.get("h_stage") or "").upper(),
+        "milestone": str(e.get("milestone") or "").upper(),
+        "known_project_stage": _declared_project_stage(e),
+        "query": str(e.get("query") or ""),
+        "filters": _json_safe(e.get("filters") or {}),
+        "task_profile": _json_safe(e.get("task_profile") or {}),
+        # The next-action block depends on the judged Run. Without this the gate
+        # would answer a second call from the first call's cache and silently
+        # ignore a changed (or contradictory) feedback object.
+        "run_feedback": _json_safe(e.get("run_feedback") or {}),
+        "evidence_declaration": {
+            "outcome_class": _json_safe(e.get("outcome_class")),
+            "evidence_refs": _json_safe(e.get("evidence_refs")),
+            "execution_evidence_refs": _json_safe(e.get("execution_evidence_refs")),
+            "signals": _json_safe(e.get("signals")),
+            "known_project_state": _json_safe(e.get("known_project_state")),
+        },
+    }
+
+
+def _fingerprint_display(parts: dict) -> dict:
+    """The returned basis: human-auditable, and therefore clipped."""
+    shown = dict(parts)
+    for field, limit in FINGERPRINT_DISPLAY_CLIP.items():
+        shown[field] = _clip(_text(parts[field]), limit)
+    return shown
+
+
 def gate_fingerprint(event, trigger: str, index_sha256: str,
                      *, index_stale: bool = False) -> tuple[str, dict]:
     """Same Task + decision + hypothesis + protocol + library version + stage.
@@ -327,38 +440,14 @@ def gate_fingerprint(event, trigger: str, index_sha256: str,
     A material change to the decision, declared evidence, project stage,
     confirmation-protocol recheck, or a STALE case index must invalidate the
     cached "verified" advisory. No duplicate second fingerprint is emitted.
+
+    The digest is computed over the *complete* bounded input (at most
+    MAX_EVENT_FIELDS x MAX_TEXT_CHARS). The second return value is a clipped,
+    display-only projection for audit; it is never hashed.
     """
     e = _canonical_event(event)
-    parts = {
-        "tool": "case_gate_check",
-        "gate_version": CASE_GATES_VERSION,
-        "trigger": trigger,
-        "project_id": str(e.get("project_id") or ""),
-        "task_id": str(e.get("task_id") or ""),
-        "decision": _clip(_text(e.get("decision")), 400),
-        "hypothesis": _clip(_text(e.get("hypothesis")), 600),
-        "protocol": _clip(_text(e.get("protocol")), 600),
-        "case_library_version": str(e.get("case_library_version") or ""),
-        "case_library_index_sha256": index_sha256,
-        "case_library_index_stale": bool(index_stale),
-        "h_stage": str(e.get("h_stage") or "").upper(),
-        "milestone": str(e.get("milestone") or "").upper(),
-        "known_project_stage": _declared_project_stage(e),
-        "query": _clip(str(e.get("query") or ""), 300),
-        "filters": e.get("filters") or {},
-        "task_profile": e.get("task_profile") or {},
-        # The next-action block depends on the judged Run. Without this the gate
-        # would answer a second call from the first call's cache and silently
-        # ignore a changed (or contradictory) feedback object.
-        "run_feedback": _clip(_text(e.get("run_feedback") or {}), 900),
-        "evidence_declaration": _clip(_text({
-            "outcome_class": e.get("outcome_class"),
-            "evidence_refs": e.get("evidence_refs"),
-            "execution_evidence_refs": e.get("execution_evidence_refs"),
-            "signals": e.get("signals"),
-            "known_project_state": e.get("known_project_state")}), 500),
-    }
-    return _digest(parts), parts
+    full = _fingerprint_inputs(e, trigger, index_sha256, index_stale)
+    return _digest(full), _fingerprint_display(full)
 
 
 REQUIRED_RECORD_FIELDS = (

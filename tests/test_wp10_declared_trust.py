@@ -306,6 +306,27 @@ class GateCacheBehaviourTests(unittest.TestCase):
         event["run_feedback"] = judged
         return self.fx.service.call("case_gate_check", event=event)
 
+    def test_a_changed_declaration_tail_is_not_answered_from_cache(self):
+        # ARCH-CLOSEOUT: the declared outcome used to sit past the 500-char
+        # display clip, so a second, materially different declaration was
+        # answered from the first call's cached triage.
+        refs = ["DEV/runs/RUN-002/artifacts/measurement_table_part_%02d.csv" % i
+                for i in range(8)]
+        first = self.fx.service.call("case_gate_check", event=gate_event(
+            task_profile=dict(PROFILE), h_stage="DEV", milestone="NONE",
+            signals=["VALID_NEGATIVE_RESULT"],
+            outcome_class="VALID_SCIENTIFIC_NEGATIVE", evidence_refs=refs))
+        second = self.fx.service.call("case_gate_check", event=gate_event(
+            task_profile=dict(PROFILE), h_stage="DEV", milestone="NONE",
+            signals=["UNEXPECTED_RESULT"],
+            outcome_class="ENGINEERING_FAILURE", evidence_refs=refs))
+        self.assertEqual(first["anomaly_triage"]["category"],
+                         "VALID_SCIENTIFIC_NEGATIVE")
+        self.assertEqual(second["anomaly_triage"]["category"],
+                         "ENGINEERING_FAILURE")
+        self.assertFalse(second["cache_hit"])
+        self.assertNotEqual(first["gate_fingerprint"], second["gate_fingerprint"])
+
     def test_a_changed_run_replaces_the_cached_next_action(self):
         first = self.call(feedback())
         second = self.call(feedback(
