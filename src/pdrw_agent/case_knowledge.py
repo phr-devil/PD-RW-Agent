@@ -641,8 +641,15 @@ def _lifecycle_entries(state: dict | None, cases: list[dict]) -> list[dict]:
     """
     if not state:
         return []
+    baseline = state.get("initial")
+    if not baseline and not (state.get("cases") or {}):
+        # First generation: record the baseline so a later retirement always has
+        # something to be a change *from*.
+        baseline = {"event": "INITIAL_EXPORT", "case_count": len(cases),
+                    "generation": int(state.get("generation") or 0) + 1}
     delta = _diff_state(state, cases)
-    return (list(state.get("retired") or []) + delta["retired"]
+    head = [baseline] if baseline else []
+    return (head + list(state.get("retired") or []) + delta["retired"]
             + list(state.get("status_events") or []) + delta["events"])
 
 
@@ -698,8 +705,12 @@ def load_state(out_dir: Path) -> dict:
 def next_state(previous: dict, plan: dict) -> dict:
     """Carry retirement/status history forward; never silently drop a case."""
     delta = _diff_state(previous, plan["cases"])
+    initial = previous.get("initial") or {
+        "event": "INITIAL_EXPORT", "case_count": len(plan["cases"]),
+        "generation": delta["generation"]}
     return {"state_version": STATE_VERSION, "generation": delta["generation"],
             "library_index_sha256": plan["library"]["library_sha"],
+            "initial": initial,
             "cases": _case_state(plan["cases"]),
             "retired": list(previous.get("retired") or []) + delta["retired"],
             "status_events": (list(previous.get("status_events") or [])
