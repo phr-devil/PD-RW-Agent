@@ -1,25 +1,36 @@
-# New-project H6 plan choice (on demand)
+# Three author choices for new PD-RW research lines (on demand)
 
-This is adapter guidance, not a second PD-RW scientific policy. Existing projects reuse legitimate original selections.
+**Authoritative:** PD-RW WORKFLOW.md / AUTHOR_STRATEGY_REVIEW.md / human_review_protocol.v1.json v1.4. This adapter describes input cards only, never grants permissions or replaces science rules. All existing v1.3 single-H6 projects retain their original scope and choice records. H1/H2 from startup are not re-asked.
 
-1. Read the completed launch prompt as H1/H2 scope; never repeat already-specified direction, goals, budget or exclusions.
-2. AI researches H3-H5 internally. Compare at most 3 genuinely different scientific plans: precise question and Task, named nearest work or NOT_ACCESSED, official data/proof path, label truth, independent group, confounding, legal inputs, decisive inexpensive probe, risk and cost. For this user's objective, also compare **independent publication-worthy knowledge**, realistic scientific audience/reuse, and shortest credible evidence path; high citations or journal acceptance are not predictable. Prefer Q1-capable importance where evidence supports it, with credible Q2+ as the PD-RW floor. UNKNOWN is not FAIL.
-3. Show one compact H6 recommendation card and STOP dependent new-mainline work until the user *specifically* selects its displayed option or expressly delegates among shown options. A generic 'continue', old broad delegation, silence or an AI-declared APPROVED never constitutes H6 choice.
-4. Bind the actual user's reply to the exact option card version. The local helper computes a SHA and checks *declarations* only. Substantive Task/question/evidence changes invalidate a prior plan choice; ordinary H7 algorithm improvements do not.
-5. Record selected option, original user-message reference, card SHA, scope and allowed fallback in the existing research record when legitimately writable. No third project ledger. Do not infer new dataset downloads, SEALED, paid tools, writing or submission permission.
-6. Legitimate legacy projects continue without retroactive author sign-off when their original scope is unchanged.
+## Scientific outcome
 
-Optional **read-only**, installed local Python CLI:
+Optimize time to a **credible, high-tier (Q1 preferred; defensible Q2+ floor), widely reusable/citation-potential paper result**. Proposed direction, algorithm, question, title, or expected contribution are hypotheses and methods, not immutable success criteria. Broader citation impact is never guaranteed; check actual nearest research, authentic independent evidence, audience and reuse rationale before promising a high-impact claim.
 
-    python -m pdrw_agent.science.cli h6-review --plan PLAN.json
-    python -m pdrw_agent.science.cli h6-review --plan PLAN.json --choice CHOICE.json
+## Three staged decisions
 
-PLAN.json fields: schema_version=pdrw-h6-plan-v2 (v1 remains accepted with its original full-card digest). v2 binds the declared research-line locator to the material scope digest; do not ask the user to re-enter direction or resources, scope_ref, research_line_ref (v2; stable new-line locator, not a trusted identity), recommended_option_id, recommendation_rationale, options (1-3); each option: id, scientific_question, core_task, dataset_or_proof_path, nearest_work_or_unknown, truth_and_independence, competing_explanation, decisive_probe, cost_and_risk, primary_type (C01-C12), route (R1-R6), p_orientation (P1-P5), science_fit (SUPPORTED_BY_METADATA / UNKNOWN_NEEDS_PROBE / CONTRADICTED_FOR_CLAIM).
+**H3 – choose a paper-worthy scientific question.** Agent investigates a reasonably broad opportunity pool (often 6–10 preliminary candidates, adaptive to evidence), challenges direct nearest papers, checks reality/novelty and independent truth and compares usually three different questions. Show an evidence-backed recommendation and a few alternatives; user chooses one or gives clearly bounded post-card delegation. No H4 decision without an explicit H3 reply.
 
-CHOICE.json fields: schema_version=pdrw-h6-choice-v1, plan_sha256, kind, original_user_message_ref, selected_option_id, allowed_option_ids, delegated_scope. USER_SELECTED requires one offered selected_option_id, allowed_option_ids=[] and delegated_scope=null. USER_DELEGATED requires selected_option_id=null, a nonempty subset of offered options, and bounded delegated_scope.
+**H4 – choose evidence and dataset/proof path.** Bound the H4 card to H3's selected plan SHA, original message ref and selected option/delegated scope. Compare 2–3 realistic paths, truth/group independence, confounds, license and minimum external confirmation. Require a **different post-card message**. H4 selection alone is **not** download, CPU/GPU or SEALED access permission.
 
-The H6 CLI exits 3 even for a structurally complete declaration, so shell-based automation cannot treat it as permission. Use --pd-rw-checkpoint to produce the PD-RW activity-03 science-checkpoint packet. Editorial changes to recommendation rationale alone do not reopen v2; substantive option changes do. A structurally valid choice still returns DECLARED_CHOICE_UNAUTHENTICATED. Only a trusted WorkBuddy host able to independently access the user's original reply and enforce *all* dependent execution paths can make this a hard authorization boundary. Current MCP/CLI does not do so.
+**H6 – choose the paper contribution and executable Task.** Agent synthesizes H5 final-question/claim-boundary draft from H3/H4. H6 card binds *both* earlier selection refs/hashes and compares evidence-worthy algorithm, meaningful traditional-algorithm improvement, mechanism, measurement, benchmark, reliability or systems routes. Each H6 v3 option declares an **adaptive_pivot_envelope**: method and limited contribution changes that H7 may pursue without further author choice. The user selects an option in a third post-card reply; H5 is confirmed by the *same H6* reply, not a fourth separate step. Core Claim change beyond envelope triggers H8; a different core question/data route reopens H3/H4 as applicable.
 
-Use existing `recommendation_rationale` to express impact/novelty/shortest evidence route, and existing `cost_and_risk` for bottlenecks; do **not** add unofficial fields to the versioned H6 material digest. Consult [research-leverage.md](research-leverage.md) only when comparing high-impact options or after a material pivot. The selected plan does not authorize manuscript drafting, figures, data release or submission.
+All cards make the shortest credible evidence-to-paper path, strongest near-neighbor counterargument, unknowns, cost/time and realistic scholarly reuse explicit. No fixed waiting time, invented bibliography, journal acceptance forecast, citation count, or automatic negative-Run STOP.
 
-Evidence warnings in `science_risk_flags` are declarations-only hints. A `SUPPORTED_BY_METADATA` option can still have UNKNOWN independent truth/groups or NOT_ACCESSED nearest work. Explain the uncertainty and decisive probe in the H6 choice card; these flags are neither scientific certification nor automatic veto.
+## Versioned read-only card contracts
+
+The local CLI can check **declared** fields, not user authentication:
+
+```powershell
+python -m pdrw_agent.science.cli early-review --plan H3_PLAN.json
+python -m pdrw_agent.science.cli early-review --plan H4_PLAN.json --choice H4_CHOICE.json
+python -m pdrw_agent.science.cli h6-review --plan H6_PLAN.json --choice H6_CHOICE.json --pd-rw-checkpoint
+```
+
+- **H3/H4** `schema_version=pdrw-early-plan-v1`, `stage=H3|H4`, `research_line_ref`, `scope_ref`, `upstream_choices` (`{}` for H3; for H4 must contain H3), `options` (1–3), `recommended_option_id`, `recommendation_rationale`. Each option: `id`, `question_or_evidence_path`, `paper_value`, `nearest_prior`, `truth_and_independence`, `discriminating_probe`, `cost_and_risk`.
+- **H3/H4 choices** `schema_version=pdrw-early-choice-v1`, `plan_sha256`, `kind=USER_SELECTED|USER_DELEGATED`, `original_user_message_ref`, `selected_option_id`, `allowed_option_ids`, `delegated_scope`. Same selection/delegation conventions as historical H6. H4 cannot reuse H3 message.
+- **H6 new v3** `schema_version=pdrw-h6-plan-v3`. Retains v2 plan fields and options; adds `upstream_choices={"H3":link,"H4":link}` to plan, and `adaptive_pivot_envelope` string to every option. Each upstream `link` has exactly `plan_sha256`, `original_user_message_ref`, and `choice` (selected option ID or bounded delegated scope). The v3 material digest binds the full upstream pair plus option scopes. `pdrw-h6-choice-v1` is still the H6 response schema; third message must differ from both upstream messages.
+- **Legacy H6 v1/v2** plans remain readable and keep existing hashes; they cannot stand in for new v1.4 H3/H4 decisions.
+
+All these CLIs return **exit code 3** even on a structurally valid choice declaration. A declared `APPROVED`, hash or message ref does not authenticate the original author, justify DEV admission, or authorize dataset download/SEALED/writing/figures/submission. A trusted WorkBuddy host must independently bind original messages, immutable option-card digests, source lineage, project identity and all protected action paths. PD-RW `review_new_project_choices` does the independent H3/H4/H6 *structural* check; the new DEV host preflight requires `new_project_three_choices_confirmed` supplied only after authenticated review. On missing permission, continue independently legal read-only research and preserve prior legitimate records.
+
+Store decisions in existing RESEARCH_RECORD/STATE, distinguishing HARD constraints, author-approved ADAPTIVE scope and EVIDENCE whose truth can change. When new results contradict an initial algorithm route, compare a stronger paper route with nearest work and validation cost; do not call ordinary model change a new project or rewrite exploratory results as preregistered.
