@@ -88,10 +88,16 @@ class RunFeedbackNextActionTests(unittest.TestCase):
         self.assertIn("独立组", first["minimal_validation"])
         self.assertTrue(first["open_questions"])
 
-    def test_valid_negative_challenges_only_the_tested_premise(self):
+    def test_declared_negative_challenges_only_the_tested_premise(self):
         actions, first = self.first(run_feedback=feedback(
             outcome="NO_CHANGE", compatible=[], contradicted=["real-gain"]))
-        self.assertEqual(actions["situation"]["kind"], "VALID_NEGATIVE_RESULT")
+        # WP10: the gate did not verify the Run, so the kind must not claim
+        # validity. The advice is unchanged.
+        self.assertEqual(actions["situation"]["kind"],
+                         "DECLARED_NEGATIVE_RESULT_UNVERIFIED")
+        self.assertEqual(actions["situation"]["kind_scope"], "DECLARED_ONLY")
+        self.assertEqual(actions["situation"]["verification"],
+                         "NOT_VERIFIABLE_AT_GATE")
         self.assertEqual(first["action_type"], "REASSESS_FAILED_PREMISE_AND_ALTERNATIVES")
         self.assertFalse(actions["automatic_go_stop"])
         self.assertIn("不据此终止整个方向", first["recommendation"])

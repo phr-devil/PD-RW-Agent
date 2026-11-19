@@ -1,11 +1,11 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.4.** Read this section only; everything below the
+**Current release: 0.9.5.** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.4` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `0.9.5` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
 | Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
@@ -139,7 +139,7 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.4 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.5 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
 

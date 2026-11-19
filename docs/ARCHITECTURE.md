@@ -1,6 +1,6 @@
 # PD-RW-Agent architecture and change contract
 
-This file describes **where each responsibility lives** in v0.9.4 and what each
+This file describes **where each responsibility lives** in v0.9.5 and what each
 layer is forbidden to do. It is an adapter map, not a scientific rule source:
 PD-RW `WORKFLOW.md` / `AGENTS.md` remain the only owners of scientific meaning.
 
@@ -45,6 +45,15 @@ passed* (a file exists, a hash matches). They never mean scientific truth,
 authorization, or SEALED clearance. Outputs that would otherwise be misread
 carry the pair `declared` / `effective` so a reader can see the cap.
 
+An input to a public tool is **always** `NOT_ATTESTED`, including a
+`link_status`, a `proposal_sha256` or a field literally named "verified": the
+caller typed it. That is why `case_gate_check` reports
+`provenance_effective = PRE_RESULT_RECORD_UNVERIFIED` whatever arrives, and why
+it lists `file_binding`, `historical_order`, `run_validity` and
+`scientific_truth` separately as `NOT_PERFORMED_BY_GATE`. Only a module that
+re-opened the original file may describe a check as passed — today that is
+`science.feedback_link`, whose `verification_axes` block does exactly that.
+
 ## AI context budget
 
 1. WorkBuddy discovers the Skill through YAML `description`.
@@ -77,9 +86,11 @@ carry the pair `declared` / `effective` so a reader can see the cap.
 | `scripts/context.py action-review` | Wraps PD-RW `core.execution_preflight` | Advisory only; grants nothing |
 | `scripts/context.py delivery-review` | Wraps PD-RW `core.delivery_check` | Existence/path-only; no content or SEALED clearance |
 
-## Not implemented (honest scope for v0.9.4)
+## Not implemented (honest scope for v0.9.5)
 
 - No original-user-message authentication, tool interceptor, sandbox or OS ACL.
+- No re-reading of a Run inside `case_gate_check`: it reports declared feedback
+  and never certifies it. Binding checks live in `science.feedback_link`.
 - No real DEV/GPU execution, no SEALED filesystem isolation, no manuscript,
   figure or submission action.
 - No second scientific ledger, database or vector store; case reuse is a

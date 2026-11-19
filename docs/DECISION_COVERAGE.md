@@ -115,3 +115,41 @@ the local checkout.
 2. **v1.4 protocol text is remote-only here.** The local PD-RW checkout is `pd-rw-human-review-v1.3` (`68e29c3`); the v1.4 wording was read from `d4056fc` on GitHub. The adapter implements the v1.4 shape, but this machine cannot diff the two rule trees offline.
 3. **No measured research, Token or wall-clock benefit.** `NOT_MEASURED`; no paired WorkBuddy replay was recorded.
 4. **Whether a real model will call `to_run_feedback` instead of hand-writing `run_feedback`** is unmeasured; only the code-level cap is tested.
+
+## WP10 — declared feedback cannot certify itself (2026-11-19)
+
+Baseline `995406c` (v0.9.4, PR #19). Only the two confirmed defects were
+touched; the 0.9.4 constraint map above still applies unchanged.
+
+| # | Defect | Evidence it was real | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 1 | `case_gates._declared_run_feedback` treated a caller-typed `link_status` as proof, so `provenance=PRE_RESULT_PROVENANCE_VERIFIED` + `link_status=ADVISORY_FEEDBACK_ONLY` stayed "effective verified" | `VERIFIED_PROVENANCE_STATUSES` literally contained `ADVISORY_FEEDBACK_ONLY`; the old test `test_binder_status_keeps_a_verified_provenance` asserted the upgrade | every field is declared; `provenance_effective` is pinned to `PRE_RESULT_RECORD_UNVERIFIED` with `provenance_basis = DECLARED_INPUT_ONLY_GATE_PERFORMS_NO_BINDING`; `link_status`/digest are echoed as `*_declared`; `checks_by_gate` names the four unrun checks | `test_wp10_declared_trust` (19) |
+| 2 | the gate cache key ignored `run_feedback`, so a second call with a different judged Run was answered from the first call's payload | real MCP stdio trial: scenarios C and C2 returned `COMPETING_EXPLANATIONS_SPLIT` (A's answer) instead of the record-level situations | `gate_fingerprint` includes a canonical, bounded `run_feedback`; `CASE_GATES_VERSION` 1.1 → 1.2 | `GateCacheKeyTests`, `GateCacheBehaviourTests`, `audit/wp10/mcp_trial.py` |
+
+### Result naming (no scientific claim from a declared list)
+
+| Before | After | Advice |
+| --- | --- | --- |
+| `VALID_NEGATIVE_RESULT` | `DECLARED_NEGATIVE_RESULT_UNVERIFIED` | same action (`REASSESS_FAILED_PREMISE_AND_ALTERNATIVES`), now prefixed with "verify the Run record first" |
+| `situation` had no scope | `kind_scope=DECLARED_ONLY`, `verification=NOT_VERIFIABLE_AT_GATE`, `prediction_verification_performed=false` | unchanged action set, `author_decision_required=false` |
+| `prediction_verification_reported_by_binder` (derived from caller JSON) | removed | — |
+
+### v1.14 rule check (offline, read-only worktree at `d4056fc`)
+
+| Item | v1.13 → v1.14 | Adapter status |
+| --- | --- | --- |
+| H3/H4 decision style | added `AUTHOR_QUESTION_SELECTION` / `AUTHOR_EVIDENCE_PATH_SELECTION` | already author selections in `staged_selection`; no change |
+| H5 | renamed "final question" → draft confirmed with H6 | adapter never asks H5 separately; H6 plan carries it |
+| H6 `reopen_when` | now says original-vs-simple algorithm selection and in-scope DEV stay autonomous | **real conflict fixed**: `CORE_ALGORITHM_CHANGE` removed from the H6/H8-triggering signal set; `DATA_SCOPE_CHANGE` and `SCIENTIFIC_QUESTION_CHANGE` still trigger |
+| H3/H4/H6 binding | `requires_distinct_post_card_user_messages`, H6 binds H3+H4 | `validate_upstream_choices` already rejects duplicate message refs and H6 requires `("H3","H4")` |
+| H8, SEALED, writing, figures, confirmation | unchanged text in both versions | untouched |
+
+### Unverified in this round
+
+1. `PRESERVATION_UNVERIFIED` for the "retrieval/declaration/hash/CI is not proof"
+   sentence: it exists only in original user messages, not in a rule file.
+2. The P1 A/B/C trial used a **scripted MCP client**, not a language model. It
+   proves the interface; whether a model follows the Skill and calls
+   `to_run_feedback` instead of hand-writing the object is `NOT_MEASURED`.
+3. Token and wall-clock cost: characters are recorded, tokens are `NOT_MEASURED`.
+4. Research gain from the clarified boundary: `NOT_MEASURED`.

@@ -1,9 +1,11 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.4 (architecture convergence, no rule changes).**
+> **Current release — 0.9.5 (declared-vs-verified feedback boundary).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts) and one **downgrade-only**
-> projection from an evidence-linked Run to the next action. No scientific
+> projection from an evidence-linked Run to the next action. No event field
+> authenticates itself: `case_gate_check` reports what was claimed next to what
+> it actually checked, and names the four checks it did not run. No scientific
 > rule, H-node, permission gate or tool count changed: MCP stays 11/21/24, no
 > tool was added, and the case library / Runs / frozen protocols are untouched.
 > [Architecture](docs/ARCHITECTURE.md) · [Runtime](docs/RUNTIME_AND_MCP.md) ·

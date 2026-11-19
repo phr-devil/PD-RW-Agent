@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from pdrw_agent import case_gates  # noqa: E402
+from pdrw_agent import __version__, case_gates  # noqa: E402
 from pdrw_agent.schemas import AgentError  # noqa: E402
 from pdrw_agent.science.feedback_link import (  # noqa: E402
     PROVENANCE_UNVERIFIED,
@@ -128,18 +128,38 @@ class GateCredibilityTests(unittest.TestCase):
         feedback = self.declared()
         self.assertEqual(feedback["provenance"], PROVENANCE_VERIFIED)
         self.assertEqual(feedback["provenance_effective"], PROVENANCE_UNVERIFIED)
-        self.assertEqual(feedback["provenance_basis"], "NO_LINK_STATUS_HAND_DECLARED")
+        self.assertEqual(feedback["provenance_basis"],
+                         "DECLARED_INPUT_ONLY_GATE_PERFORMS_NO_BINDING")
 
-    def test_binder_status_keeps_a_verified_provenance(self):
+    def test_a_hand_written_link_status_cannot_restore_verified(self):
+        # The exact WP10 defect: provenance + any link status typed by the
+        # caller used to survive as "verified". Both are just JSON.
         feedback = self.declared(link_status="ADVISORY_FEEDBACK_ONLY",
                                  proposal_sha256=DIGEST)
-        self.assertEqual(feedback["provenance_effective"], PROVENANCE_VERIFIED)
-        self.assertEqual(feedback["provenance_basis"], "FEEDBACK_LINK_STATUS_PRESENT")
-        self.assertEqual(feedback["proposal_sha256"], DIGEST)
-
-    def test_non_usable_status_caps_even_with_a_binder_status(self):
-        feedback = self.declared(link_status="RUN_STATUS_CONFLICT")
         self.assertEqual(feedback["provenance_effective"], PROVENANCE_UNVERIFIED)
+        self.assertEqual(feedback["provenance_basis"],
+                         "DECLARED_INPUT_ONLY_GATE_PERFORMS_NO_BINDING")
+        self.assertEqual(feedback["link_status_declared"], "ADVISORY_FEEDBACK_ONLY")
+        self.assertEqual(feedback["proposal_sha256_declared"], DIGEST)
+
+    def test_the_gate_names_every_check_it_did_not_perform(self):
+        feedback = self.declared(link_status="ADVISORY_FEEDBACK_ONLY")
+        self.assertEqual(feedback["checks_by_gate"], {
+            "file_binding": "NOT_PERFORMED_BY_GATE",
+            "historical_order": "NOT_PERFORMED_BY_GATE",
+            "run_validity": "NOT_PERFORMED_BY_GATE",
+            "scientific_truth": "NOT_PERFORMED_BY_GATE",
+        })
+        self.assertFalse(feedback["scientific_inference_verified"])
+        self.assertTrue(feedback["declared_only"])
+
+    def test_no_status_can_upgrade_credibility(self):
+        for status in ("ADVISORY_FEEDBACK_ONLY", "NOT_COMPARABLE",
+                       "PRE_RESULT_RECORD_UNVERIFIED", ""):
+            with self.subTest(status=status):
+                feedback = self.declared(link_status=status)
+                self.assertEqual(feedback["provenance_effective"],
+                                 PROVENANCE_UNVERIFIED)
 
     def test_bad_link_status_or_digest_is_rejected(self):
         with self.assertRaises(AgentError):
@@ -179,6 +199,21 @@ class GateCredibilityTests(unittest.TestCase):
             feedback, {"status": "NO_EXECUTION_EVIDENCE_DECLARED"}),
             "NO_DISCRIMINATING_CONTRAST")
 
+    def test_an_unverified_negative_is_not_called_a_valid_negative(self):
+        feedback = self.declared(outcome="NO_CHANGE", compatible=[],
+                                 contradicted=["real-gain"])
+        situation = case_gates._run_situation(
+            feedback, {"status": "NO_EXECUTION_EVIDENCE_DECLARED"})
+        self.assertEqual(situation, "DECLARED_NEGATIVE_RESULT_UNVERIFIED")
+        self.assertNotIn("VALID_NEGATIVE_RESULT", case_gates._SITUATION_TEXT)
+        # The advice is preserved: reassess the premise, never stop the project.
+        action = case_gates._situation_action(
+            situation, feedback, {"status": "NO_EXECUTION_EVIDENCE_DECLARED"})
+        self.assertEqual(action["action_type"],
+                         "REASSESS_FAILED_PREMISE_AND_ALTERNATIVES")
+        self.assertFalse(action["author_decision_required"])
+        self.assertFalse(action["automatic_go_stop"])
+
 
 class DecisionBasisTests(unittest.TestCase):
     def test_next_action_records_the_proposal_digest_and_credibility(self):
@@ -201,16 +236,25 @@ class DecisionBasisTests(unittest.TestCase):
             cl, advisory, {"status": "NO_EXECUTION_EVIDENCE_DECLARED"},
             run_feedback=feedback)
         basis = result["decision_basis"]
-        self.assertEqual(basis["evidence"]["proposal_sha256"], DIGEST)
-        self.assertEqual(basis["evidence"]["feedback_link_status"],
+        self.assertEqual(basis["evidence"]["proposal_sha256_declared"], DIGEST)
+        self.assertEqual(basis["evidence"]["feedback_link_status_declared"],
                          "ADVISORY_FEEDBACK_ONLY")
-        self.assertEqual(basis["credibility"]["pre_result_provenance_effective"],
+        self.assertEqual(basis["credibility"]["pre_result_provenance_declared"],
                          PROVENANCE_VERIFIED)
+        self.assertEqual(basis["credibility"]["pre_result_provenance_effective"],
+                         PROVENANCE_UNVERIFIED)
+        self.assertEqual(basis["credibility"]["checks_by_gate"]["file_binding"],
+                         "NOT_PERFORMED_BY_GATE")
         self.assertFalse(basis["credibility"]["scientific_inference_verified"])
-        self.assertEqual(result["situation"]["kind"], "VALID_NEGATIVE_RESULT")
+        self.assertEqual(result["situation"]["kind"],
+                         "DECLARED_NEGATIVE_RESULT_UNVERIFIED")
+        self.assertEqual(result["situation"]["kind_scope"], "DECLARED_ONLY")
+        self.assertFalse(result["situation"]["prediction_verification_performed"])
         self.assertEqual(result["actions"][0]["action_type"],
                          "REASSESS_FAILED_PREMISE_AND_ALTERNATIVES")
-        self.assertEqual(result["actions"][0]["basis"]["proposal_sha256"], DIGEST)
+        self.assertEqual(result["actions"][0]["basis"]["proposal_sha256_declared"],
+                         DIGEST)
+        self.assertNotIn("proposal_sha256", result["actions"][0]["basis"])
 
 
 class LegacyFeedbackSemanticsTests(unittest.TestCase):
@@ -279,7 +323,7 @@ class McpSurfaceUnchangedTests(unittest.TestCase):
 class EndToEndProjectionTests(unittest.TestCase):
     """A real fixture goes link -> CLI projection -> gate, without hand typing."""
 
-    def test_cli_projection_reaches_the_gate_with_the_same_credibility(self):
+    def test_cli_projection_reaches_the_gate_as_declared_not_certified(self):
         import json
         import subprocess
         import tempfile
@@ -310,7 +354,11 @@ class EndToEndProjectionTests(unittest.TestCase):
         self.assertEqual(len(projected["proposal_sha256"]), 64)
 
         feedback = case_gates._declared_run_feedback({"run_feedback": projected})
-        self.assertEqual(feedback["provenance_effective"], PROVENANCE_VERIFIED)
+        # The binder did the file/order checks; the gate still may not inherit
+        # them across a public JSON boundary, so credibility stays declared.
+        self.assertEqual(feedback["provenance"], PROVENANCE_VERIFIED)
+        self.assertEqual(feedback["provenance_effective"], PROVENANCE_UNVERIFIED)
+        self.assertEqual(feedback["link_status_declared"], "ADVISORY_FEEDBACK_ONLY")
         # The fixture declares INCREASE, so one explanation is supported and one
         # contradicted: the split must survive the projection unchanged.
         self.assertEqual(projected["compatible"], ["real-gain"])
@@ -338,11 +386,11 @@ class DocumentationBoundaryTests(unittest.TestCase):
         self.assertIn("WorkBuddy host", text)
         # The stale "current v0.7.1 / not implemented in v0.4" entry is gone.
         self.assertNotIn("not implemented in v0.4", text)
-        self.assertIn("honest scope for v0.9.4", text)
+        self.assertIn(f"honest scope for v{__version__}", text)
 
     def test_runtime_doc_has_one_current_entry(self):
         text = self.read("RUNTIME_AND_MCP.md")
-        self.assertIn("Current release: 0.9.4", text)
+        self.assertIn(f"Current release: {__version__}", text)
         self.assertIn("**11**", text)
         self.assertIn("**21**", text)
         self.assertIn("**24**", text)
@@ -367,7 +415,8 @@ class DocumentationBoundaryTests(unittest.TestCase):
     def test_skill_tells_the_model_to_project_instead_of_typing(self):
         text = (ROOT / "skills" / "pd-rw-research" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("to_run_feedback", text)
-        self.assertIn("never hand-write `provenance`", text)
+        self.assertIn("the gate never reports", text)
+        self.assertIn("a verified provenance", text)
 
 
 if __name__ == "__main__":

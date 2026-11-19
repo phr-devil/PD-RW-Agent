@@ -651,6 +651,20 @@ def review_linked_feedback(link: dict, *, project_root, case_root=None,
         },
         "prediction_verification_performed": bool(
             comparison == COMPARISON_PERFORMED and provenance == PROVENANCE_VERIFIED),
+        # Four different questions, answered separately on purpose. "The file
+        # was where it claimed to be" must never be read as "the prediction
+        # came first", and neither is a statement about scientific truth.
+        "verification_axes": {
+            "file_binding": ("CHECKED_FILES_AND_DECLARED_DIGESTS"
+                             if checks["prereg_record_readable"]
+                             and checks["proposal_from_project_file"]
+                             and checks["run_evidence_unchanged"]
+                             else "NOT_ESTABLISHED"),
+            "historical_order": "DECLARED_TIMESTAMPS_ONLY_NOT_INDEPENDENTLY_VERIFIED",
+            "run_validity": ("RUN_RECORD_READ_NO_EVIDENCE_PROBLEM"
+                             if not run["evidence_problems"] else "EVIDENCE_PROBLEM"),
+            "scientific_truth": "NOT_ASSESSED_BY_TOOL",
+        },
         "historical_order_verified": False,
         "original_run_verified": False,
         "scientific_inference_verified": False,
@@ -682,10 +696,13 @@ def to_run_feedback(link_result: dict) -> dict:
     The projection is **downgrade-only**. It can copy a verified provenance the
     binder reported, but it can never raise one: an unverified provenance stays
     unverified, and a Run whose status or evidence failed verification loses its
-    prediction contrast entirely. Hand-writing this object bypasses the binder,
-    so the gate additionally records that no link status was supplied.
+    prediction contrast entirely.
 
-    The result is *still* declared data — the gate does not re-read the Run.
+    It is a *shape* adapter, not a credential. The projected object crosses a
+    public tool boundary as JSON, so ``case_gate_check`` re-labels everything in
+    it as declared and never reports a verified provenance from it. Only this
+    module — which re-reads the frozen record and the Run evidence — may state
+    which binding check passed.
     """
     if not isinstance(link_result, dict) or link_result.get("schema_version") != LINK_SCHEMA:
         raise AgentError("FEEDBACK_LINK_INVALID", "Not a feedback-link result")
