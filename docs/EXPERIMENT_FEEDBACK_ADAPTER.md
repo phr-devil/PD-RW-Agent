@@ -65,6 +65,13 @@ Use `proposal_sha256(proposal)` from this module, not an arbitrary user-supplied
 
 The existing WorkBuddy checkout v0.9.1 is **not** on GitHub main. Integrate this *additive* module and tests with that checkout, never replace its local `case_learning.py`, `case_export.py`, `case_knowledge.py`, `case_gates.py`, `memory.py`, Skill or MCP registry with older main versions.
 
+The local integration adds one optional binder, `science/feedback_link.py`
+(`docs/EXPERIMENT_FEEDBACK_LINK.md`): it verifies that the declaration and the
+Run artifacts really exist inside the project, compares the declared proposal
+with a declared observation, and marks `PRE_RESULT_RECORD_UNVERIFIED` whenever
+the pre-result record cannot be bound. It adds no MCP tool and no workflow
+step.
+
 For a meaningful, legitimate DEV Run: link an existing original pre-result hypothesis/probe reference and its digest to the evaluated original Run. Record the returned advisory contrast and why the next probe or paper strategy changes in the **existing** `RESEARCH_RECORD.md` (and update `PAPER_BLUEPRINT.md` only when a Claim/section materially changes). Never create a third scientific ledger or require a new author selection within authorized H7. Any new download, sealed access, publication, uploads or material H6/H8 scope change still needs its original independent authorization.
 
 ## What to measure before calling the Agent smarter

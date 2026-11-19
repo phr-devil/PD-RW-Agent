@@ -13,7 +13,7 @@ examples_zh:
   - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.9.1
+version: 0.9.2
 author: phr-devil
 ---
 
@@ -112,6 +112,38 @@ Use `audit_project_state(project_id)` and `reconstruct_project_history(project_i
 `review_evidenced_lesson(project_id, run_id, proposal)` for hash-linked prior negative evidence.
 Missing information => UNKNOWN, not PASS/FAIL or a new approval. If original hash-linked DEV/VAL Run artifacts include an evaluation matrix, the scientific audit reports coverage; absence is not complete coverage. Do not run every audit for every task.
 Host CPU synthetic checks and `preflight_execution_plan(plan)` are diagnostic only and require the `diagnostic` profile; never interpret them as true research execution.
+
+## Optional experiment feedback (only for a meaningful hypothesis-judging Run)
+
+Only when a real Run actually judged a pre-declared hypothesis, and an original
+pre-result proposal still exists, run the local read-only binder:
+
+```sh
+python -m pdrw_agent.science.cli feedback-link --link <link.json> --project-root <project>
+```
+
+It verifies the declaration/Run files and hashes, compares declared categorical
+predictions with the declared observation, and attaches at most three case
+candidates. Rules:
+
+- No pre-result record, a hash mismatch, or a declaration dated after the Run =>
+  `PRE_RESULT_RECORD_UNVERIFIED`: keep the observation and continue exploring,
+  but never claim the prediction was verified. Declared timestamps and equal
+  hashes are not proof of temporal order.
+- `INVALID` / `INCONCLUSIVE` / `NOT_RUN` never become scientific negatives; a
+  changed observable, evaluation unit or comparison reference is
+  `NOT_COMPARABLE`, not a failed hypothesis.
+- A positive result keeps its success conditions **and** boundaries; a negative
+  result challenges only the premise actually tested, never the whole project.
+- Cases are candidates: `REVIEW_REQUIRED`, preprint, internal-report and
+  abstract-only cards stay exploratory; same-paper/same-Run cards count as one
+  independent unit; a missing match is `NOT_FOUND_WITHIN_SCOPE`.
+- Write the advisory contrast and the changed next step in the existing
+  `RESEARCH_RECORD.md`; touch `PAPER_BLUEPRINT.md` only when a Claim changes.
+  Do not create a second ledger and do not add an approval step.
+
+Ordinary code changes, debugging and routine DEV must not invoke it. No MCP
+tool is registered for it. See `docs/EXPERIMENT_FEEDBACK_LINK.md`.
 
 ## Optional references (load only when triggered)
 

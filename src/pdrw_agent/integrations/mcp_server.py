@@ -7,6 +7,7 @@ MCP stdout remains exclusively protocol traffic.
 from __future__ import annotations
 import os
 from typing import Any
+from .. import __version__
 from ..config import Settings
 from ..service import ResearchService
 
@@ -57,7 +58,7 @@ def create_server(settings: Settings | None = None, profile: str | None = None):
         raise RuntimeError('Install MCP extra: pip install -e ".[mcp]"') from exc
     visible_tools = tools_for_profile(profile)
     service = ResearchService(settings or Settings.load())
-    mcp = MCPServer("PD-RW Research", instructions=(
+    mcp = MCPServer("PD-RW Research", version=__version__, instructions=(
         "PD-RW is the only scientific rule source. The only mutations allowed "
         "here are private execution receipts, never research artifacts. "
         "A reported operation, preflight, checkpoint, or memory is not "
