@@ -12,6 +12,7 @@ from pathlib import Path
 from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
+from .feedback_link import review_linked_feedback
 from .plan_selection import review_h6_plan_choice
 from .staged_selection import review_early_choice
 from .h6_bridge import to_pd_rw_h6_checkpoint
@@ -72,6 +73,14 @@ def main() -> int:
     early = sub.add_parser("early-review", help="Review independent H3 or H4 author selection")
     early.add_argument("--plan", type=Path, required=True)
     early.add_argument("--choice", type=Path, help="Declared response; NEVER approval")
+    link = sub.add_parser("feedback-link",
+                          help="Bind a pre-result proposal to a real Run (read-only)")
+    link.add_argument("--link", type=Path, required=True)
+    link.add_argument("--project-root", type=Path, required=True)
+    link.add_argument("--case-index", type=Path,
+                      help="Optional CASE_LIBRARY root; candidates only, never GO/STOP")
+    link.add_argument("--mirror-manifest", type=Path,
+                      help="Optional case-knowledge manifest for published-subset scope")
     for cmd in ("replay-check", "replay-blind"):
         p = sub.add_parser(cmd)
         p.add_argument("--root", type=Path, required=True)
@@ -98,6 +107,13 @@ def main() -> int:
             plan = read_json(args.plan, limit=64 * 1024)
             choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
             result = review_early_choice(plan, choice)
+        elif args.action == "feedback-link":
+            result = review_linked_feedback(
+                read_json(args.link, limit=128 * 1024),
+                project_root=args.project_root,
+                case_root=args.case_index,
+                mirror_manifest=args.mirror_manifest,
+            )
         elif args.action == "h6-review":
             plan = read_json(args.plan, limit=64 * 1024)
             choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
@@ -126,6 +142,9 @@ def main() -> int:
     # from treating a valid declaration or a pending response as execution approval.
     if args.action in {"early-review", "h6-review"}:
         return 3
+    # A link that could not be verified must not look like a completed check.
+    if args.action == "feedback-link":
+        return 0 if result.get("status") == "ADVISORY_FEEDBACK_ONLY" else 3
     return 3 if result.get("status") in {"NOT_REPLAYABLE", "EVIDENCE_BINDING_FAILED"} else 0
 
 

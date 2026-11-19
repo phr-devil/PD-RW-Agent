@@ -106,7 +106,7 @@ $env:PDRW_RUNTIME_DIR = "$env:LOCALAPPDATA\\PD-RW-Agent\\private-runtime"
 
 Add `PDRW_RUNTIME_DIR` to the stdio MCP `env` block. WorkBuddy must use the same private directory across sessions; otherwise only science-project recovery works. All tool interfaces are defined in [V05_EXECUTION.md](V05_EXECUTION.md).
 
-Historical v0.5 tool inventory: 11. **Current v0.7.1 MCP inventory: 19 tools** (17 read-only, 2 private operational-receipt mutations; zero scientific write or arbitrary command tools). No MCP interface can register an original PD-RW Run, authenticate a user grant, or execute a real DEV/GPU process. Install/import Skill and MCP separately.
+Historical v0.5 tool inventory: 11. **Current v0.8.2 MCP inventory: 24 tools in the `diagnostic` profile** — 11 core, 6 audit/science, 3 host-diagnostic and 4 optional CASE_LIBRARY advisory (`case_gate_check`, `review_case_transfer`, `extract_case_candidates`, `project_case_bridge`). Profiles: `minimal` 11, `research` 21, `diagnostic` 24. Two tools are private operational-receipt mutations; there are zero scientific write or arbitrary command tools. No MCP interface can register an original PD-RW Run, authenticate a user grant, or execute a real DEV/GPU process. Install/import Skill and MCP separately.
 
 ## Historical v0.5.3 WorkBuddy MCP-first routing acceptance (replay only)
 
@@ -126,3 +126,43 @@ git pull --ff-only
 The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For current use verify Python and installed Skill both report **0.7.5**, then restart/reconnect MCP and confirm **17 tools** with the default research profile (or 20 with diagnostic). Historical frozen comparisons must instead install their originally tested versions and maintain matched tools. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
+
+## v0.5.4 local increment: CASE_LIBRARY advisory reuse
+
+The v0.5.3 lines above are historical acceptance notes. The **local** checkout is `0.5.4`; the operator-mentioned `v0.7.6` was not found on this machine (`REMOTE_NOT_CHECKED`), and no remote state was assumed.
+
+Added read-only MCP tools: `review_case_transfer`, `extract_case_candidates`. `search_research_memory` keeps its legacy `(query, limit)` result shape and adds `case_library` / `case_learning_summary`. No tool writes CASE_LIBRARY, STATE, Run, EVENTS, SEALED or PD-RW rules; no GO/STOP is emitted and keyword similarity is never treated as scientific premise equivalence.
+
+Configure the single read-only case source with **either**:
+
+- `PDRW_CASE_LIBRARY_ROOT=D:\workbuddy-work\CASE_LIBRARY` in the stdio MCP `env` block, or
+- a top-level `"case_library_root": "D:/workbuddy-work/CASE_LIBRARY"` in `project-map.local.json`.
+
+Operator steps on this PC:
+
+```powershell
+cd D:\workbuddy-agent\PD-RW-Agent
+.\.venv\Scripts\python.exe tools\package_skill.py
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+```
+
+Then re-import/refresh `dist\pd-rw-research.zip` in WorkBuddy, verify the **actually returned** Skill says `version: 0.5.4`, and restart/reconnect the stdio MCP — an already-running stdio server keeps the old schema. Confirm `review_case_transfer` and `extract_case_candidates` are visible and do one non-benchmark call. The installed Skill copy at `C:\Users\user\.workbuddy\skills\pd-rw-research\SKILL.md` is **not** updated automatically by editing this repository.
+
+Local engineering check: `evals\case_learning_ablation.py` measures only the CASE_LIBRARY ON/OFF advisory-field differential and writes `evals\case_learning_ablation_result.json`. Real WorkBuddy A/B/C decision quality, tokens and wall time remain `NOT_MEASURED`; unit tests and this differential are not scientific-utility evidence.
+
+## v0.5.5 local increment: five case-application gates
+
+The v0.5.4 lines above are historical notes. The **local** checkout is now `0.5.5`; no remote state was assumed.
+
+Added **one** read-only MCP tool, `case_gate_check(event, detail="compact")`, plus the CLI command `case-gate --event-file FILE [--detail compact|full]`. It is an orchestrator, not a new retrieval implementation: it reuses `case_learning.case_search` -> `CASE_LIBRARY/scripts/search_cases.py` for ranking, source verification, 8-dimension applicability review and decision experiences. `search_research_memory`, `review_case_transfer` and `extract_case_candidates` are unchanged; the legacy `(query, limit)` result shape is intact.
+
+- **3 mandatory checkpoints**: G1 H2–H3 `QUESTION_SELECTION`, G2 H6–H7 `PROTOCOL_FREEZE`, G3 H8–H10 `CLAIM_OR_CLOSURE`. Each must show a real `retrieval_record` and per-case `applicability_judgments`; `verify_gate_record` rejects a bare `CASE_CHECK: COMPLETED`.
+- **2 conditional triggers**: T1 anomaly / consecutive valid negatives (with outcome-class triage), T2 material decision change. Ordinary DEV signals are suppressed with zero retrieval.
+- **Priority** `G1 > G2 > G3 > T1 > T2`; other matched triggers are reported but do not cause a second retrieval.
+- **Fingerprint reuse**: Task, hypothesis, protocol, h_stage, milestone, task_profile, query, filters, evidence declaration and `index.json` sha256. Unchanged conditions return the verified cached record (`cache_hit=true`, zero new retrieval); any key change invalidates it. Bounded in-process cache, no second science-state database. Compact default returns at most 3–5 cases; `detail="full"` or the existing tools supply full evidence.
+- **UNKNOWN**: no case match, insufficient sources, `CONDITIONS_DIFFER`, missing task profile, or inaccessible library — all recorded with reasons, `may_proceed=true`, `blocks_work=false`, no fake completion.
+- **Enforcement level**: `ADVISORY_SKILL_AND_TOOL_LEVEL`; `hard_gate=false`, `host_state_transition_interception=false`. WorkBuddy has no trusted state-transition hook here, so these checkpoints cannot block a transition and must not be described as a hard gate. PD-RW H6/H8 author strategy choices and separate writing permission are unchanged.
+
+Operator steps are the same as v0.5.4: repackage with `tools\package_skill.py`, re-import `dist\pd-rw-research.zip` in WorkBuddy, verify the returned Skill says `version: 0.5.5`, restart/reconnect the stdio MCP (an already-running server keeps the old schema), confirm `case_gate_check` is visible and do one non-benchmark call. The installed Skill copy is not updated automatically by editing this repository.
+
+Local engineering check: `evals\case_gate_eval.py` writes `evals\case_gate_eval_result.json` with actual retrieval calls, cache hits, false/missed triggers and payload-character counts. Scientific decision quality and real WorkBuddy token/wall-time costs remain `NOT_MEASURED`.

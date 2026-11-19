@@ -15,8 +15,45 @@ from pdrw_agent.config import Settings
 from pdrw_agent.service import ResearchService
 from pdrw_agent.runtime.registration import register_run_in_trusted_host
 
+# The 8 authoritative-PD-RW safety tests must be part of normal regression,
+# not silently skipped whenever the operator forgets one environment variable.
+# Resolve a *pinned* local checkout when no explicit override is supplied.
+PINNED_RULE_COMMIT = "68e29c367583d5c96ef70180819f8b3322ea840d"
 
-@unittest.skipUnless(os.getenv("PDRW_TEST_RULE_ROOT"), "No pinned PD-RW test checkout")
+
+def _resolve_rule_root():
+    explicit = os.getenv("PDRW_TEST_RULE_ROOT")
+    if explicit:
+        return Path(explicit).resolve()
+    repo = Path(__file__).resolve().parents[1]
+    candidates = (
+        repo.parent / "Problem-Data-Research-Workflow",  # sibling checkout
+        repo / "pd-rw-fixture",                          # CI checkout path
+    )
+    for candidate in candidates:
+        if not ((candidate / "core" / "state.py").is_file()
+                and (candidate / "AGENTS.md").is_file()
+                and (candidate / "WORKFLOW.md").is_file()):
+            continue
+        try:
+            probe = subprocess.run(
+                ["git", "-C", str(candidate), "rev-parse", "--verify", "HEAD"],
+                text=True, capture_output=True, timeout=5, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        # A different rule version is a source conflict, not a substitute.
+        if probe.returncode == 0 and probe.stdout.strip() == PINNED_RULE_COMMIT:
+            os.environ["PDRW_TEST_RULE_ROOT"] = str(candidate.resolve())
+            return candidate.resolve()
+    return None
+
+
+_RULE_ROOT = _resolve_rule_root()
+_SKIP_REASON = ("No pinned PD-RW checkout (set PDRW_TEST_RULE_ROOT to a checkout "
+                f"at {PINNED_RULE_COMMIT[:8]})")
+
+
+@unittest.skipUnless(_RULE_ROOT, _SKIP_REASON)
 class OriginalPD_RWTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

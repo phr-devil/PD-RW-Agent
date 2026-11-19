@@ -1,0 +1,259 @@
+{
+  "checks": [
+    {
+      "id": "V1_HAR_GROUPING_TO_PROTOCOL_CHECK",
+      "observed": {
+        "action_types": [
+          "CONCRETE_CHECK",
+          "CONCRETE_CHECK",
+          "CONCRETE_CHECK"
+        ],
+        "case_ids": [
+          "EXT-C02",
+          "EXT-X1",
+          "EXT-X3"
+        ],
+        "promoted_checks": 3,
+        "trigger": "G2"
+      },
+      "passed": true
+    },
+    {
+      "id": "V2_CROSS_SENSOR_SUCCESS_ROUTE",
+      "observed": {
+        "action_types": [
+          "SUCCESS_CONDITION_TO_PRESERVE"
+        ],
+        "exploratory_only": true,
+        "gate_status": "UNKNOWN",
+        "success_experiences": [
+          "EXT-N06",
+          "EXT-N10"
+        ],
+        "success_key_conditions": [
+          {
+            "case_id": "EXT-N06",
+            "key_conditions": [
+              "冻结的活动识别模型 + 部署期佩戴位置/朝向变化",
+              "可取得无标签用户窗口",
+              "**重要反例（原文明确）**：强制校正一个传感器并未移动的用户，或校正一个没有轴变换能解释的偏移，不但无益还会降低准确率"
+            ],
+            "minimal_validation": "在本任务条件下成对复现「采集协议写明设备轴约定与佩戴位置」，并核对 **重要反例（原文明确）**：强制校正一个传感器并未移动的用户，或校正一个没有轴变换能解释的偏移，不但无益还会降低准确率 是否成立"
+          },
+          {
+            "case_id": "EXT-N10",
+            "key_conditions": [
+              "电容/磁性/电阻式触觉阵列可施加已知均匀物理激励",
+              "策略依赖触觉数值而非原始图像外观",
+              "**重要反例**：DIGIT（光学视触觉）在凝胶左右互换后策略**完全无法迁移**（视觉外观变化）；改用相对无接触读数的差分图像可改善，但仍不及 DexSkin 对替换传感器的标定流程"
+            ],
+            "minimal_validation": "在本任务条件下成对复现「登记每个传感器实例的批次、弹性体/填料参数与标定系数」，并核对 **重要反例**：DIGIT（光学视触觉）在凝胶左右互换后策略**完全无法迁移**（视觉外观变化）；改用相对无接触读数的差分图像可改善，但仍不及 DexSkin 对替换传感器的标定流程 是否成立"
+          }
+        ],
+        "tiers": [
+          "EXPLORATORY_LEAD"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "V3_BASELINE_DECISIVE_EXPERIMENT",
+      "observed": {
+        "action_types": [
+          "DECISIVE_EXPERIMENT",
+          "DECISIVE_EXPERIMENT",
+          "DECISIVE_EXPERIMENT"
+        ],
+        "case_ids": [
+          "EXT-C08",
+          "EXT-X1",
+          "EXT-X3"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "V4_NEGATIVE_RESULT_VS_ENGINEERING",
+      "observed": {
+        "engineering": "ENGINEERING_FAILURE",
+        "engineering_actions": [
+          "CONCRETE_CHECK",
+          "CONCRETE_CHECK"
+        ],
+        "negative": "VALID_SCIENTIFIC_NEGATIVE",
+        "negative_actions": [
+          "CONCRETE_CHECK",
+          "CONCRETE_CHECK"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "V5_DIFFERENT_CONDITIONS_NOT_MIGRATED",
+      "observed": {
+        "conditions_differ": [
+          "EXT-X6B",
+          "EXT-X6C"
+        ],
+        "decision_experience_ids": [],
+        "next_action_case_ids": []
+      },
+      "passed": true
+    },
+    {
+      "id": "V6_ESM_V1_V2_STRICTLY_SEPARATED",
+      "observed": {
+        "case_admissibility": {
+          "EXT-X6B": "UNKNOWN_CONDITIONS_DIFFER",
+          "EXT-X6C": "UNKNOWN_CONDITIONS_DIFFER"
+        },
+        "gate_status": "UNKNOWN",
+        "unknown_reasons": [
+          "EXT-X6B:UNKNOWN_CONDITIONS_DIFFER",
+          "EXT-X6C:UNKNOWN_CONDITIONS_DIFFER"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "V7_PROJECT_IDENTITY_CONFLICT",
+      "observed": {
+        "context_identity": "DECLARED_ID_MISMATCH",
+        "context_status": "IDENTITY_CONFLICT",
+        "declared_state_project_id": "43",
+        "exec_status": "NO_RECEIPTS",
+        "receipt_blocked": true,
+        "receipt_db_created": false,
+        "receipt_error_code": "PROJECT_CONTEXT_NOT_READY",
+        "receipt_status": "ERROR",
+        "resume_status": "BLOCKED_PROJECT_IDENTITY",
+        "synthetic_only": true
+      },
+      "passed": true
+    },
+    {
+      "id": "V8_CACHE_INVALIDATION_AND_DEV_SUPPRESSION",
+      "observed": {
+        "decision_change_new_fingerprint": true,
+        "declaration_conflict_status": "CHECKPOINT_ADVISORY_DECLARATION_CONFLICT",
+        "declaration_conflicts": [
+          "H_STAGE_MILESTONE_MISMATCH:H8/QUESTION_SELECTION",
+          "DECLARED_STAGE_DISAGREES_WITH_KNOWN_PROJECT_STATE:H8/H3"
+        ],
+        "dev_retrieval_executed": false,
+        "dev_status": "NO_CASE_RETRIEVAL_REQUIRED",
+        "identical_event_cache_hit": true,
+        "index_stale_status": "CHECKPOINT_ADVISORY_INDEX_STALE",
+        "index_stale_verification": "UNKNOWN"
+      },
+      "passed": true
+    },
+    {
+      "id": "V9_LIVE_STDIO_MCP_CASE_LIBRARY",
+      "observed": {
+        "case_gate_check_visible": true,
+        "case_library_status": "MATCHES_FOUND",
+        "cases_in_index": 65,
+        "checked": true,
+        "gate_status": "CHECKPOINT_RETRIEVAL_VERIFIED",
+        "gate_verification": "RETRIEVAL_AND_APPLICABILITY_VERIFIED",
+        "is_error": [
+          false,
+          false
+        ],
+        "next_action_count": 3,
+        "search_research_memory_status": "MATCHES_FOUND",
+        "status": "MCP_WIRE_CALL_EXECUTED",
+        "tool_count": 21,
+        "tools_called": [
+          "search_research_memory",
+          "case_gate_check"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "behavioural_verification": "NOT_MEASURED",
+      "id": "V10_INSTALLED_SKILL_STATIC_CHECK",
+      "observed": {
+        "byte_identical_to_repo": true,
+        "exploratory_lead_present": true,
+        "five_triggers_present": true,
+        "h9_recheck_present": true,
+        "next_actions_present": true,
+        "proactive_behaviour_in_live_session": "NOT_MEASURED",
+        "requests_case_gate_check": true,
+        "status": "STATIC_DEPLOYMENT_CHECK_ONLY",
+        "version": "0.8.2"
+      },
+      "passed": true
+    }
+  ],
+  "checks_passed": 10,
+  "checks_total": 10,
+  "conclusion": "Verified tool-level: cases produce 1-3 sourced next actions, exploratory leads stay labelled, differing conditions are not migrated, cache invalidation works, and the live stdio MCP reaches the 65-case library. Real research benefit is NOT claimed.",
+  "decision_examples": [
+    {
+      "action_type": "CONCRETE_CHECK",
+      "case_id": "EXT-C02",
+      "execution_status": "NO_EXECUTION_EVIDENCE_DECLARED",
+      "exploratory_lead_only": false,
+      "minimal_validation": "按 CNN 特征近邻检索 train↔test，人工分四类并报跨集合近重复率",
+      "recommendation": "在冻结协议前执行「按 CNN 特征近邻检索 train↔test，人工分四类并报跨集合近重复率」；把当前任务的分组（随机 k-fold 窗口级划分，同一受试者窗口跨集合）与评价单位（窗口级 accuracy，以窗口数作独立单位）同案例 EXT-C02 的前提逐项对照，记录一致与不同条件后再决定是否改动。",
+      "scenario": "HAR 分组泄漏"
+    },
+    {
+      "action_type": "SUCCESS_CONDITION_TO_PRESERVE",
+      "case_id": "EXT-N06",
+      "execution_status": "NO_EXECUTION_EVIDENCE_DECLARED",
+      "exploratory_lead_only": true,
+      "minimal_validation": "在本任务条件下成对复现「采集协议写明设备轴约定与佩戴位置」，并核对 **重要反例（原文明确）**：强制校正一个传感器并未移动的用户，或校正一个没有轴变换能解释的偏移，不但无益还会降低准确率 是否成立",
+      "recommendation": "【探索线索·非独立确认结论】保留「sensor_calibration」这条有条件成立的有效路线，但先核对成功关键条件「冻结的活动识别模型 + 部署期佩戴位置/朝向变化；可取得无标签用户窗口；**重要反例（原文明确）**：强制校正一个传感器并未移动的用户，或校正一个没有轴变换能解释的偏移，不但无益还会降低准确率」在本任务是否成立，再决定是否沿用；最小验证：在本任务条件下成对复现「采集协议写明设备轴约定与佩戴位置」，并核对 **重要反例（原文明确）**：强制校正一个传感器并未移",
+      "scenario": "跨传感器成功"
+    },
+    {
+      "action_type": "DECISIVE_EXPERIMENT",
+      "case_id": "EXT-C08",
+      "execution_status": "NO_EXECUTION_EVIDENCE_DECLARED",
+      "exploratory_lead_only": false,
+      "minimal_validation": "固定分组与评价单位后，做一次配对基线对照实验并保留原始 Run；检查「强基线与新模型使用同一超参搜索预算，公开全部搜索点」。",
+      "recommendation": "在同一数据划分（官方固定划分）、同一评价单位（排行榜指标）与同一调参预算下，成对运行强简单基线与拟用复杂模型；先复现案例 EXT-C08 的检查「强基线与新模型使用同一超参搜索预算，公开全部搜索点」，再判断差值是否越过其失败边界，而不是直接宣称算法创新。",
+      "scenario": "简单基线增益归因"
+    }
+  ],
+  "library": {
+    "digest_after": {
+      "files": 67,
+      "sha256": "6bd6c702fe6209aed5c7a9dc317078f56cd2b7020ddc8853c806c93cf023b8de"
+    },
+    "digest_before": {
+      "files": 67,
+      "sha256": "6bd6c702fe6209aed5c7a9dc317078f56cd2b7020ddc8853c806c93cf023b8de"
+    },
+    "root": "D:\\workbuddy-work\\CASE_LIBRARY",
+    "unchanged": true
+  },
+  "not_a_scientific_utility_measurement": true,
+  "not_measured": {
+    "blind_reviewer_grades": "NOT_MEASURED",
+    "host_proactive_tool_request_behaviour": "NOT_MEASURED",
+    "host_state_transition_hard_gate": "NOT_MEASURED",
+    "human_turns_or_interventions": "NOT_MEASURED",
+    "real_llm_input_output_token_delta": "NOT_MEASURED",
+    "reason": "No real same-model / same-budget / same-frozen-material WorkBuddy A/B/C replay was executed. Tool-output character counts are a SIZE proxy, not LLM tokens or research benefit.",
+    "scientific_decision_correctness": "NOT_MEASURED",
+    "scientific_utility": "NOT_MEASURED",
+    "wall_time_delta": "NOT_MEASURED",
+    "workbuddy_a_b_c_decision_quality": "NOT_MEASURED"
+  },
+  "report_sha256": "a19f8e30969f4e53b7eab42a7b0016de9b1197cd571ba7c3d7e842424c56e885",
+  "report_type": "WP4_CASE_DECISION_VERIFICATION",
+  "token_cost": {
+    "compact_payload_chars": {
+      "V1": 14444,
+      "V2": 12077,
+      "V3": 14717
+    },
+    "note": "Deterministic tool-output SIZE proxy only. Real LLM tokens / wall time are NOT_MEASURED."
+  }
+}
