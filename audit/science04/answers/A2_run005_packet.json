@@ -1,0 +1,41 @@
+{
+  "claim_type": "CAPABILITY/PERFORMANCE",
+  "question": "在 PoPu DEV 数据上，可靠性门控相对幅值基线是否带来可部署的选择性强度误差下降？",
+  "hypotheses": [
+    "H_RELIABILITY_ADDS",
+    "H_MAGNITUDE_ONLY",
+    "H_SCOPE_12SUBJ"
+  ],
+  "proposed_premise": {
+    "premise_id": "REL-GATE-DEPLOYABLE-INCREMENT",
+    "scope": {
+      "dataset": "PoPu DEV 12-subject fixed subset",
+      "unit": "SUBJECT",
+      "outcome": "Tactilus top-1% intensity MAE at selectivity 0.70"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": []
+    },
+    "legal_inputs": {
+      "status": "PASS",
+      "evidence_refs": []
+    }
+  },
+  "probes": [
+    {
+      "id": "P-RUN005-REPLICATION",
+      "observable": "subject-level paired ΔMAE (C2 − C0) at selectivity 0.70",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same 12-fold LOSO folds, magnitude-only baseline C0",
+      "predictions": {
+        "H_RELIABILITY_ADDS": "DECREASE",
+        "H_MAGNITUDE_ONLY": "NO_CHANGE",
+        "H_SCOPE_12SUBJ": "UNKNOWN"
+      },
+      "cost_band": "MEDIUM"
+    }
+  ]
+}

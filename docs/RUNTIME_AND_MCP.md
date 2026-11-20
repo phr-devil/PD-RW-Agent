@@ -1,11 +1,11 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.12.** Read this section only; everything below the
+**Current release: 0.9.13.** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.12` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `0.9.13` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
 | Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
@@ -93,6 +93,31 @@ a packet is a caller statement and not an execution permit. Measured cost
 (compact JSON): clean two-probe 3 541 → 3 726 (+5.2%), three defective
 10 429 → 10 984 (+5.3%), a three-probe packet carrying real history
 6 706 → 8 180 (+22%, ~490 characters per closed probe).
+
+0.9.13 makes the packet contract usable from the error message, and stops
+`status_verified` from answering two questions at once. `packet-check` (and
+`template`) are the only new surface: every shape violation at once with
+`path`/`problem`/`accepted`/`found`, the `ignored_fields` the decision path
+would have dropped silently, and `warnings` for what is read but not enforced
+(a prose `evaluation_unit` is compared with a token set, so it silently disables
+the repeated-unit check). `normalize` applies only lossless moves — a
+`prechecks` list keyed by its own ids (notes preserved), `predictions` written as
+pairs — and refuses a prose `scope`, a hoisted execution field or an unknown
+outcome, because each of those needs an author decision. `observable` and
+`comparison_reference` accept 240 characters instead of 80: they are
+descriptions, and the old limit produced ten of one packet's thirteen
+violations without protecting anything. On the four real 03D packets the checker
+now names 1 / 24 / 4 / 22 violations individually; a fresh session given
+`template` reached a valid packet in two rounds (3 min), and a fresh session
+asked to repair the four declined all four rather than invent a prediction
+direction. Also: `status_verified` = the closure is verified, so it can no longer
+be true while `premise_verified` is false; `execution_verified` reports the other
+half; a closure whose premise is only the caller's label is
+`HISTORICAL_EVIDENCE_PREMISE_ASSUMED` (not a next action, not a settled premise)
+and appears in `premise_assumed_ids`. Measured cost (compact JSON): clean
+two-probe 3 756 → 3 781 (+0.7%), three defective 11 074 → 11 149 (+0.7%),
+three-probe packet with real history 8 641 → 8 822 (+2.1%) declared and
+9 483 → 9 664 (+1.9%) bound. MCP unchanged: 24 tools, profiles 11/21/24.
 
 0.9.12 stops answering the premise question with the caller's own words. Both
 `prior_execution.premise_id` and `proposed_premise.premise_id` are packet text,
@@ -238,7 +263,7 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.12 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.13 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
 

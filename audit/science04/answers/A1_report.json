@@ -1,0 +1,50 @@
+{
+  "packets": [
+    {
+      "name": "D1_independent",
+      "rounds": 1,
+      "final_status": "SHAPE_VIOLATIONS",
+      "violations_before": 1,
+      "violations_after": 1,
+      "changed_paths": ["prechecks"],
+      "science_touched": false,
+      "blocked_by": "prechecks 的 key 不在固定词表(label_provenance/group_independence/legal_inputs/evaluation_integrity/metric_appropriateness/effect_size)：5 条里只有 group_independence 合法，其余 4 条改名等于替作者断言该检查属于哪一类闸门(unit_scope_match、run_identity_uniqueness、sensor_arm_paired_ci_available 各可归两类)，删掉又会抹去两条 FAIL 记录",
+      "note": "list→mapping 已按原 id 无损完成；剩下 1 条违规是检查名词汇表问题，不属于允许的四种手术"
+    },
+    {
+      "name": "D2_independent",
+      "rounds": 1,
+      "final_status": "SHAPE_VIOLATIONS",
+      "violations_before": 24,
+      "violations_after": 24,
+      "changed_paths": ["prechecks"],
+      "science_touched": false,
+      "blocked_by": "17 条 predictions 是带阈值与符号要求的散文，方向只能由原作者定；6 个 cost_band 写的是工时与授权状态(改成 LOW/MEDIUM 会抹掉『需作者新授权』)；status 写 EXECUTED，映射到 COMPLETED_VALID/INVALID 是有效性判断；三条 prechecks 只有 check/pass_criterion 没有 status，补 status 就是编造核对结果",
+      "note": "只做了允许的 prechecks list→mapping；超长 conclusion/new_information 是密集数值记录，压到 240 字必丢数字，按『不改变含义』未动"
+    },
+    {
+      "name": "D3_old",
+      "rounds": 1,
+      "final_status": "SHAPE_VIOLATIONS",
+      "violations_before": 4,
+      "violations_after": 4,
+      "changed_paths": ["prechecks"],
+      "science_touched": false,
+      "blocked_by": "proposed_premise.scope 是单个字符串，拆成 dataset/input/unit/outcome 被工具明确判为科学选择(哪些字归哪个键只能由作者定)；4 条 prechecks 名称自造且只有 check/on_fail 没有 status；两处超长字段是锚点数值与 CI 的密集记录，压到 240 字必须丢数字或协议 id",
+      "note": "只做了 list→mapping；未缩短 conclusion/new_information，因为缩短即丢锚点数值或协议标识"
+    },
+    {
+      "name": "D3_new",
+      "rounds": 1,
+      "final_status": "SHAPE_VIOLATIONS",
+      "violations_before": 22,
+      "violations_after": 22,
+      "changed_paths": ["prechecks"],
+      "science_touched": false,
+      "blocked_by": "5 个探针的 predictions 全写成带阈值箭头句、hypotheses 是带 statement/prediction 的对象(方向只存在于散文里)；7 个执行字段在顶层且跨 RUN-003/RUN-004，无法归属到唯一探针；scope 是字符串；claim_type=DEPLOYABLE_INCREMENT 不在词表内",
+      "note": "只做了 list→mapping；未把 hypotheses 对象压成 id(会丢掉每条假设的散文预测)，未挪顶层执行字段(5 个探针不可归属)"
+    }
+  ],
+  "invented_any_prediction": false,
+  "wall_clock_minutes": 17
+}

@@ -540,3 +540,36 @@ verdict was rewritten.
 5. **Linked artifacts and their hashes are still not opened** (`artifact_links_verified: false`);
    `run_integrity` remains unwired.
 6. Token, paid compute, real experiment cost, MCP integration, `VALID_POS` on real data: `NOT_MEASURED`.
+
+## Packet contract and independent acceptance — 0.9.13 (SCIENCE-04, 2026-11-20)
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| Every shape violation in one answer, each with a path | `packet-check`: 1 / 24 / 4 / 22 on the four real 03D packets, versus one opaque message each before | `tests/test_science04_packet_contract.py` (26); `repro_before` in `audit/SCIENCE-04-v0.9.13-2026-11-20.md` |
+| Fields the decision path ignores must not look accepted | `ignored_fields`; execution fields hoisted to the top level are a *violation*, not a note | `test_execution_fields_at_the_top_level_are_a_violation_not_a_note` |
+| Read-but-not-enforced fields must be visible | `warnings`: a prose `evaluation_unit` silently disables `PROBE_UNIT_NOT_INDEPENDENT` | `test_a_prose_unit_is_a_warning_and_the_independence_check_goes_quiet` |
+| Only unambiguous structure may be rewritten | `normalize` = `prechecks` list → mapping (notes kept), `predictions` pairs → mapping; refuses prose `scope`, hoisted execution fields, unknown outcomes | `NormalizationTests` (6) |
+| No automatic science | a fresh session asked to repair all four changed **zero** science fields and accepted 0 of 4 rather than invent a direction | `audit/science04/answers/A1_report.json`, `A1_*_fixed.json` |
+| The usable path exists | a fresh session given `template` reached `SHAPE_OK` in 2 rounds / 3 min, and `decision` ran | `audit/science04/answers/A2_run005_packet.json` |
+| A closure is not verified while its premise is not | `status_verified` = `closure_verified`; `execution_verified` is separate; caller-only premise → `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` | `VerifiedMeansVerifiedTests` (3); five 03B/03C/03D assertions rewritten |
+| Descriptions are not identifiers | `observable` / `comparison_reference` 240 characters (was 80, which produced 10 of one packet's 13 violations) | `test_a_long_scope_value_names_which_key`; full suite 610 |
+| No new approver, ledger, validator or checker axis | MCP 24 tools, profiles 11/21/24; `case_gate_eval` 17/17; payload +0.7% / +2.1% | this file, `RUNTIME_AND_MCP.md` |
+
+### Independent decisions at frozen points (4 sessions)
+
+| point | project | what the session proposed | verdict |
+| --- | --- | --- | --- |
+| DP1 | 48 | key/window unit + noise floor, re-analysis of the same DEV frames, subject-level unit | no repeat (4/4 across points), inside authorization, `PARTIAL` contribution |
+| DP1 + cases | 48 | 3×3 target-scale × calibration grid at k, on the **reserved** 48 subjects | serious: crossed `VAL = RESERVED_NOT_ACCESSED` without declaring it; 6 case cards used, traceably |
+| DP2 | 44 | zero-fit DC support audit, 16 specimens, flags the missing predictions file as UNKNOWN | sound; minor internal inconsistency about reuse |
+| DP3 | 17 | 2×2×2 stratified ICC re-estimation on frozen data; path step 3 reuses the 20 holdout materials | experiment inside bounds; found a real `B0b` conflict (`BASELINE_PLAN.md:37` vs `STATE.md:85`); the holdout step declares its independence limit, not the authorization need |
+
+### Unverified in this round
+
+1. No real `VALID_POS` Run exists in any project here, so the "positive evidence" half of
+   contribution identification has never been exercised.
+2. On real data every closure's premise resolves to `CALLER_DECLARATION` (no record or protocol
+   states a `premise_id`), so `closure_verified` is unreachable in practice.
+3. `REAL_LLM_END_TO_END`, token cost, MCP integration, paid compute: `NOT_MEASURED`.
+4. All six sessions are the same model family as the patch author: single non-blind arm.
+5. Two arms reached reserved data without declaring the need (B2's experiment, B4's path step 3); B3 declared it. Handled by a written rule, not a mechanism.

@@ -1,0 +1,161 @@
+{
+  "decision_point": "DP1-POPU-HOLD",
+  "case_refs": [
+    {
+      "case_id": "CASE-12",
+      "changed": "把'跨条件绝对精度塌缩'的经验直接搬到本决策点：我原本打算只报 MAE 的下降/不下降，读后改为必须同时报绝对量（含 bias）与秩信息（Spearman/AUC），因为本项目的绝对单位 UNKNOWN，只有秩结论才可跨条件解释。更关键的是它的反例条款（若新条件下可合法获得带标签参考材料且成本可接受，则'不可部署'需改写）让我把 K=1 带标签参考帧（A2 臂）从'不合法'改判为'合法但需预注册'，从而把'受试者增益'从猜测变成可测臂。"
+    },
+    {
+      "case_id": "CASE-17",
+      "changed": "把'目标尺度阶梯'从松散的多目标比较改造成'固定模型/固定折、只换评价标签、并报塌缩比例'的 2×2 式消融；同时它的同源循环警告（打分与标签共享同一信号即为循环）逼我规定每个 k 必须重新拟合，不能拿 k=18 训好的模型去评粗尺度标签，否则得到的塌缩是标签错配伪影而不是孔径证据。"
+    },
+    {
+      "case_id": "CASE-20",
+      "changed": "删掉了我最初写在 12 人子集上做尺度阶梯的版本。该卡明确'反复用于决策的 DEV holdout 是污染的'且'CONFIRMATION_UNASSIGNED 与 SEALED_NOT_ACCESSED 不能靠换库或换指标绕过'，因此改用 12 人之外的 48 名受试者，并把该实验的证据等级预先钉死为 EXPLORATORY（可作判别，不可称确认），也堵掉了我原本想用'改评价指标'充当独立确认的退路。"
+    },
+    {
+      "case_id": "CASE-21",
+      "changed": "直接攻击我这个决策点最诱人的写法——把 HOLD 重写成'能力边界/可观测性边界'。它要求 GO 必须回答'成功后新增了什么知识'，否则是 EVIDENCE_GAP 不是 INNOVATION_GAP。我因此给实验加了终止条款：若尺度×校准网格全平，则本可靠性分支应 DROP 而非再 HOLD，且不得再以改名方式续命；同时把贡献上限压到 PARTIAL/DEV_ONLY。"
+    },
+    {
+      "case_id": "CASE-02",
+      "changed": "把 RUN-005 的 ORACLE 5.436（70% 覆盖率）从'还有 37% 可达空间'改口径为'一个非法排序的错误分布描述量、只能进错误结构小节'，因此贡献里不再出现 headroom 数字；反过来用了它的反例条款（oracle 输入若在预测时刻确实可得则不属非法）来界定 A2 臂的合法性边界：参考帧必须是现场采集、可剔除、预注册的一帧，而不是任何测试集标签。"
+    },
+    {
+      "case_id": "INT-SUCCESS-01",
+      "changed": "提供了本决策点缺的那套处置顺序：Oracle 有收益而可部署策略无增益时，依次问 Correctability / Identifiability / Practical gain，且'同 K、同部署信息先比固定/随机/残差校正'。这把我原本只有'尺度阶梯'的单轴设计改成'尺度 × 校准（A0/A1/A2 含残差仿射校正）'双轴，并让我明确：K=1 是改变信息条件的新 Task，必须另立协议，不能算作 RUN-005 的续跑。"
+    }
+  ],
+  "opportunity": {
+    "claim": "把'可靠性机制是否带来可部署增量'这个已经问死的二值判定，改造成一张可部署性预算曲面：在同一套下层 72 通道、同一 LOSO 折、同一评价器上，只沿两个从未被移动过的自变量走——(a) 目标的空间尺度 k（top-1% k=18 → top-10% k=173 → 全图 1728 格均值），(b) 合法的受试者级校准条件（A0 仅训练折全局标准化；A1 只用该受试者自身无标签输入的逐通道稳健归一化；A2 预测前现场采集 1 帧带标签参考做仿射校正）。产出的不是第六个 NEG，而是'在哪个空间尺度、哪种校准条件下，下层阵列才开始出现超过姿态先验的可部署增量'的边界，以及'失败'在受试者内定义下是否仍然不可排序。理由：现有五轮证据全部押在最极端的单一目标上，因此'没有增量'这句话的适用范围其实只有一个点，而不是一条曲线。",
+    "why_not_already_done": "五轮 Run 的目标是同一个：PROTO-POPU-POSTUREVALUE-v4-DEV004:target.primary 写明 'tactilus top-1% (k=18 of 1728) mean intensity ... same target computation as RUN-002/003'，v1/v2/v3 亦同（v3:targets.intensity = 'mean of top-1% (k=18)'），RUN-005 也沿用这一目标（PROTO-POPU-RELIABILITY-v5-DEV005.json:base_model.target）。RUN-001（60 折）与 RUN-002/003/004/005（12 折）都没有报过更粗尺度或全图均值目标，RUN-005 的 aggregate 只有 raw / dropallGT100 两个'量程'分支，没有'尺度'分支——量程不是尺度。校准同样从未跑过：PROTO-POPU-INF-INC-v1.json:legal_inputs.calibration 明写 'per-subject empty1 baseline subtraction NOT used in main run ... reserved as sensitivity only'，而 PROTO-POPU-INF-INC-v2-DEV002.json:legal_inputs.forbidden_as_input 与 PROTO-POPU-RELIABILITY-v5-DEV005.json:deployable_input_rule 都把 'any test-subject statistic' 列为禁用输入。可靠性那一问本身也只跑过一次（RUN-005，12 人），且失败标签是全局绝对误差 75 分位（protocol v5:primary_outcome.threshold），而同一 metrics 的 fold_details 显示各受试者 positive_rate 从 0.1095 到 0.4179（raw）、base MAE 从 6.428 到 12.188（raw），标签把受试者间尺度差混进了'失败'定义。因此'尺度曲线 + 校准条件 + 受试者内失败定义'这三件事没有一件被做过。",
+    "evidence_refs": [
+      "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json:target.primary",
+      "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-DEPLOY-v3-DEV003.json:targets.intensity",
+      "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json:base_model.target",
+      "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-INF-INC-v1.json:legal_inputs.calibration",
+      "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-INF-INC-v2-DEV002.json:legal_inputs.forbidden_as_input",
+      "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json:deployable_input_rule",
+      "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json:primary_outcome.threshold",
+      "frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/metrics.json:aggregate（只有 raw / dropallGT100，无 k 分支）",
+      "frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/metrics.json:fold_details[].per_mode.raw.positive_rate（0.1095–0.4179）",
+      "frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/metrics.json:fold_details[].per_mode.raw.base_mae（6.428–12.188）",
+      "frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/metrics.json:aggregate.raw.auc（R0 0.5785 / R1 0.4905 / R2 0.4986）",
+      "frozen/DP1-POPU-HOLD/DEV/runs/RUN-001/metrics.json:verdict（NEG_SCOPED）与 n_folds（60）",
+      "frozen/DP1-POPU-HOLD/STATE.md:BEST_VALID_RUN（RUN-004 标 METRIC_REPRODUCIBILITY_DEGRADED）"
+    ]
+  },
+  "hypotheses": [
+    {
+      "id": "H1_APERTURE_ALIASING",
+      "mechanism": "72 点下层阵列相对 1728 格上层网格是一个空间低通孔径：top-1%（k=18，约 1% 面积）峰的能量落在阵列可分辨的空间频率之上，其强度在原理上不可辨识；而空间积分量（更大的 k，直到全图均值）仍可辨识。损失来自采样几何（孔径/混叠），不来自模型族，因此换模型、加姿态表示都不会改变它。",
+      "strongest_baseline": "C0_posture（训练折 28 键姿态条件均值）+ 同折 Ridge-72（RUN-001 C1）；两者同数据、同折、同评价器，且已证明不弱于 HGB（RUN-002 的 B 否定）。",
+      "prediction": "INCREASE",
+      "prediction_detail": "随 k 变粗，Δ_deploy（可部署模型 MAE 减 C0_posture MAE）单调变优并在某 k* 处越过 0；k=18 处仍≈0，即复现 RUN-001/002 的 NEG。校准臂不改变这个形状（三条校准臂的曲线互相重合）。"
+    },
+    {
+      "id": "H2_SUBJECT_RESPONSE_GAIN",
+      "mechanism": "受试者个体的接触面积、组织顺应性与传感器贴合差异构成乘性-加性响应差；训练折全局标准化把它留成受试者级偏置并主导残差，于是'哪一帧难'的排序在部分受试者上反转，跨受试者拟合的可靠性模型必然失效。该项可修，但需要受试者自身的参考：无标签（A1）或一帧带标签（A2）。",
+      "strongest_baseline": "A0：训练折全局标准化 + RUN-004 冻结的直接 HGB（M1，max_iter=120/lr=0.08/leaves=31/l2=1.0）与 Ridge（M0，alpha=100），同折同目标。",
+      "prediction": "INCREASE",
+      "prediction_detail": "A1/A2 臂在所有 k（含 k=18）都降低 MAE，且受试者间离散收窄——具体可查的签名是 RUN-005 fold_details 里 R0 AUC 的翻转（subj12 raw 0.397 vs subj14 raw 0.782）在 A1/A2 下消失或大幅收窄；A0 臂的曲线形状不变。与 H1 的区别在于收益是否'与 k 无关'。"
+    },
+    {
+      "id": "H3_PRIOR_ONLY",
+      "mechanism": "下层 72 通道在本任务上不含任何超出姿态/身份先验的可部署信息，任何表观增量由先验与置换零分布解释；连全图上均值（近似总载荷）也不额外可辨识。这是'信息不存在'的强版本。",
+      "strongest_baseline": "C0_posture + 每个条件自身的单拟合置换零分布（RUN-002 的公平置换口径：真实单拟合 vs 单拟合置换，禁用 RUN-001 的 5-seed 集成均值）。",
+      "prediction": "NO_CHANGE",
+      "prediction_detail": "整个 k×校准 网格上 Δ_deploy 的 CI 都含 0，Δ_rank 的 CI 也含 0。注意（PRIOR）：力学上总载荷近似守恒，若连 k=1728 的全图均值都平，应优先怀疑管线/代理真值/单位问题，而不是宣布物理结论；这条本身就是该实验的一个内置自检。"
+    },
+    {
+      "id": "H4_LABEL_DEFINITION_ARTIFACT",
+      "mechanism": "RUN-005 的 NEG 主要不是信息缺失，而是'失败'的定义把受试者间尺度差当成失败：一个全局绝对误差 75 分位阈值作用在误差尺度相差近 2 倍的受试者上，AUC 实际在测'这个受试者整体偏难'而不是'这一帧比同受试者其他帧更难'。改成就受试者内分位标签后，排序信息可能仍存在。",
+      "strongest_baseline": "R0_magnitude_only（预测强度）在全局阈值下的 AUC 0.5785/0.5927，对照 R1 0.4905/0.4909 与 R2 0.4986/0.4994（RUN-005 aggregate.auc）。",
+      "prediction": "NO_CHANGE",
+      "prediction_detail": "主量（MAE 网格）全平——只换标签不换预测，若 MAE 也动了则说明动的是模型而不是标签定义，H4 即刻不成立；次量 Δ_rank 由 −0.0881/−0.1017 移向 ≥0，且 R0 自身 12 个受试者 AUC 的离散度大幅收窄。"
+    }
+  ],
+  "experiment": {
+    "id": "EXP-REL-BUDGET-01（提议，未运行）",
+    "observable": "在 k×校准 的 3×3 网格上各取两个量，全部按受试者配对、bootstrap 10000、报 CI 与 bias：(1) 主量 Δ_deploy = 该单元可部署模型受试者级 MAE − 同折同 k 的最强基线 MAE（负=更好；基线为 C0_posture，校准臂另比 A0）；(2) 次量 Δ_rank = AUC(R1_structure+prediction) − AUC(R0_magnitude_only)，'失败'标签分别在全局绝对阈值（RUN-005 原口径）与受试者内 75 分位阈值下各算一次。网格：k ∈ {18, 173, 1728}（top-1% / top-10% / 全图均值）；校准 ∈ {A0 训练折全局标准化, A1 该受试者自身无标签输入的逐通道中位数/MAD 归一化, A2 用 1 帧现场带标签参考做仿射（gain/offset）校正}。每个 k 独立重新拟合、独立选 alpha/配置，禁止跨 k 复用模型；同时报每个 k 相对 k=18 的'塌缩比例'（CASE-17 口径）。",
+    "evaluation_unit": "受试者（12 人子集之外的 48 名受试者，LOSO 每折 1 人，n=48，帧不作为独立单位）；所有 CI 以受试者为重采样单位。",
+    "comparison_reference": "同折同 k 的 C0_posture（训练折 28 键姿态条件均值）与 A0（RUN-004 冻结的 M1 配置，HGB 必须设 random_state）；每个条件另报自身单拟合置换零分布（RUN-002 公平口径），不得使用 5-seed 集成均值；ORACLE 排序只作错误结构描述量，不入判决表（CASE-02）。",
+    "predictions": {
+      "H1_APERTURE_ALIASING": "INCREASE（Δ_deploy 随 k 单调变优；k=18 处≈0；A0/A1/A2 三曲线重合）",
+      "H2_SUBJECT_RESPONSE_GAIN": "INCREASE（A1/A2 在含 k=18 的所有 k 上都变优；A0 曲线不变；受试者间 R0 AUC 离散收窄）",
+      "H3_PRIOR_ONLY": "NO_CHANGE（全 9 单元 Δ_deploy 的 CI 全含 0，Δ_rank 亦含 0）",
+      "H4_LABEL_DEFINITION_ARTIFACT": "NO_CHANGE（主量全平）；INCREASE（仅次量 Δ_rank，受试者内标签下由负转非负）"
+    },
+    "cost_band": "MEDIUM",
+    "why_legal": "三条校准臂都只用预测时刻确实可得的信息：A0 只用训练折统计；A1 只用该受试者自己已流出的下层读数（无标签、无上层值、无身份、无姿态），属无监督自适应而非测试标签泄漏；A2 只用部署现场、预测之前采集的 1 帧上下层配对参考（该帧从评估集剔除、每受试者固定 1 帧、选取规则预注册），符合 CASE-02 的反例条款（oracle 输入若在预测时刻可得则不属非法）与 INT-SUCCESS-01 的 K=1 先例。全部臂不使用上层真值作特征、不使用测试受试者的标签或聚合统计去拟合训练模型、不使用姿态真值；目标尺度只改标签侧，不改输入侧。",
+    "why_minimal": "只动两个此前从未动过的自变量（目标尺度、校准条件），模型族、折划分、标准化、评价器、量程处理全部沿用已冻结配置，不新增调参、不新增数据、不换模型族、不引入深度网络。三个 k 是能定位孔径边界的最少点数（最细 / 中间 / 最粗）；三个校准臂是能分开'无信息（H3）/ 全局尺度（H2 的 A1）/ 受试者增益（H2 的 A2）'的最少点数——去掉任一臂，H1 与 H2 就无法区分（两者都预测'增量上升'，只有沿校准轴的交互能分开）。次量 Δ_rank 复用同一批预测，只多一次标签重算，不增加拟合成本。",
+    "already_run": false,
+    "which_run_if_so": null,
+    "already_run_basis": [
+      "PROTO-POPU-POSTUREVALUE-v4-DEV004.json:target.primary = 'top-1% (k=18 of 1728) mean intensity ... same target computation as RUN-002/003' → 目标侧只有 k=18 一个点",
+      "PROTO-POPU-DEPLOY-v3-DEV003.json:targets.intensity 与 PROTO-POPU-RELIABILITY-v5-DEV005.json:base_model.target 同口径 → RUN-003/005 也未做尺度阶梯",
+      "RUN-005/metrics.json:aggregate 仅含 raw 与 dropallGT100 两个键 → 变化的是量程，不是目标尺度",
+      "PROTO-POPU-INF-INC-v1.json:legal_inputs.calibration = 'per-subject empty1 baseline subtraction NOT used in main run ... reserved as sensitivity only' → 校准臂被预留但从未执行",
+      "PROTO-POPU-INF-INC-v2-DEV002.json:legal_inputs.forbidden_as_input 与 PROTO-POPU-RELIABILITY-v5-DEV005.json:deployable_input_rule 均显式禁用 test-subject statistic → RUN-002/005 结构上不可能含 A1/A2",
+      "RUN-005/metrics.json:fold_details[].per_mode.raw.threshold 为 12.98–13.28 的全局绝对值，而 base_mae 跨受试者 6.428–12.188 → 现有标签是全局绝对口径，受试者内口径从未算过"
+    ]
+  },
+  "contribution": {
+    "claim": "最可信的贡献是一句有边界的能力陈述，而不是一个正结果：在受试者独立、仪器代理真值、单位与配准均 UNKNOWN 的条件下，72 点床垫下阵列在 k=18 局部峰值目标上不给出超越姿态先验的可部署增量（RUN-001/002），细分姿态作为可部署中间表示在匹配非线性容量后没有独立价值（RUN-004），且模型自身失败在可部署输入下不可辨识——只用预测强度有弱但真实的排序（AUC 0.5785/0.5927），加入可部署结构特征反而更差（0.4905/0.4909，R1−R0 −0.0881/−0.1017，CI 不含 0）（RUN-005）。三条提问不同、方向一致，合起来支撑的是'该阵列的局部峰值恢复在本协议下不可部署兑现'这一否定性测量结论，而不是'触觉无信息'或'物理不可恢复'。",
+    "evidence_support": "PARTIAL",
+    "missing_evidence": [
+      "① 正对照缺失：至今没有任何目标被证明可被这套 72 通道恢复（连全图均值/总载荷都没报过），'确实无信息'与'管线或代理真值有问题'尚未分开；",
+      "② 尺度边界缺失：五个 Run 全在 k=18，没有 k 曲线，'局部峰不可恢复'无法上升为孔径/空间分辨率的物理解释，只能说'在这一个目标上没有'；",
+      "③ 校准条件缺失：v1 把受试者空床基线留作 sensitivity 却从未执行，v2/v5 又把 test-subject statistic 禁掉，'受试者级增益'这一竞争解释从未被直接测过；",
+      "④ 独立确认缺失：12 人子集在 RUN-002–005 反复用于决策（CASE-20 意义上的 CONTAMINATED），SEALED = NOT_APPLICATED/NOT_ACCESSED，且'换指标/换库'不能替代确认；",
+      "⑤ 计量前提缺失：上层为仪器代理真值、Sensomatt 单位 UNKNOWN、空间配准 UNKNOWN、硬件时间同步 UNKNOWN，绝对量级与定位结论都只能作统计映射；",
+      "⑥ 数字精度缺失：RUN-004 标 METRIC_REPRODUCIBILITY_DEGRADED（HGB 未设 seed，单折抖动 0.27 > 判定效应 0.059），其逐条件数值不可逐字复现，只能引用方向。"
+    ],
+    "shortest_path": [
+      "1) 先跑本文提议的 EXP-REL-BUDGET-01（正对照 + k 曲线 + 三校准臂，48 名未参与任何调参/阈值/选择的受试者，一次性预注册）。它排除两个当前无法分开的替代解释：'目标选错（空间混叠）'与'管线/代理真值坏了'——若全图均值也平，则管线自检失败，先修管线而不是继续解释；若只有粗 k 有增量，则 NEG 被改写为孔径边界。按 CASE-21 预先承诺：若整张网格都平，本可靠性分支判 DROP，不再加变体、不再改名续命。",
+      "2) 在步骤 1 选出的最优 (k, 校准) 单元上重跑可靠性问题：受试者内失败标签 + A1/A2 校准 + 预注册 MDE（用步骤 1 同单位、同设计的效应量算，不搬用其他项目数值）。它排除'RUN-005 的 NEG 是评价口径造成的'这一层解释（全局绝对阈值把受试者间近 2× 的误差尺度差混进来，positive_rate 0.11–0.42），并给出该分支该 REFINE 还是该 DROP 的判决；同时把 RUN-003 的'Oracle 有增益、可部署无增益'按 Correctability/Identifiability/Practical gain 三步走完（INT-SUCCESS-01 口径）。",
+      "3) 独立确认（需新授权）：第二库或尚未访问的 holdout，协议、k、校准条件、阈值全部沿用步骤 1–2 的冻结值，只跑一次、只报一次。它排除'单库/PoPu 仪器代理特有'与'12 人子集反复使用导致的自适应过拟合'这两个替代解释；没有这一步，贡献只能停在 PARTIAL / DEV_ONLY，不能升级 Claim、不能写'普适'。"
+    ]
+  },
+  "read_files": [
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/tasks/B2_DP1_with_cases.md",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/MANIFEST.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/STATE.md",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/RESEARCH_RECORD.md",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/PAPER_BLUEPRINT.md",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-INF-INC-v1.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-INF-INC-v2-DEV002.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-DEPLOY-v3-DEV003.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.amendment-001.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.amendment-002.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/metrics.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/verification.json",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/RUN-005_RESULT.md",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/DEV/runs/RUN-001/metrics.json（仅顶层键 + verdict + n_folds）",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/DEV/runs/RUN-002/metrics.json（仅顶层键 + dev_subjects + limitation_note）",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/DEV/runs/RUN-003/metrics.json（仅顶层键 + verdict）",
+    "D:/workbuddy-agent/PD-RW-Agent/audit/science04/frozen/DP1-POPU-HOLD/DEV/runs/RUN-004/metrics.json（仅顶层键 + verdict + anchor_pass）",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/indexes/cases.jsonl",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/indexes/stages/H4.md",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/indexes/stages/H6.md",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/cases/CASE-02.md",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/cases/CASE-12.md",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/cases/CASE-17.md",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/cases/CASE-20.md",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/cases/CASE-21.md",
+    "D:/workbuddy-work/PD-RW-Case-Knowledge/cases/INT-SUCCESS-01.md"
+  ],
+  "uncertainties": [
+    "成本估计依赖 DEV/cache 可复用，但 MANIFEST.withheld 把 'DEV/data、*.npz、*.csv' 排除在快照之外，因此从本快照无法核实缓存是否仍在；若需从 ZIP 重建特征，成本带可能上浮一档（PRIOR，未验证）。",
+    "'48 名补充受试者从未被用于选择/调参/阈值'是我的判断而非文件事实：RUN-001 曾在全 60 人上评估过一次（不同目标、不同提问），我认为这不构成 CASE-20 意义上的 selection，但这一读法本身可被质疑；任何情况下本实验都只能标 EXPLORATORY，不能称确认。",
+    "A2 的 K=1 参考帧在 PoPu 中没有预先指定的采集流程；用哪一帧（哪个 posture×shift）作参考会引入选择，必须用与结果无关的固定规则（如每受试者第一个合法帧或预注册随机帧）并公开，否则 A2 内部就有自由度。若只能做 A1，H2 的'带标签增益'部分不可分。",
+    "'全图均值≈总载荷、因而应可辨识'是 PRIOR（力学守恒），文件里没有任何 Run 报过该目标，也没有单位换算验证；它在本设计里同时充当管线自检，若它也为平，我倾向判管线/真值问题而非物理结论。",
+    "H1 只能定性：空间配准 UNKNOWN、Sensomatt 单位 UNKNOWN，72 通道的实际几何间距与覆盖未知，所以'孔径/混叠'是机制假说而非可算的截止频率。",
+    "RUN-001–004 我只读了 metrics.json 的顶层键与 verdict 字段，未逐项核对 fold_details；对 RUN-004 数值精度的判断完全依赖 amendment-002 与 STATE 的 METRIC_REPRODUCIBILITY_DEGRADED 标注。",
+    "未见任何 SEALED 或 VAL 路径（SEALED = NOT_APPLICATED/NOT_ACCESSED），故'独立确认是否结构上可行'在本快照内为 UNKNOWN；CASE-20 提示这不能用换库/换指标绕过。",
+    "案例库按其自述为只读先例，不是本项目证据；同一 source_group 的案例未被我当作独立支持，本次引用的 6 张卡分属不同 SRC 组，但我未逐一核对其原始 Run。"
+  ],
+  "wall_clock_minutes": 14
+}

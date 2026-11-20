@@ -169,11 +169,17 @@ class BindingAxisTests(unittest.TestCase):
             probe("RAN", {"status": "COMPLETED_VALID", "run_ref": "runs/RUN-OK",
                           "premise_id": PREMISE}), LIVE]), project_root=self.project.root)
         prior = entry_of(result, "RAN")["prior_execution"]
-        self.assertTrue(prior["status_verified"])
+        # The record runs and says COMPLETED, and the caller's premise label
+        # matches its own -- but no file states the premise, so this is execution
+        # evidence with a declared premise link (0.9.13 draws that line).
+        self.assertTrue(prior["execution_verified"])
+        self.assertFalse(prior["premise_verified"])
+        self.assertEqual("CALLER_DECLARATION", prior["premise_binding_basis"])
         self.assertEqual("BOUND", prior["file_binding"])
         self.assertEqual("CONSISTENT", prior["status_consistency"])
         self.assertEqual("MATCH", prior["premise_binding"])
-        self.assertEqual("HISTORICAL_EVIDENCE_ONLY", entry_of(result, "RAN")["applicability"])
+        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ASSUMED",
+                         entry_of(result, "RAN")["applicability"])
         self.assertIn("RAN", eff(result)["historical_evidence_ids"])
         self.assertNotIn("RAN", eff(result)["frontier_candidate_ids_as_declared"])
 

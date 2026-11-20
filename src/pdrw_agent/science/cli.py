@@ -12,6 +12,7 @@ from pathlib import Path
 from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
+from .packet_schema import check_packet, normalize_packet, template
 from .feedback_link import review_linked_feedback, to_run_feedback
 from .candidate_review import review_candidates
 from .plan_selection import review_h6_plan_choice
@@ -71,6 +72,15 @@ def main() -> int:
             p.add_argument("--project-root", type=Path,
                            help="Optional project root: resolve declared Run references "
                                 "to project bytes before judging a closure")
+    check = sub.add_parser(
+        "packet-check",
+        help="Report every packet shape violation at once, with field paths")
+    check.add_argument("--packet", type=Path, required=True)
+    check.add_argument("--project-root", type=Path,
+                       help="Optional: also run the decision when the shape is accepted")
+    check.add_argument("--normalize-out", type=Path,
+                       help="Write the losslessly normalized packet here (never in place)")
+    sub.add_parser("template", help="Print a minimal packet the decision path accepts")
     h6 = sub.add_parser("h6-review", help="Review new-project H6 card / declared choice")
     h6.add_argument("--plan", type=Path, required=True)
     h6.add_argument("--choice", type=Path, help="Optional declared user choice; never proof of authorization")
@@ -106,7 +116,32 @@ def main() -> int:
     args = cli.parse_args()
     link_status = None
     try:
-        if args.action in {"decision", "lessons"}:
+        if args.action == "template":
+            result = {"status": "TEMPLATE", "note": (
+                "Fill the values; the enums are the only choices. Nothing here is "
+                "executed, approved or written to a project."),
+                "packet": template()}
+        elif args.action == "packet-check":
+            packet = read_json(args.packet, limit=128 * 1024)
+            shape = check_packet(packet)
+            result = shape
+            normalized = normalize_packet(packet)
+            if normalized["changes"] or normalized["refused"]:
+                result["normalization"] = normalized
+                if args.normalize_out is not None:
+                    args.normalize_out.write_text(
+                        json.dumps(normalized["packet"], indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8")
+                    result["normalization"]["written_to"] = str(args.normalize_out)
+            if shape["status"] == "SHAPE_OK" and args.project_root is not None:
+                decision = assess_proposal(packet, project_root=args.project_root)
+                result["decision_preview"] = {
+                    "status": decision["status"],
+                    "frontier": decision["declared_probe_efficiency"][
+                        "frontier_candidate_ids_as_declared"],
+                    "no_executable_next_probe": decision["no_executable_next_probe"],
+                }
+        elif args.action in {"decision", "lessons"}:
             packet = read_json(args.packet, limit=128 * 1024)
             result = (assess_proposal(packet, project_root=getattr(args, "project_root", None))
                       if args.action == "decision"
@@ -174,6 +209,10 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=True, indent=2))
     if result.get("status") == "ERROR":
         return 2
+    # A packet that violates the shape is not an execution error: the research
+    # answer may be perfectly good, it just is not a tool input yet.
+    if args.action == "packet-check":
+        return 0 if result.get("status") == "SHAPE_OK" else 3
     # H6 is never authenticated by this CLI: nonzero prevents shell wrappers
     # from treating a valid declaration or a pending response as execution approval.
     if args.action in {"early-review", "h6-review", "candidate-review"}:
