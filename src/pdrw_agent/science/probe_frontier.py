@@ -34,6 +34,12 @@ _UNIT_VERIFICATION = "PROBE_UNIT_NOT_INDEPENDENT"
 # named, non-executable role.
 _RUNNABLE = "NOT_YET_RUN"
 
+# Recorded evidence under a verified premise, and recorded evidence whose premise
+# link is only declared: both answer "do not run this again", and only the first
+# answers "the premise is settled".
+_HISTORICAL_ROLES = frozenset({"HISTORICAL_EVIDENCE_ONLY",
+                               "HISTORICAL_EVIDENCE_PREMISE_ASSUMED"})
+
 
 def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
     """Return non-dominated candidate IDs using pair-set coverage and known cost.
@@ -100,7 +106,14 @@ def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
         # CASE-20/CASE-21: the probe already produced its answer for this
         # premise. Re-running it cannot add information; it supports the next
         # judgment as recorded evidence only.
-        "historical_evidence_ids": with_role("HISTORICAL_EVIDENCE_ONLY"),
+        # Both roles are recorded evidence, so neither is a next action. They are
+        # listed separately because one closure was verified from a record and
+        # the other rests on a premise label the caller wrote.
+        "historical_evidence_ids": [
+            ident for ident in known
+            if applicability[ident] in _HISTORICAL_ROLES
+        ],
+        "premise_assumed_ids": with_role("HISTORICAL_EVIDENCE_PREMISE_ASSUMED"),
         "repair_required_ids": with_role("TARGETED_REPAIR"),
         "awaiting_new_information_ids": with_role("AWAIT_NEW_INFORMATION"),
         "revisit_on_new_information_ids": with_role("REVISIT_ON_NEW_INFORMATION"),

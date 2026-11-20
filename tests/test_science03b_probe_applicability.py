@@ -100,7 +100,10 @@ class ClosedProbeTests(unittest.TestCase):
                                  project_root=self.root)
         self.assertEqual(["SWAP"], eff(result)["frontier_candidate_ids_as_declared"])
         self.assertEqual(["SLOPE"], eff(result)["historical_evidence_ids"])
-        self.assertEqual("HISTORICAL_EVIDENCE_ONLY", app(result, "SLOPE"))
+        # 0.9.13: this fixture's record states no premise, so the closure is
+        # recorded evidence under a *declared* premise -- not a verified one.
+        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ASSUMED", app(result, "SLOPE"))
+        self.assertEqual(["SLOPE"], eff(result)["premise_assumed_ids"])
 
     def test_a_closed_probe_cannot_dominate_a_live_one(self):
         result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS, SWAP]),
@@ -112,8 +115,13 @@ class ClosedProbeTests(unittest.TestCase):
         result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS]),
                                  project_root=self.root)
         entry = next(s for s in result["probe_comparisons"] if s["id"] == "SLOPE")
-        self.assertEqual("KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN", entry["next_action"])
-        self.assertTrue(entry["prior_execution"]["status_verified"])
+        self.assertEqual("CITE_AS_EVIDENCE_ONLY_AND_DECLARE_THE_PREMISE_LINK",
+                         entry["next_action"])
+        # The Run ran; the premise is the caller's label. Both stated separately
+        # so neither can pass for the other.
+        self.assertTrue(entry["prior_execution"]["execution_verified"])
+        self.assertFalse(entry["prior_execution"]["premise_verified"])
+        self.assertFalse(entry["prior_execution"]["status_verified"])
 
     def test_the_same_claim_without_a_bound_run_is_not_history(self):
         # The 03C correction: `run_ref` alone used to set status_verified true.

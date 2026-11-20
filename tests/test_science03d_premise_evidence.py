@@ -308,10 +308,14 @@ class DeclaredOnlyTests(unittest.TestCase):
         self.assertEqual("CALLER_DECLARATION", prior["premise_binding_basis"])
         self.assertEqual("NONE", prior["premise_evidence"])
         self.assertFalse(prior["premise_verified"])
-        # Unchanged recommendation: a bound, consistent Run is recorded evidence
-        # even when only the caller names the premise -- but it is no longer
-        # presentable as a verified premise match.
-        self.assertEqual("HISTORICAL_EVIDENCE_ONLY", entry_of(result, "BARE")["applicability"])
+        # A bound, consistent Run is recorded evidence even when only the caller
+        # names the premise. 0.9.13 stops calling that a verified closure: the
+        # action is unchanged (do not rerun), the label says what is missing.
+        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ASSUMED",
+                         entry_of(result, "BARE")["applicability"])
+        self.assertTrue(prior["execution_verified"])
+        self.assertFalse(prior["status_verified"])
+        self.assertIn("BARE", eff(result)["historical_evidence_ids"])
         self.assertEqual([], eff(result)["premise_contradicted_ids"])
 
 
@@ -328,7 +332,12 @@ class CompatibilityTests(unittest.TestCase):
             probe("OLD", {"status": "COMPLETED_VALID", "run_ref": "x", "premise_id": SENSOR})]),
             run_binder=binder)
         self.assertEqual(["x"], calls)
-        self.assertTrue(entry_of(result, "OLD")["prior_execution"]["status_verified"])
+        prior = entry_of(result, "OLD")["prior_execution"]
+        # An old binder reports no premise evidence, so the closure stays
+        # unverified; the call itself must still work.
+        self.assertTrue(prior["execution_verified"])
+        self.assertFalse(prior["status_verified"])
+        self.assertTrue(prior["binding_checked"])
 
     def test_an_unknown_execution_field_is_still_rejected(self):
         with self.assertRaises(AgentError):

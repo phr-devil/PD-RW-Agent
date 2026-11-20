@@ -94,9 +94,10 @@ _DISQUALIFYING_FROM_FRONTIER = frozenset({"REFERENCE_NOT_LEGAL"})
 # and a state without a Run reference stays a claim, never a verified closure.
 EXECUTION_STATUSES = {"NOT_EXECUTED", "COMPLETED_VALID", "COMPLETED_INVALID",
                       "INCONCLUSIVE", "BLOCKED"}
-_PRIOR_EXECUTION_FIELDS = {"status", "run_ref", "record_ref", "premise_ref",
-                           "premise_id", "conclusion", "new_information",
-                           "requires_new_authorization"}
+PRIOR_EXECUTION_FIELDS = {"status", "run_ref", "record_ref", "premise_ref",
+                          "premise_id", "conclusion", "new_information",
+                          "requires_new_authorization"}
+_PRIOR_EXECUTION_FIELDS = PRIOR_EXECUTION_FIELDS
 _MAX_PRIOR_TEXT = 240
 
 # The next action each declared state implies. Nothing here runs, stops, or
@@ -105,6 +106,10 @@ _NEXT_ACTION = {
     "NOT_YET_RUN": "RUN_IF_LEGAL_AND_DISCRIMINATING",
     "NEEDS_AUTHORIZATION": "OBTAIN_AUTHORIZATION_FIRST",
     "HISTORICAL_EVIDENCE_ONLY": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+    # Same action, different epistemic footing: cite it and say that the premise
+    # link is the caller's declaration rather than the record's.
+    "HISTORICAL_EVIDENCE_PREMISE_ASSUMED":
+        "CITE_AS_EVIDENCE_ONLY_AND_DECLARE_THE_PREMISE_LINK",
     "CLOSURE_DECLARED_NOT_VERIFIED": "VERIFY_RUN_BEFORE_DECIDING",
     "TARGETED_REPAIR": "REPAIR_NAMED_DEFECT_FIRST",
     "REVISIT_ON_NEW_INFORMATION": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
@@ -324,9 +329,15 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         premise_evidence = "FROZEN_PLAN_WITHOUT_PREMISE"
     else:
         premise_evidence = "NONE"
-    trustworthy = (status == "COMPLETED_VALID" and reference_present
-                   and file_binding == "BOUND" and consistency == "CONSISTENT"
-                   and premise_binding == "MATCH" and not plan_unresolved)
+    # Two different questions, two different answers. `execution_verified` says
+    # the cited Run ran as declared. `premise_verified` says something on disk --
+    # not the caller's own label repeated twice -- places that Run under this
+    # premise. A closure needs both; a Run that ran is evidence either way, which
+    # is why the action below does not fall back to "run it again".
+    execution_verified = (status == "COMPLETED_VALID" and reference_present
+                          and file_binding == "BOUND" and consistency == "CONSISTENT"
+                          and not contradicted)
+    closure_verified = execution_verified and premise_verified and not plan_unresolved
 
     if status == "NOT_EXECUTED":
         applicability = "NEEDS_AUTHORIZATION" if needs_auth else "NOT_YET_RUN"
@@ -342,7 +353,16 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         # unbound claim remove a live candidate. Neither is allowed.
         applicability = "CLOSURE_PREMISE_UNBOUND"
     elif status == "COMPLETED_VALID":
-        applicability = "HISTORICAL_EVIDENCE_ONLY" if trustworthy else "CLOSURE_DECLARED_NOT_VERIFIED"
+        if closure_verified:
+            applicability = "HISTORICAL_EVIDENCE_ONLY"
+        elif plan_unresolved:
+            applicability = "CLOSURE_DECLARED_NOT_VERIFIED"
+        elif execution_verified and premise_binding == "MATCH":
+            # The Run is real and ran as declared; the premise it tested is a
+            # label the caller wrote. Recorded evidence, not a settled premise.
+            applicability = "HISTORICAL_EVIDENCE_PREMISE_ASSUMED"
+        else:
+            applicability = "CLOSURE_DECLARED_NOT_VERIFIED"
     elif status == "COMPLETED_INVALID":
         applicability = "TARGETED_REPAIR"
     elif status == "INCONCLUSIVE":
@@ -364,9 +384,15 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         "premise_verified": premise_verified,
         "premise_contradicted": contradicted,
         "plan_unresolved": plan_unresolved,
-        # Kept for compatibility; now True only for a bound, consistent closure
-        # under this same premise, whose plan (if named) resolves here.
-        "status_verified": trustworthy,
+        # Did the cited Run run as declared? Independent of what premise it
+        # tested, and of whether this probe is closed.
+        "execution_verified": execution_verified,
+        # Kept for compatibility; now it means what its name says -- the closure
+        # is verified -- so it can never be true while `premise_verified` is
+        # false. Before 0.9.13 the two could disagree, and the label
+        # HISTORICAL_EVIDENCE_ONLY hid which half was missing.
+        "status_verified": closure_verified,
+        "closure_verified": closure_verified,
         "binding_checked": binding is not None,
         "premise_match": None if premise_binding in {"UNBOUND", "NOT_APPLICABLE"}
                         else premise_binding == "MATCH",
@@ -385,9 +411,24 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
     }
 
 
-def _id(value, label: str) -> str:
-    if not isinstance(value, str) or not 1 <= len(value) <= 80 or not value.strip():
-        raise AgentError("SCIENCE_PACKET_INVALID", f"{label} must be 1..80 characters")
+# An identifier is a key: 80 characters is already generous. A *description*
+# (what is observed, what it is compared against) is read by a human and echoed
+# by the checker, so it gets the same room as any other declared text -- the old
+# 80-character limit on those two fields produced ten of the thirteen shape
+# violations in one real packet without protecting anything.
+_ID_LIMIT = 80
+_DESCRIPTION_LIMIT = 240
+
+
+def _id(value, label: str, limit: int = _ID_LIMIT) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"{label}: expected 1..{limit} characters of text, got "
+                         f"{type(value).__name__}")
+    if len(value) > limit:
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"{label}: {len(value)} characters > {limit}; use a short token, "
+                         "the prose belongs in the report")
     return value
 
 
@@ -395,17 +436,32 @@ def _refs(value, label: str, limit: int = 8) -> list[str]:
     if not isinstance(value, list) or len(value) > limit or any(
         not isinstance(x, str) or not x.strip() or len(x) > 240 for x in value
     ):
-        raise AgentError("SCIENCE_PACKET_INVALID", f"{label} must be a small list of cited source identifiers")
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"{label}: expected a list of at most {limit} source "
+                         f"identifiers (<=240 characters each), got "
+                         f"{type(value).__name__}")
     return value
 
 
 def _scope(value) -> dict[str, str]:
-    if not isinstance(value, dict) or len(value) > 12 or any(
-        not isinstance(k, str) or not k or len(k) > 60 or
-        not isinstance(v, str) or not v.strip() or len(v) > 160
-        for k, v in value.items()
-    ):
-        raise AgentError("SCIENCE_PACKET_INVALID", "scope must be a small nonempty-value dictionary")
+    if not isinstance(value, dict):
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"scope: expected a mapping of at most 12 keys to short "
+                         f"string values, got {type(value).__name__}")
+    for key, item in value.items():
+        if not isinstance(key, str) or not key or len(key) > 60:
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"scope: key {key!r} must be 1..60 characters")
+        if not isinstance(item, str) or not item.strip():
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"scope.{key}: expected a non-empty string value")
+        if len(item) > 160:
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"scope.{key}: {len(item)} characters > 160; keep the "
+                             "boundary here and the argument in the report")
+    if len(value) > 12:
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"scope: {len(value)} keys > 12")
     return value
 
 
@@ -427,39 +483,59 @@ def assess_proposal(packet: dict, *, project_root=None, run_binder=None) -> dict
         def binder(ref, record_ref=None, premise_ref=None):
             return bind_run_reference(project_root, ref, record_ref, premise_ref)
     if not isinstance(packet, dict):
-        raise AgentError("SCIENCE_PACKET_INVALID", "Expected a JSON object")
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"$: expected one JSON object, got {type(packet).__name__}")
     raw_type = packet.get("claim_type")
     if not isinstance(raw_type, str):
-        raise AgentError("SCIENCE_PACKET_INVALID", "Claim type must be textual")
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"claim_type: expected text, got {type(raw_type).__name__}; "
+                         f"accepted: {', '.join(sorted(CLAIMS))}")
     claim_type = CLAIM_ALIASES.get(raw_type, raw_type)
     if claim_type not in CLAIMS:
-        raise AgentError("SCIENCE_PACKET_INVALID", "Use a PD-RW capability, mechanism, or boundary claim type")
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"claim_type: {raw_type!r} is not a claim type; "
+                         f"accepted: {', '.join(sorted(CLAIMS))}")
     question = packet.get("question")
     if not isinstance(question, str) or not question.strip() or len(question) > 1000:
-        raise AgentError("SCIENCE_PACKET_INVALID", "A bounded research question is required")
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         "question: expected 1..1000 characters of text")
     claim_refs = _refs(packet.get("claim_evidence_refs", []), "claim_evidence_refs")
     hypotheses = packet.get("hypotheses", [])
     if not isinstance(hypotheses, list) or not 2 <= len(hypotheses) <= 6:
-        raise AgentError("SCIENCE_PACKET_INVALID", "Use 2..6 distinct hypothesis IDs")
+        count = len(hypotheses) if isinstance(hypotheses, list) else type(hypotheses).__name__
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"hypotheses: expected a list of 2..6 IDs, got {count}")
     ids = [_id(x, "hypothesis ID") for x in hypotheses]
     if len(set(ids)) != len(ids):
-        raise AgentError("SCIENCE_PACKET_INVALID", "Hypothesis IDs must be unique")
+        raise AgentError("SCIENCE_PACKET_INVALID", "hypotheses: IDs must be distinct")
     proposed = packet.get("proposed_premise", {})
     if not isinstance(proposed, dict):
-        raise AgentError("SCIENCE_PACKET_INVALID", "proposed_premise must be an object")
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"proposed_premise: expected an object, got {type(proposed).__name__}")
     premise_id = _id(proposed.get("premise_id"), "premise_id")
     scope = _scope(proposed.get("scope", {}))
     if not scope:
-        raise AgentError("SCIENCE_PACKET_INVALID", "Declared applicability scope is required")
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         "proposed_premise.scope: expected at least one key")
 
     checks = packet.get("prechecks", {})
-    if not isinstance(checks, dict) or set(checks) - set(CHECKS):
-        raise AgentError("SCIENCE_PACKET_INVALID", "Unexpected precheck names")
+    if not isinstance(checks, dict):
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"prechecks: expected a mapping keyed by check name, got "
+                         f"{type(checks).__name__} of {len(checks)}; accepted: "
+                         + ", ".join(CHECKS))
+    if set(checks) - set(CHECKS):
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         "prechecks: unknown check name(s) "
+                         f"{', '.join(sorted(set(checks) - set(CHECKS)))}; accepted: "
+                         + ", ".join(CHECKS))
     prechecks = {}
     for key in CHECKS:
         entry = checks.get(key, {"status": "NOT_CHECKED", "evidence_refs": []})
         if not isinstance(entry, dict) or not isinstance(entry.get("status"), str) or entry["status"] not in CHECK_STATES:
-            raise AgentError("SCIENCE_PACKET_INVALID", f"Invalid check: {key}")
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"prechecks.{key}.status: expected one of "
+                             + ", ".join(sorted(CHECK_STATES)))
         refs = _refs(entry.get("evidence_refs", []), key)
         prechecks[key] = {
             "declared_status": entry["status"],
@@ -529,31 +605,49 @@ def assess_proposal(packet: dict, *, project_root=None, run_binder=None) -> dict
 
     probes = packet.get("probes", [])
     if not isinstance(probes, list) or not 1 <= len(probes) <= MAX_PROBES:
-        raise AgentError("SCIENCE_PACKET_INVALID", "Use 1..6 candidate probes")
+        count = len(probes) if isinstance(probes, list) else type(probes).__name__
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         f"probes: expected a list of 1..{MAX_PROBES}, got {count}")
     summaries = []
     probe_findings = []
     repeated_unit_probes = []
     seen = set()
     for probe in probes:
         if not isinstance(probe, dict):
-            raise AgentError("SCIENCE_PACKET_INVALID", "Probe must be an object")
-        pid = _id(probe.get("id"), "probe ID")
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"probes[{len(seen)}]: expected a probe object, got "
+                             f"{type(probe).__name__}")
+        pid = _id(probe.get("id"), f"probes[{len(seen)}].id")
         if pid in seen:
-            raise AgentError("SCIENCE_PACKET_INVALID", "Duplicate probe ID")
+            raise AgentError("SCIENCE_PACKET_INVALID", f"probes.id: {pid!r} is used twice")
         seen.add(pid)
         # All competing hypotheses must predict the same observable,
         # evaluation unit and reference condition. No metric is invented.
-        observable = _id(probe.get("observable"), "probe observable")
+        observable = _id(probe.get("observable"), "probe observable", _DESCRIPTION_LIMIT)
         evaluation_unit = _id(probe.get("evaluation_unit"), "evaluation_unit")
-        comparison_reference = _id(probe.get("comparison_reference"), "comparison_reference")
+        comparison_reference = _id(probe.get("comparison_reference"),
+                                   "comparison_reference", _DESCRIPTION_LIMIT)
         predictions = probe.get("predictions")
-        if not isinstance(predictions, dict) or set(predictions) - set(ids):
-            raise AgentError("SCIENCE_PACKET_INVALID", "Prediction keys must reference named hypotheses")
+        if not isinstance(predictions, dict):
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"probe {pid}.predictions: expected a mapping of hypothesis "
+                             f"ID to outcome, got {type(predictions).__name__}")
+        if set(predictions) - set(ids):
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"probe {pid}.predictions: unknown hypothesis "
+                             f"{', '.join(sorted(set(predictions) - set(ids)))}; "
+                             "keys must be declared in hypotheses")
         if any(not isinstance(v, str) or v not in OUTCOMES for v in predictions.values()):
-            raise AgentError("SCIENCE_PACKET_INVALID", "Prediction outcomes must be qualitative")
+            bad = sorted({str(v) for v in predictions.values()
+                          if not isinstance(v, str) or v not in OUTCOMES})
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"probe {pid}.predictions: {', '.join(bad)} not in "
+                             f"{', '.join(sorted(OUTCOMES))}")
         cost = probe.get("cost_band", "UNKNOWN")
         if not isinstance(cost, str) or cost not in COSTS:
-            raise AgentError("SCIENCE_PACKET_INVALID", "Invalid cost band")
+            raise AgentError("SCIENCE_PACKET_INVALID",
+                             f"probe {pid}.cost_band: {cost!r} not in "
+                             f"{', '.join(sorted(COSTS))}")
         refs = _refs(probe.get("prediction_evidence_refs", []), "probe evidence refs")
         separated = []
         for a, b in combinations(ids, 2):
