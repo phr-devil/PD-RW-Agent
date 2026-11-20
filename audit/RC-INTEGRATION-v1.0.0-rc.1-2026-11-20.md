@@ -11,7 +11,8 @@ not of a draft. Date 2026-11-20.
 | base | `origin/main` (`09bd554` is an ancestor; the stack main → #17 → … → #26 is linear, 51 commits) |
 | merge commit | `e0ac093` — the 0.9.2→0.9.14 stack landed as one history on top of `main` |
 | release commit | `d3b35de` — `1.0.0rc1`, plus the three repairs the acceptance sessions found |
-| this commit | `43cf062` — the frozen-identifier record itself (positioning, comparison plan, task freeze and acceptance record are in `0ff9948` just below it) |
+| this record | the commit that carries this file — `git log -1 -- audit/RC-INTEGRATION-v1.0.0-rc.1-2026-11-20.md`. A hash written inside the file it describes is wrong the moment it is committed, so it is not written here. |
+| positioning, comparison plan, task freeze, acceptance record | `0ff9948` |
 | open PRs | #26 → #25 → #24 → #23 → #22 → #21 → #20 → #19 → #18 → #17 → `main`, all `MERGEABLE`; the integration branch supersedes them as one merge |
 | not merged | nothing is pushed to `main` |
 
