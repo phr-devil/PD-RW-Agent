@@ -52,9 +52,38 @@
         "task continuation",
         "experiment",
         "handoff",
-        "reconciliation"
+        "reconciliation",
+        "case library",
+        "case transfer review",
+        "new Task",
+        "significant anomaly",
+        "large resource investment",
+        "effective experiment end",
+        "candidate experience",
+        "case gate",
+        "G1 H2 H3 question selection",
+        "G2 H6 H7 protocol freeze",
+        "G3 H8 H10 claim closure",
+        "H9 confirmation protocol recheck",
+        "T1 anomaly negative result",
+        "T2 material decision change",
+        "gate fingerprint",
+        "cache invalidation",
+        "index stale declaration conflict",
+        "CASE_CHECK not proof",
+        "enforcement level",
+        "next actions decision pipeline",
+        "exploratory lead evidence tier",
+        "execution evidence recheck",
+        "case scope auto skip",
+        "H3 H4 H6 card bridge unknown dimensions",
+        "markdown experience export contract",
+        "authorization boundary in the plan",
+        "needs new authorization",
+        "three-tier action plan",
+        "premise attribution"
       ],
-      "scope": "Safe operation flow, permission separation, output",
+      "scope": "Safe operation flow, permission separation, output, on-demand advisory case reuse, five case-application gates and the case-to-next-action pipeline",
       "authority": "ADAPTER_GUIDANCE_ONLY"
     },
     {
@@ -67,6 +96,18 @@
         "failure"
       ],
       "scope": "Failure diagnosis",
+      "authority": "ADAPTER_GUIDANCE_ONLY"
+    },
+    {
+      "file": "packet.md",
+      "triggers": [
+        "decision packet",
+        "packet-check",
+        "packet rejected",
+        "shape violation",
+        "prior_execution"
+      ],
+      "scope": "writing a decision packet that the checker accepts, and the repair budget",
       "authority": "ADAPTER_GUIDANCE_ONLY"
     }
   ]

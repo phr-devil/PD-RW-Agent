@@ -12,6 +12,9 @@ from pathlib import Path
 from ..config import read_json
 from ..schemas import AgentError, failure
 from .decision import assess_proposal
+from .packet_schema import check_packet, normalize_packet, template
+from .feedback_link import review_linked_feedback, to_run_feedback
+from .candidate_review import review_candidates
 from .plan_selection import review_h6_plan_choice
 from .staged_selection import review_early_choice
 from .h6_bridge import to_pd_rw_h6_checkpoint
@@ -65,6 +68,19 @@ def main() -> int:
         p = sub.add_parser(kind)
         p.add_argument("--packet", type=Path, required=True)
         _binding_options(p)
+        if kind == "decision":
+            p.add_argument("--project-root", type=Path,
+                           help="Optional project root: resolve declared Run references "
+                                "to project bytes before judging a closure")
+    check = sub.add_parser(
+        "packet-check",
+        help="Report every packet shape violation at once, with field paths")
+    check.add_argument("--packet", type=Path, required=True)
+    check.add_argument("--project-root", type=Path,
+                       help="Optional: also run the decision when the shape is accepted")
+    check.add_argument("--normalize-out", type=Path,
+                       help="Write the losslessly normalized packet here (never in place)")
+    sub.add_parser("template", help="Print a minimal packet the decision path accepts")
     h6 = sub.add_parser("h6-review", help="Review new-project H6 card / declared choice")
     h6.add_argument("--plan", type=Path, required=True)
     h6.add_argument("--choice", type=Path, help="Optional declared user choice; never proof of authorization")
@@ -72,6 +88,22 @@ def main() -> int:
     early = sub.add_parser("early-review", help="Review independent H3 or H4 author selection")
     early.add_argument("--plan", type=Path, required=True)
     early.add_argument("--choice", type=Path, help="Declared response; NEVER approval")
+    cand = sub.add_parser("candidate-review",
+                          help="Review 1-6 declared H3 candidate cards (value/novelty/evidence)")
+    cand.add_argument("--card", type=Path, action="append", default=[],
+                      help="One pdrw-candidate-card-v1 JSON file; repeat for comparison")
+    cand.add_argument("--cards", type=Path,
+                      help="Bundle file with a top-level 'cards' list")
+    link = sub.add_parser("feedback-link",
+                          help="Bind a pre-result proposal to a real Run (read-only)")
+    link.add_argument("--link", type=Path, required=True)
+    link.add_argument("--project-root", type=Path, required=True)
+    link.add_argument("--case-index", type=Path,
+                      help="Optional CASE_LIBRARY root; candidates only, never GO/STOP")
+    link.add_argument("--mirror-manifest", type=Path,
+                      help="Optional case-knowledge manifest for published-subset scope")
+    link.add_argument("--as-run-feedback", action="store_true",
+                      help="Emit only the case_gate_check run_feedback projection")
     for cmd in ("replay-check", "replay-blind"):
         p = sub.add_parser(cmd)
         p.add_argument("--root", type=Path, required=True)
@@ -82,10 +114,37 @@ def main() -> int:
             p.add_argument("--seed", type=int, required=True)
             p.add_argument("--private-key", type=Path, required=True)
     args = cli.parse_args()
+    link_status = None
     try:
-        if args.action in {"decision", "lessons"}:
+        if args.action == "template":
+            result = {"status": "TEMPLATE", "note": (
+                "Fill the values; the enums are the only choices. Nothing here is "
+                "executed, approved or written to a project."),
+                "packet": template()}
+        elif args.action == "packet-check":
             packet = read_json(args.packet, limit=128 * 1024)
-            result = (assess_proposal(packet) if args.action == "decision"
+            shape = check_packet(packet)
+            result = shape
+            normalized = normalize_packet(packet)
+            if normalized["changes"] or normalized["refused"]:
+                result["normalization"] = normalized
+                if args.normalize_out is not None:
+                    args.normalize_out.write_text(
+                        json.dumps(normalized["packet"], indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8")
+                    result["normalization"]["written_to"] = str(args.normalize_out)
+            if shape["status"] == "SHAPE_OK" and args.project_root is not None:
+                decision = assess_proposal(packet, project_root=args.project_root)
+                result["decision_preview"] = {
+                    "status": decision["status"],
+                    "frontier": decision["declared_probe_efficiency"][
+                        "frontier_candidate_ids_as_declared"],
+                    "no_executable_next_probe": decision["no_executable_next_probe"],
+                }
+        elif args.action in {"decision", "lessons"}:
+            packet = read_json(args.packet, limit=128 * 1024)
+            result = (assess_proposal(packet, project_root=getattr(args, "project_root", None))
+                      if args.action == "decision"
                       else compile_declared_lessons(packet))
             binding = _binding(args, packet, kind=args.action)
             if binding["status"] in {"NOT_REPLAYABLE", "EVIDENCE_OUT_OF_FREEZE",
@@ -98,6 +157,29 @@ def main() -> int:
             plan = read_json(args.plan, limit=64 * 1024)
             choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
             result = review_early_choice(plan, choice)
+        elif args.action == "candidate-review":
+            if args.card and args.cards:
+                raise AgentError("CANDIDATE_CARD_INVALID", "Use either --card or --cards, not both")
+            if args.cards:
+                bundle = read_json(args.cards, limit=256 * 1024)
+                if not isinstance(bundle, dict) or not isinstance(bundle.get("cards"), list):
+                    raise AgentError("CANDIDATE_CARD_INVALID", "Bundle needs a top-level 'cards' list")
+                cards = bundle["cards"]
+            elif args.card:
+                cards = [read_json(path, limit=64 * 1024) for path in args.card]
+            else:
+                raise AgentError("CANDIDATE_CARD_INVALID", "Supply at least one --card or --cards")
+            result = review_candidates(cards)
+        elif args.action == "feedback-link":
+            result = review_linked_feedback(
+                read_json(args.link, limit=128 * 1024),
+                project_root=args.project_root,
+                case_root=args.case_index,
+                mirror_manifest=args.mirror_manifest,
+            )
+            if args.as_run_feedback:
+                link_status = result.get("status")
+                result = to_run_feedback(result)
         elif args.action == "h6-review":
             plan = read_json(args.plan, limit=64 * 1024)
             choice = read_json(args.choice, limit=16 * 1024) if args.choice else None
@@ -119,13 +201,25 @@ def main() -> int:
                 result = result["review_packet"]
     except (ValueError, OSError, TypeError, KeyError) as exc:
         result = failure(exc)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    try:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        # Same fallback as the main CLI: a cp1252 console cannot render the
+        # Chinese advisory text, and a crash there is not a scientific result.
+        print(json.dumps(result, ensure_ascii=True, indent=2))
     if result.get("status") == "ERROR":
         return 2
+    # A packet that violates the shape is not an execution error: the research
+    # answer may be perfectly good, it just is not a tool input yet.
+    if args.action == "packet-check":
+        return 0 if result.get("status") == "SHAPE_OK" else 3
     # H6 is never authenticated by this CLI: nonzero prevents shell wrappers
     # from treating a valid declaration or a pending response as execution approval.
-    if args.action in {"early-review", "h6-review"}:
+    if args.action in {"early-review", "h6-review", "candidate-review"}:
         return 3
+    # A link that could not be verified must not look like a completed check.
+    if args.action == "feedback-link":
+        return 0 if (link_status or result.get("status")) == "ADVISORY_FEEDBACK_ONLY" else 3
     return 3 if result.get("status") in {"NOT_REPLAYABLE", "EVIDENCE_BINDING_FAILED"} else 0
 
 

@@ -1,0 +1,92 @@
+{
+  "decision_point": "DP3-ACRF-PIVOT",
+  "opportunity": {
+    "claim": "现有负结果尚未被识别（unidentified）：'ICC 上界 0.4–3.3%，实测 0.2–2.9% 已贴身' 这一读数，与'分析单元定义错了、真实可回收量被池化稀释'在观测上完全同构，两者都会给出 1–2%。因此仍有一个高信息价值的机会：把 ICC 上界从'事后的终止理由'升级为一条可前测、可证伪的'信息预算定律'——recoverable MAE ≈ g(ICC, K)，并先证明它在不同单元定义下都稳定成立（或找出它失效的那一维）。无论结果落在哪一侧，论文都可写：成立则'HOLD 判定由物理上限锁定，与建模无关'；失效则'原终止理由部分来自 unit 误设，可回收量被低估'。这条机会的科学价值不在提升 ΔF 精度（那已被证据关死），而在于让'停得对'这个结论本身变得可检验。",
+    "why_not_already_done": "已跑过的 Run 与缺口：(1) `RUNS.tsv` 中 2026-11-02 / phase 5 / task=fewshot_calibration 的 `metrics_json` 共 17 个键，全部是 {B0b,C0p,C1,C2,C2g,C3}×{K0,K1,K2} 的模型×K 组合，没有任何按'支撑集与查询是否同位置/同序位'切分的键；(2) `STATE.md` §3 明确写死 '单元 = (材料, 传感器)'，ICC 只在这一个单元定义下算过一次，§5 的两张分层表也只按 sensor 与 h 分层，从不按 position 或按压序位分层；(3) `STATE.md` §2 的不重叠规则写作'在每个 (材料, 传感器) 单元内严格不重叠（子集按序列划分）'，即支撑按压可以来自与该查询不同的接触位置，位置关系既未被约束也未被记录为分析维度；(4) 与之最接近的是 `RUNS.tsv` phase 4 / task=shrinkage_probe，但其 `note` 自述 'transductive diagnostic only: uses other DEV presses of same cell; not zero-shot'，α*=0.43 用的是同单元**全部**其余按压（不可部署），不是 K 个标签的零样本场景，因而不构成同一实验。综上：现有证据把 position 与按压序位当成了噪声的一部分，而'把 unit 收窄到配置层是否能抬高 ICC'正是未跑的那一格。",
+    "evidence_refs": [
+      "STATE.md:§3 方差分量表（'单元 = (材料, 传感器)'，ICC 0.06/0.15/0.20）",
+      "STATE.md:§1 判定依据 1（ICC 仅 0.05/0.14/0.20，与 §3 表内 0.06/0.15/0.20 不一致）",
+      "STATE.md:§2 任务边界表 '重叠' 行（仅在 (材料,传感器) 单元内约束）",
+      "STATE.md:§5 逐传感器/逐跨度表（分层维度仅 sensor 与 h）",
+      "STATE.md:§6 判定依据'信息量不足'（'实测已贴近上界'）",
+      "RUNS.tsv:phase=5,task=fewshot_calibration,metrics_json（17 键，无 position/序位切分）",
+      "RUNS.tsv:phase=4,task=shrinkage_probe,note（transductive，非零样本）",
+      "DATA_AUDIT.md:§7 η²(位置)=0.010/0.023/0.028（位置主效应小，构成对该机会的反向先验）",
+      "DATA_AUDIT.md:§3 第 3 条（|fz| 含 ≈17.9 自重偏置，随位姿漂移）"
+    ]
+  },
+  "hypotheses": [
+    {
+      "id": "H1_contact_stochasticity",
+      "mechanism": "单元偏移的低 ICC 是接触物理本身的性质：同一 (材料, 传感器) 的不同按压之间，接触面积演化、微滑移、探针姿态微差造成的力分配差异，与材料无关且不可通过'多知道一点单元信息'消除。即 τ² 小、σ² 大是采集协议（0.1 mm 步进、单次开环斜坡、无驻留、无重复压）的物理事实，ΔF 的可回收比例就这样被锁死。方向基准 = 冻结单元定义下的 C2 增益。",
+      "strongest_baseline": "B0b（(h,sensor) 组均值，0.6128）+ C2（ICC-经验贝叶斯 λ，K=1 0.6067 / K=2 0.6023）；理论线由 `STATE.md` §3 的 λ* 与可回收上界给出",
+      "prediction": "NO_CHANGE"
+    },
+    {
+      "id": "H2_unit_misspecification",
+      "mechanism": "所谓'单元偏移'里混进了一个配置/位姿分量：`DATA_AUDIT.md` §3 指出 |fz| 含 ≈17.9 的自重偏置且随位姿漂移，§6 给出 η²(传感器)=0.252 与材料效应同量级。若偏置在'同一材料同一传感器同一接触位置'内稳定、跨位置漂移，则把不同位置的按压池进一个 cell，会把本可重复的分量错误计入 σ²，从而系统性低估 τ²、低估 ICC 与可回收上界。收窄 unit 到 (材料, 传感器, 位置)、并要求支撑按压与查询同位置（部署时按下同一物体的同一计划位置本就合法），应当抬高 ICC 并放大 K-shot 增益。",
+      "strongest_baseline": "同一 C2 估计器，仅在 (材料,传感器,位置) 单元定义下重算；C0p 安慰剂（标签来自别的材料）保持标签预算不变",
+      "prediction": "INCREASE"
+    },
+    {
+      "id": "H3_sensor_geometry_inversion",
+      "mechanism": "约束不在'信息量'而在'符号'：sensor 1 的接触几何使 ΔF 随形变增加而下降（接触面积增长导致力重新分配），因此跨传感器共享一个 (λ,β) 在结构上就是错的，池化结果被一个符号相反的子群稀释。`STATE.md` §5 的形态（C2 在 sensor 1 上 0.6511–0.6523 略优于 B0b 0.6539，加回触觉即升到 0.6676–0.6695，且'跨 5 轮、跨 20+ 变体'不变）支持把 sensor 1 当作独立的、方向相反的机制，而不是噪声更大的同类。",
+      "strongest_baseline": "逐传感器 C2/C3（`STATE.md` §5 表）；整体对照仍是 B0b 0.6128",
+      "prediction": "INCREASE"
+    }
+  ],
+  "experiment": {
+    "id": "E-DP3-STRAT",
+    "observable": "在 h=8（信号最强、SNR≈1.34，`DATA_AUDIT.md` §5）上做 2×2×2 分层读数：(A) 单元定义 ∈ {材料×传感器, 材料×传感器×位置}；(B) 支撑-查询位置关系 ∈ {同位置, 异位置}；(C) 传感器 ∈ {1, 独立建模, 2&3 合并}。每个格子里报三个数：重算的 ICC（τ²/(τ²+σ²)）、λ_EB、以及'实测 ΔMAE / ICC 上界'的比值（achieved-to-bound ratio）。判别依据是**该比值偏离 1 的落点**，而不是方向：H1 预测该比值在所有格子 ≈1 且 ICC 不随单元定义移动；H2 预测只有'同位置'格子出现比值 <1（存在未兑现的余量）且 ICC 随单元收窄上升；H3 预测改善集中在 sensor 1 被单独给符号之后，而 ICC 本身不动。三者互不蕴含，可用同一张表读开。",
+    "evaluation_unit": "材料（DEV 12 个），一次按压不独立——按压嵌套在材料内，按 `SPLIT_PROTOCOL.md` §3 与 `BASELINE_PLAN.md` §3 的口径做材料级配对 bootstrap（10,000 次重采样材料），并同时报材料等权与样本加权两套 MAE。",
+    "comparison_reference": "冻结口径的 C2（ICC-EB λ，K=1/2）与 B0b（0.6128）为基准线；C0p 安慰剂（K 个标签取自别的材料）作为'标签预算已花掉'的对照；另加一条 `BASELINE_PLAN.md` §2 定义下含 position_id 的 B0b 作为更强的零样本基线。",
+    "predictions": {
+      "H1_contact_stochasticity": "NO_CHANGE",
+      "H2_unit_misspecification": "INCREASE",
+      "H3_sensor_geometry_inversion": "INCREASE"
+    },
+    "cost_band": "LOW",
+    "why_legal": "三类输入在预测时都可得：(1) 支撑按压的力标签本就由'K 次带真实力标签的参考按压'提供（`STATE.md` §2），不引入任何新信息源；(2) 支撑按压的接触位置与按压序位是执行计划的一部分，与 `planned_delta` 同类（`BASELINE_PLAN.md` §1 已把'动作计划在执行前已知'立为合法性的判据），不是未来实测力；(3) 查询侧的力标签全程不可见，划分与有效掩码不变（`SPLIT_PROTOCOL.md` §5 冻结）。本实验不新增数据、不改标签定义、不打开 Holdout，因而不触碰 `SPLIT_PROTOCOL.md` §5 的协议冻结条款。",
+    "why_minimal": "只做重分层与重估，不新增模型族：同一 C2 估计器、同一 λ 规则、同一 K∈{1,2}、同一 h、同一 12 个 DEV 材料、同一 bootstrap 口径。相对'再采数据/再上模型'，它把变量压到只剩一个——单元定义与分层方式——因此任何 ratio 的移动都只能归因于单元假设，而不是容量、优化或数据量。所需产物（逐条预测 19,026 行、方差分量、λ_EB、逐单元计数）在 `STATE.md` §11 已全部落盘，属纯 CPU 分钟级重算。",
+    "already_run": false,
+    "which_run_if_so": null
+  },
+  "contribution": {
+    "claim": "可写成论文的最可信主张是一条**带可计算上界的负结果**，而不是'触觉没用'：在固定 0.1 mm 步进的单次开环按压、raw-force-unit 目标下，(i) ΔF 的零样本可预测性由单元内按压间波动主导（h=8 占 47.7%），材料身份不提供可用信息——给出真实材料标签反而劣于池化均值（ORACLE_matsen 0.649 / ORACLE_mat 0.676 vs 0.613）；(ii) K 次带标签参考按压的可回收增益被单元偏移 ICC（0.05–0.20）锁在 0.4–3.3%（K=2），实测 0.2–2.9% 与之同量级，故失败属于信息上限而非实现不足；(iii) 不做收缩的少样本校准稳定有害（λ=1 时 MAE 恶化 14.7–32.3%，K=1 时 12/12 材料恶化），这是全轮唯一一个 CI 不跨零的对照。合并成一句可迁移的规则：**任何'少量样本现场校准'的方案，应先算 ICC 再决定要不要建模；ICC 低时，朴素校准是负资产。**",
+    "evidence_support": "PARTIAL",
+    "missing_evidence": [
+      "单元定义敏感性：ICC 只在 (材料,传感器) 一个定义下算过，无法排除'上界被 unit 误设压低'（H2）——这是把'停得对'变成可检验结论的唯一缺口。",
+      "基线口径一致性：`BASELINE_PLAN.md` §2 把 B0b 定义为 mean(y|h,sensor_id,position_id)，而 `STATE.md` §4 写的是'(h,sensor) 均值'；若 phase-5 实际用了较弱基线，则 +1.0%/+1.7% 里可能含'把位置信息当校准收益'的成分，需按冻结定义复算。",
+      "功效：n=12 材料的材料级 CI 半宽 ±2–3%，而全部效应点估计都在 1% 量级（`STATE.md` §10 自述'低于本设计的可分辨下限'）——现有设计在原理上无法确认它自己报告的任何幅度。",
+      "独立确认集：RCT 内部已无真正未见的材料；`HOLDOUT_STATUS.md` §1/§4 记录 20 个 Holdout 的力标签在 Phase-3 被用于机制统计，`RUNS.tsv` phase=4,task=holdout_audit 的 holdout 字段即为 `opened_phase3_read`，只能算半独立复核。",
+      "正向对照缺失：上界公式只在一个'预测为 null'的场景被验证过，从未在 ICC 足够高、应当预测出增益的场景被检验，因此'定律'目前只有单侧证据。",
+      "内部数值不一致：ICC 在 `STATE.md` §1 写 0.05/0.14/0.20，§3 表为 0.06/0.15/0.20，需统一后再引用。"
+    ],
+    "shortest_path": [
+      "1) 在冻结数据上重算 ICC 与 achieved/bound 比值，做 2×2×2 分层（单元定义 × 支撑-查询位置关系 × 传感器），报每个格子的 ICC、λ_EB 与 ratio —— 排除'上界偏低是 unit 误设的产物'（H2）与'约束是 sensor 1 符号反转'（H3），若两者都被排除，则'物理上限'一说才第一次被真正识别，而非仅仅自洽。",
+      "2) 按 `BASELINE_PLAN.md` §2 的冻结定义重估含 position_id 的 B0b，重报 C2−B0b 与 C3−C2 —— 排除'1–2% 的校准收益其实是把位置信息当成了少样本信息'这一规格假象；这一步只可能让负结果更强，因此是低成本的双向保险。",
+      "3) 用 20 个 Holdout 材料做**一次性**评价，且按 `HOLDOUT_STATUS.md` §5 明写'力标签曾在 Phase-3 用于机制统计'，只报方向与 ratio-to-bound、不报确认性 p 值 —— 排除'方向是 DEV 12 材料特有的'（DEV 缺 Wood/Crafts/Small，`SPLIT_PROTOCOL.md` §2 已声明其不能支撑跨类别结论）。"
+    ]
+  },
+  "read_files": [
+    "MANIFEST.json",
+    "STATE.md",
+    "HOLDOUT_STATUS.md",
+    "SPLIT_PROTOCOL.md",
+    "BASELINE_PLAN.md",
+    "DATA_AUDIT.md",
+    "RUNS.tsv",
+    "RUNS_PHASE4.tsv",
+    "RUNS_PHASE5.tsv"
+  ],
+  "uncertainties": [
+    "PRIOR：'把 position 收进 unit 会抬高 ICC' 与文件证据相反——`DATA_AUDIT.md` §7 的 η²(位置) 仅 0.010/0.023/0.028，位置主效应很小。因此 H2 的先验并不高；它的价值在于即使被否证，也能把'上界不是 unit 产物'从假设变成证据，这正是当前缺失的那一格。",
+    "PRIOR：'sensor 1 是符号反转'是从 `STATE.md` §5 的形态（加回触觉即恶化、且给了真实标签也救不回）反推的机制解释，文件本身没有给出 ΔF 与形变的符号统计；`STATE.md` §7 把它列为'数据集层面的现象'而非已证机制，故 H3 只能算待检机制。",
+    "`STATE.md` §1 与 §3 的 ICC 数值不一致（0.05/0.14/0.20 vs 0.06/0.15/0.20），无法判断哪个是重算后的值；本回答引用时两者并列。",
+    "`BASELINE_PLAN.md` §2 的 B0b 含 position_id，`STATE.md` §4 的 B0b 标注为 (h,sensor) 均值，`RUNS.tsv` phase 2 的 B0b=0.6237 为 sample-weighted 而 phase 4/5 的 0.6128 为 material-balanced——三者口径不同，不能直接比较；本回答未假设 phase-5 的实现细节，只把它列为待核项。",
+    "上界换算方式（'MAE 近似按 MSE 减半折算'，`STATE.md` §3）是一个近似，未给出推导；achieved/bound 比值因此带一个未知的系统偏置，判读时应看分层间的相对移动而非绝对水平。",
+    "原始逐条预测（`preds_dev_fewshot.csv`、`fewshot_diag.json`）在 MANIFEST 的 withheld 之列，未可见；本回答对该实验的成本估计（LOW）基于 `STATE.md` §11 的产物索引，而非实际文件体量。",
+    "力单位未文档化、含 ≈17.9 自重偏置、无时间戳（`DATA_AUDIT.md` §3/§4.4/§8 D5–D6），故任何关于'物理上限'的表述只对'raw force unit 的 ΔF'成立，不能外推到牛顿或闭环控制。"
+  ],
+  "wall_clock_minutes": 26
+}

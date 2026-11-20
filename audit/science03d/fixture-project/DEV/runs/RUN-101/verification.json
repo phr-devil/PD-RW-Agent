@@ -1,0 +1,8 @@
+{
+  "run_id": "RUN-101",
+  "checks": {
+    "anchor": "PASS",
+    "folds": 12,
+    "subjects": 12
+  }
+}

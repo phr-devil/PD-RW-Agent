@@ -1,0 +1,100 @@
+{
+  "decision_point": "DP2-TACTILE-NEG",
+  "opportunity": {
+    "claim": "把结论从『模型在利用 DC 捷径』升级为『评估协议在该数据上不具备可识别性』：在冻结的 26 折与已有逐样本预测上，做一次零拟合的类别条件 DC 支撑审计（support / positivity audit）——量化 Hard 与 Soft 的窗口 DC 分布在训练分区内是否（近）不相交（重叠系数 ω），并在重叠层内单独计算 balanced accuracy。这把现有『RAW 0.9846 vs BOTH 0.7937、DC 效应 +0.2225』的均值层事实，转成一条协议层命题：若 ω≈0，则任何 DC 不变的决策规则在该库上都无法被评估，『跨几何近满分』在定义上不能作为形状/几何信息的证据；若 ω 明显>0 而重叠层 BA 塌向 0.5，则证据才支持『存在可被利用的共线捷径』这一更强但更窄的说法。二者对『评估协议是否本身造成混淆』给出不同答案，且可用同一批窗口区分。",
+    "why_not_already_done": "已跑的三个 Run 都只做『变换/条件 → 再评价』，从未做『先看两类 DC 支撑是否可比 → 再在共同支撑内评价』。(1) RUN-001（26 折 × 7 臂、169 组指标、66 600 条预测）只给类别级 DC 均值与 1 维探针（gx1__mean AUC 0.999959、训练折内探针 0.9983），以及 EX_POST 去 DC 后 0.7717/0.6796 —— 这是『减掉 DC 再训练』，测的是减掉之后剩下什么，不是两类在 DC 轴上是否本来就没有共同区间。(2) RUN-002（PROTO-GEOM-HS-v2，18 臂/468 组/183 600 条，预注册 2×2 RAW/DEMEAN/NORM/BOTH）把 DC 与幅值分离，但四种条件都是对每个窗口做逐通道变换（协议写明 window_transform_is_sample_local，且 BOTH 定义为逐窗 z-score）——它假设 DC 是『可加偏移』；若 DC 与波形耦合，DEMEAN 会连物理信号一起减掉，0.7937/0.7179 因此既不能证明『残余是噪声』也不能证明『重叠区无信号』。(3) EXP-005 在预测层做 2×2 配对（一致率 0.7775/0.8092、净增量 +80/−14、错误 Jaccard 0.334/0.491），条件仍是『BOTH vs SHORTCUT』两个全局模型，不含任何按 DC 分层的条件指标。此外，审计的价值还在于它正好补上 H8 简报所说 Q2 边缘所需的『可复用协议』的一半：现有贡献可复用的是『预注册 2×2 + 预测级配对』，缺的正是报告跨几何泛化之前的支撑性（positivity）检查。",
+    "evidence_refs": [
+      "RUN-001_PRINCIPAL_RESULT.md:§1 表（FULL_LR 0.9846 / HGB 0.9983 / SHORTCUT_LR 0.7604；单特征 gx1__mean 0.9983）",
+      "RUN-001_PRINCIPAL_RESULT.md:§1「EX_POST 混淆定位」（去 DC 0.7717/0.6796、再去增益 0.7863/0.6792，标注 NOT_COMPARABLE）",
+      "protocol/PROTO-GEOM-HS-v2.json:input_transform_definition.conditions（RAW/DEMEAN/NORM/BOTH 四条件定义与 decomposition T=a*mu+b*sigma*D）",
+      "protocol/PROTO-GEOM-HS-v2.json:input_transform_definition.window_transform_is_sample_local（逐窗口局部变换，无跨样本统计）",
+      "protocol/PROTO-GEOM-HS-v2.json:arms（18 个 arm_id 全为条件×特征族×模型，无分层/重叠臂）",
+      "DEV/runs/RUN-002/metrics.json:dc_amplitude_effects（只给条件级 BA 与四个效应，无分层分解）",
+      "DEV/runs/RUN-002/metrics.json:group_level.LOSO_SHAPE.RAW_FULL_LR.specimen.*（分组字段只有 n/n_classes_in_group/accuracy/balanced_accuracy/single_class_group）",
+      "DEV/runs/RUN-002/metrics.json:train_only_single_feature_probe（只报选中特征与折均 BA，不报 DC 分布重叠）",
+      "RESEARCH_RECORD.md:§5 EXP-005（paired_prediction 仅 both_c/only_F/only_S/both_w 四格计数与一致率）",
+      "H8_DECISION_BRIEF_2026-11-16.md:§2「Q2+ 竞争力」（需 (a) 第二库或 (b) 可复用协议）"
+    ]
+  },
+  "hypotheses": [
+    {
+      "id": "H1_CLASS_CONSTANT_DC",
+      "mechanism": "窗口 DC 是与类别共线的**类级常数**（全部 16 试件、5 名受试者上稳定偏移 −15.251，30 路 IMU 幅度比 1.44–2.25 一致），因此两类在 DC 轴上的支撑（近）不相交。此时任何对 DC 单调的规则都能在无需任何动力学信息的情况下分离两类；『跨几何近满分』是采样/记录条件造成的，不是形状或刚度信息。判别统计量＝重叠系数 ω（训练分区内两类 DC 分位区间的交叠比例）与重叠层内 BA：预测 ω 与重叠层 BA 同时塌陷。",
+      "strongest_baseline": "训练折内单特征探针 gx1__mean（LOSO-shape 0.9983，4/4 折选中）与 RAW_FULL_LR（0.9846/0.9342）",
+      "prediction": "DECREASE"
+    },
+    {
+      "id": "H2_DC_PLUS_DYNAMICS",
+      "mechanism": "DC 本身是材料柔度导致的**静态姿态/载荷偏移**（Soft 变形大 → 传感器相对重力姿态不同），且波形本身（阻尼、频谱、mean_abs_diff 类动态量）还携带跨试件可迁移的信息。此时两类 DC 支撑可能部分不相交，但在共同支撑区内部仍有真实可分性；去 DC 后残余 0.7937 被低估，因为它把 DC 与波形一起减掉了（DEMEAN 假设可加偏移）。判别统计量＝重叠层内 BOTH/RAW 的 BA 与试件级稳定性：预测重叠层 BA 保持高位、且 16 试件级极差远小于已报告的 0.933。",
+      "strongest_baseline": "BOTH_FULL_LR（0.7937/0.7179）与 BOTH_FULL_HGB（0.8246/0.7788，容量挑战者）",
+      "prediction": "NO_CHANGE"
+    },
+    {
+      "id": "H3_FSR_CONTACT_RESIDUAL",
+      "mechanism": "去 DC/幅值后的残余不是动力学也不是刚度，而是**FSR 接触可用性**（平坦/饱和通道的有无即与类别相关：Hard 76.3% vs Soft 92.3% 文件含平坦通道，饱和单元 2 vs 119；BOTH 条件下 LSSO 8/8 折训练折内单特征探针选 FSR3__min）。此时残余应由 FSR 家族独自承载，IMU 家族在去 DC 后应接近随机。判别统计量＝按传感器家族的重叠层 BA 不对称性：预测 BOTH_IMU_LR 塌向 0.5 而 BOTH_FSR_LR 保持。",
+      "strongest_baseline": "SHORTCUT_LR（23 维 FSR 平坦/饱和，LOSO 0.7604 / LSSO 0.7238）与 BOTH_FSR_LR（含 RAW 条件 0.8008）",
+      "prediction": "DECREASE"
+    },
+    {
+      "id": "H4_SPECIMEN_MOUNTING",
+      "mechanism": "DC 主要是**每个试件的安装预载/姿态**（不是类级 DAQ 偏置）；类级常数只是『1 试件/单元』设计下打印批次与单元结构的副产物。因此类内试件间离散不应为零，且 DC 对类别的可分性来自『试件落在 DC 轴的哪一侧』这一身份信息，而非某个统一的仪器偏移。判别统计量＝类内 DC 的试件间/试件内方差比：预测该比值显著>0（而 H1 预测≈0）。",
+      "strongest_baseline": "group_level 的按试件聚合（BOTH LSSO 16 试件 accuracy 极差 0.9333、id=6 0.0667）与 LOSO_SUBJECT RAW=1.0000 的对照",
+      "prediction": "INCREASE"
+    }
+  ],
+  "experiment": {
+    "id": "EXP-A_SUPPORT_AUDIT_v3",
+    "observable": "三个零拟合观察量，全部在既有 26 折定义上计算：(1) 重叠系数 ω＝测试窗口中落在『训练分区内两类 DC 分位区间交集』的比例（DC 投影预声明为 gx1__mean、FSR3__min 与 420 维 mean 子集的第一主方向；区间端点＝各折训练分区内每类 2.5%/97.5% 分位，不接触测试标签）；(2) 重叠层内 balanced accuracy，对冻结臂 RAW_FULL_LR / BOTH_FULL_LR / BOTH_IMU_LR / BOTH_FSR_LR / SHORTCUT_LR 分别计算，并与同折全样本 BA 配对相减（Δ_overlap）；(3) 类内 DC 的试件间/试件内方差比（方差成分，描述性）。",
+    "evaluation_unit": "独立单位＝16 个物理试件（推断层）；形状组＝4（LOSO-shape 的 4 折是 4 个独立单位，LSSO 的 8 折只含 4 个形状组）。2 400 个窗口是『试件×受试者×30 次连续抓握』的重复测量，**不是**独立样本；重叠层内的 BA 只报逐折值与配对差，不报汇合单值，不做参数检验，符号检验按折数给出可达最小 p（4 折→0.0625、8 折→0.00390625）。",
+    "comparison_reference": "同折同测试样本的全样本 BA（Δ_overlap 的配对基准）＋ MAJORITY 0.5（随机地板）＋ SHORTCUT_LR（平凡捷径锚）＋ 已报告的 DC 效应 +0.2225/+0.2108（作为外部一致性检查，而非重算目标）。所有分层阈值只用训练分区统计量，测试窗口的 DC 只由该窗口自身的 57×35 数值计算。",
+    "predictions": {
+      "H1_CLASS_CONSTANT_DC": "DECREASE",
+      "H2_DC_PLUS_DYNAMICS": "NO_CHANGE",
+      "H3_FSR_CONTACT_RESIDUAL": "DECREASE",
+      "H4_SPECIMEN_MOUNTING": "INCREASE"
+    },
+    "cost_band": "LOW",
+    "why_legal": "DC（窗口均值）是 57×35 数值窗口的确定性函数，属 PROTO-GEOM-HS-v2 legal_inputs 明确允许的『deterministic functions thereof』，预测时对单个测试窗口即可得，不依赖标签、文件名、object_id、路径或 trial 序；分层端点由**训练分区**统计量给出，与协议已允许的 per-fold StandardScaler 同属『train-only fitted object』，不引入跨样本泄漏到测试侧；不使用测试标签做任何阈值、特征或模型选择；不新增拟合（若直接复用已存逐样本预测则连模型都不重跑）。为使分层不是 EX_POST，须先写出 PROTO-GEOM-HS-v3 并把 ω、Δ_overlap、方差比的判据与阈值在跑之前冻结——这一步本身是本次实验的前置条件，不是事后调参。",
+    "why_minimal": "单一分析脚本、单一预注册判据组、零新模型、零新超参、零新数据、零下载；复用既有 26 折 split_manifest 定义与已保存的 per-sample 预测（RUN-002 已存 183 600 条），最坏情况（预测文件不可用）也只需重算逐窗 DC 与 420 维 mean 统计并重跑同一批冻结臂的 predict，仍属 RUN-001 量级（本地 CPU 数十秒到分钟级）。它不新增任何『换模型/换变换/换消融』的自由度，因此不违反 H8 的 STOPPED_SCOPE（该项是零拟合诊断，不是新算法开发）。",
+    "already_run": false,
+    "which_run_if_so": null
+  },
+  "contribution": {
+    "claim": "可写的最可信贡献是**测量学/评估协议**层面的条件性负结果，而非刚度识别：在一个公开触觉数据集（16 试件 / 4 形状组 / 1 试件每单元 / 无独立刚度真值）上，跨几何留出的近满分（LOSO-shape 0.9846）可由与类别系统性共线的窗口 DC 单因子复现（DC 效应 +0.2225/+0.2108，12/12 主折同向），幅值/全局增益非必要（NORM≈RAW，效应 CI 含 0），去除 DC+幅值后残余（0.7937/0.7179）在均值层与预测层均未检出优于平凡 FSR 捷径的稳定增量（+0.0333/−0.0058；一致率 0.7775/0.8092；净增量 +80/−14），因此『物体不相交留出』本身并不构成防共线混淆的手段；机制（采集/增益混淆 vs 材料条件静态姿态差异）在本数据上结构性不可辨识。",
+    "evidence_support": "PARTIAL",
+    "missing_evidence": [
+      "支撑性/可识别性证据缺失：从未量化两类窗口 DC 分布是否重叠（ω），因此『协议不可识别』目前只是从『去 DC 后掉分』推出的间接推断，而非直接可检验的采样事实",
+      "第二公开触觉/刚度数据集的跨库复现（H8 明列 Q2 前提之一；当前 NOT_VERIFIED / 未授权下载）",
+      "独立物理刚度真值或每单元 ≥3 个物理试件（GAP-001/GAP-002，本库不可满足，结构上封死机制归因）",
+      "预注册的等价/非劣界限与效力分析（缺失使『未检出优势』不能写成『等价』，也无法反驳『残余存在但太小』）",
+      "外部独立复算或第三方复现（当前仅项目内独立脚本复算，最大绝对差 0.0 但同源）",
+      "采集元数据（采样率、量程、增益、session、随机化）——归档内不存在，不可回溯"
+    ],
+    "shortest_path": [
+      "1) 先做本提案的零拟合支撑审计（EXP-A_SUPPORT_AUDIT_v3，LOW）：排除『共同支撑区内仍有可迁移信号』与『残余只是 FSR 接触态』这两个替代解释，并给出 ω 这一直接量——若 ω≈0，结论从『模型利用捷径』升级为『该评估协议在该库上不存在可评估的 DC 不变规则』；若 ω>0 而重叠层 BA 仍高，则现有负结果需要收窄（这是唯一能在不新增数据的情况下改变结论形态的一步）。",
+      "2) 在第二个公开触觉/刚度数据集上复跑同一预注册流程（2×2 + 预测级配对 + 支撑审计），并预先把 ω 与 Δ_overlap 写进协议：排除『这只是本库单次采集设置/单批次打印的产物』这一替代解释——这是把贡献从单库案例升到可复用协议基准的唯一必要步骤（需新下载与许可核验授权，当前明确未授权）。",
+      "3) 预先注册等价/非劣界限（margin）与最小可检测效应，并交第三方独立复算同一批产物：排除『未检出 ≠ 无差异』与『同源复算遮蔽定义级错误（ERRATUM-001 已暴露该缺口）』这两个解释性替代，使 DEV_ONLY 的条件性负结果具备可引用的强度。"
+    ]
+  },
+  "read_files": [
+    "MANIFEST.json",
+    "STATE.md",
+    "RESEARCH_RECORD.md",
+    "PAPER_BLUEPRINT.md",
+    "D1_ACCEPTANCE_REPORT_2026-11-14.md",
+    "H8_DECISION_BRIEF_2026-11-16.md",
+    "RUN-001_PRINCIPAL_RESULT.md",
+    "protocol/PROTO-GEOM-HS-v2.json",
+    "DEV/runs/RUN-001/metrics.json（前 60 行；顶层键）",
+    "DEV/runs/RUN-002/metrics.json（顶层键、per_fold 样例、summary、dc_amplitude_effects、group_level 头部、train_only_single_feature_probe、ex_ante_decision_evaluation）"
+  ],
+  "uncertainties": [
+    "快照只含两个 Run 的 metrics.json，不含 predictions.jsonl / features.npz / split_manifest.jsonl；因此『可零拟合复用已存预测』这一点 UNKNOWN，最坏情况需重算逐窗 DC 与冻结臂 predict（仍为 LOW，但不再是严格零拟合）。",
+    "ω 的实际取值 UNKNOWN：现有证据只给类别级均值与 AUC，未给两类 DC 分布的离散度与重叠，因此 H1 与 H4 谁成立目前无法从文件判定。",
+    "DC 的物理单位/量程/采样率 UNKNOWN（协议 dataset_version.unknown 明列），因此 DC 差值的绝对解释（是否属于仪器偏置量级）依赖领域先验 PRIOR：静止握持时陀螺轴出现 −15 量级稳定非零均值，更像零偏/安装失配而非真实角速度。",
+    "WINDOW 相位与 57 行窗口是否覆盖同一抓握阶段 UNKNOWN（无时间列、无对齐信息）；若窗口相位在不同类别下系统不同，重叠层 BA 的解释会再叠一层混淆——本次实验不能排除这一点，需在第 2 步用带时间戳的外部数据解决。",
+    "『重叠层 BA 塌向 0.5』的统计判定在 4 个形状组上几乎无检验力；本实验只能给描述性区间与逐折值，不能给显著性结论（与既有口径一致）。",
+    "任务问题中的『形状/几何结论』若指第三方论文（如 10.1109/LSENS.2025.3548264 报 1D-CNN 99.2%）的结论，本快照未含其代码/预测，无法审计；本答案的『协议混淆』结论只对本 D1 的可复现流程成立。"
+  ],
+  "wall_clock_minutes": 22
+}

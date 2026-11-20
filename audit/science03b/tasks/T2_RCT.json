@@ -1,0 +1,76 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "In RCT-CONTACT-26 DEV, does the contact response identify the material's mechanics or the sensor instance and press trajectory?",
+  "claim_evidence_refs": [
+    "RCT-CONTACT-26/research/dev_audit/contrast_table.json",
+    "RCT-CONTACT-26/research/dev_audit/v1r_direction.json"
+  ],
+  "hypotheses": [
+    "H_material",
+    "H_sensor_trajectory"
+  ],
+  "proposed_premise": {
+    "premise_id": "CONTACT_MECHANISM",
+    "scope": {
+      "dataset": "RCT DEV zone A",
+      "rig": "DIGIT position_1..18"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "UNKNOWN"
+    }
+  },
+  "probes": [
+    {
+      "id": "RCT-P1-DEV-SLOPE-RERUN",
+      "observable": "per-material force-Z slope across sensors",
+      "evaluation_unit": "FRAME",
+      "comparison_reference": "same-material repeat press replicates",
+      "predictions": {
+        "H_material": "INCREASE",
+        "H_sensor_trajectory": "NO_CHANGE"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "EXP-006/V1-R",
+        "premise_id": "CONTACT_MECHANISM",
+        "conclusion": "NO_REPEATABLE_STABLE_OBSERVED_LAW"
+      }
+    },
+    {
+      "id": "RCT-P2-SENSOR-SWAP",
+      "observable": "per-material slope difference between the two DIGIT instances",
+      "evaluation_unit": "SEQUENCE",
+      "comparison_reference": "other sensor instance, same material and position",
+      "predictions": {
+        "H_material": "INCREASE",
+        "H_sensor_trajectory": "NO_CHANGE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "Q_R1B",
+        "premise_id": "CONTACT_MECHANISM",
+        "conclusion": "PARTIAL_OR_CONFOUNDED on 489 pairs"
+      }
+    },
+    {
+      "id": "RCT-P3-EXTERNAL-MODULUS-PRESS",
+      "observable": "force-Z slope vs external modulus under controlled press",
+      "evaluation_unit": "MATERIAL",
+      "comparison_reference": "external modulus of the same material",
+      "predictions": {
+        "H_material": "INCREASE",
+        "H_sensor_trajectory": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "premise_id": "CONTACT_MECHANISM",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}

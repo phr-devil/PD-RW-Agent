@@ -1,0 +1,45 @@
+{
+  "schema_version": "pdrw-candidate-card-v1",
+  "candidate_id": "SC-01R-REDUNDANCY-BOUND-REVISED",
+  "question": "触觉阵列的空间冗余结构是否给出通道预算下的可恢复性上界（而非仅通道数决定误差）",
+  "failure_premise": "通道数—性能曲线不足以解释可恢复性；空间排布结构本身约束可恢复信息量",
+  "contribution_form": "LAW_BOUNDARY",
+  "success_new_knowledge": "若成立，通道预算可由空间冗余结构而不是通道总数给出，现有 N*=f(C) 定律在非均匀采样下的适用边界随之改变；若不成立，则冗余结构解释被排除，只剩采样密度效应",
+  "refutation_consequence": "打乱空间排布后误差不变，则冗余结构不是可恢复性的约束，通道数定律继续成立",
+  "named_nearest": [
+    {
+      "work": "ACTS (arXiv:2410.13847)",
+      "covers": "1024-taxel uniform/random/adaptive 采样 + 全 raster 强基线，真实闭环，N*=f(C) 通道数定律",
+      "remaining": "未把空间排布结构写成可恢复性上界，也未报告打乱排布的反事实对照"
+    },
+    {
+      "work": "Economy of Touch (Advanced Intelligent Systems 2026)",
+      "covers": "N*=f(C) 的预测定律与 N70/N90 指标，未见数据 MAE 0.659 通道",
+      "remaining": "结论以通道数为自变量，未分离排布结构"
+    }
+  ],
+  "nearest_status": "ACCESSED",
+  "competing_explanations": [
+    {
+      "explanation": "空间冗余结构约束可恢复信息量",
+      "predicted_observation": "固定通道总数、打乱空间排布后，重建误差显著高于原排布"
+    },
+    {
+      "explanation": "只是采样密度效应，与结构无关",
+      "predicted_observation": "固定通道总数、打乱空间排布后，重建误差与原排布无差异"
+    }
+  ],
+  "falsifier": "打乱排布与保留排布在同通道数下误差差值的配对置信区间跨零",
+  "truth_kind": "MEASURED_INSTRUMENT",
+  "truth_source": "IMADA 试验机参考测量，独立于阵列读数",
+  "truth_independent_of_input": true,
+  "prediction_time_inputs": "推理时阵列原始读数与已知采样几何，不含参考仪器结果",
+  "evaluation_unit": "SESSION",
+  "independent_units": 12,
+  "reported_n": 12,
+  "confounders": ["材料批次", "按压速度"],
+  "evidence_path": "同通道数下的排布打乱对照，CPU 复算（历史 307.74 s）",
+  "confirmation_ref": "另一制造批次的 pad，未参与结构或阈值选择",
+  "confirmation_shares_evaluation_data": false,
+  "resources": "CPU，无需新数据"
+}

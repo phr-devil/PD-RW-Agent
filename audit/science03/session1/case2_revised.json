@@ -1,0 +1,101 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "In RCT-CONTACT DEV, is the material-vs-sensor/trajectory question decidable by a sensor-swap contrast, and what remains undecidable without an external modulus?",
+  "claim_evidence_refs": [
+    "RCT-CONTACT-26/research/dev_audit/contrast_table.json#Q_R1B",
+    "RCT-CONTACT-26/research/STATE.md#9",
+    "RCT-CONTACT-26/research/dev_audit/dev_projection/dev_contact_paths.json"
+  ],
+  "hypotheses": [
+    "H_material",
+    "H_sensor_trajectory",
+    "H_label_circular"
+  ],
+  "proposed_premise": {
+    "premise_id": "CONTACT_MECHANISM",
+    "scope": {
+      "dataset": "RCT-CONTACT DEV, 98 materials, 979 sequences",
+      "rig": "DIGIT sensors, position_1..18",
+      "condition": "robot press sequences"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {
+      "status": "PASS",
+      "evidence_refs": [
+        "RCT-CONTACT-26/research/dev_audit/contrast_table.json"
+      ]
+    },
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "RCT-CONTACT-26/research/SPLIT_PROTOCOL.md"
+      ]
+    },
+    "legal_inputs": {
+      "status": "PASS",
+      "evidence_refs": [
+        "RCT-CONTACT-26/research/RESEARCH_RECORD.md"
+      ]
+    },
+    "evaluation_integrity": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "metric_appropriateness": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "effect_size": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    }
+  },
+  "probes": [
+    {
+      "id": "REV-SENSOR-SWAP",
+      "observable": "per-material slope difference between the two sensors, offset removed",
+      "evaluation_unit": "MATERIAL",
+      "comparison_reference": "other sensor instance on same material and position",
+      "predictions": {
+        "H_material": "NO_CHANGE",
+        "H_sensor_trajectory": "INCREASE",
+        "H_label_circular": "UNKNOWN"
+      },
+      "cost_band": "MEDIUM",
+      "prediction_evidence_refs": [
+        "RCT-CONTACT-26/research/dev_audit/contrast_table.json#Q_R1B"
+      ]
+    },
+    {
+      "id": "REV-CONTROLLED-PRESS-MODULUS",
+      "observable": "force-Z slope vs external modulus, zero point and timing logged",
+      "evaluation_unit": "MATERIAL",
+      "comparison_reference": "external modulus of same material, new authorisation",
+      "predictions": {
+        "H_material": "INCREASE",
+        "H_sensor_trajectory": "NO_CHANGE",
+        "H_label_circular": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prediction_evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#6",
+        "RCT-CONTACT-26/research/dev_audit/contrast_table.json#Q_R1C"
+      ]
+    }
+  ],
+  "prior_negative_lessons": [
+    {
+      "premise_id": "CONTACT_MECHANISM",
+      "scope": {
+        "dataset": "RCT-CONTACT DEV, 98 materials, 979 sequences",
+        "rig": "DIGIT sensors, position_1..18",
+        "condition": "robot press sequences"
+      },
+      "validity": "VALID_NEGATIVE",
+      "evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#9"
+      ]
+    }
+  ]
+}

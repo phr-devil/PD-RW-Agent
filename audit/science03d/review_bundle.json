@@ -1,0 +1,255 @@
+{
+  "pair1": {
+    "case": "D1_fixed",
+    "summaries": {
+      "A": {
+        "frontier": [
+          "P1_BEAM_ARM_VS_LOADCELL_BASE",
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY",
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD"
+        ],
+        "historical": [],
+        "premise_unbound": [],
+        "premise_contradicted": null,
+        "status_conflict": [],
+        "no_executable_next_probe": false,
+        "probes": {
+          "P1_BEAM_ARM_VS_LOADCELL_BASE": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MISMATCH",
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          },
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MISMATCH",
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          },
+          "P3_DRIFT_CORRECTED_ARM_PAIRED_CI": {
+            "applicability": "REVISIT_ON_NEW_INFORMATION",
+            "next_action": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MATCH",
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          },
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": null,
+            "premise_binding": null,
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          }
+        }
+      },
+      "B": {
+        "frontier": [
+          "P1_BEAM_ARM_VS_LOADCELL_BASE",
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD"
+        ],
+        "historical": [],
+        "premise_unbound": [],
+        "premise_contradicted": [],
+        "status_conflict": [
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY"
+        ],
+        "no_executable_next_probe": false,
+        "probes": {
+          "P1_BEAM_ARM_VS_LOADCELL_BASE": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MISMATCH",
+            "premise_binding_basis": "CALLER_DECLARATION",
+            "premise_plan_match": null,
+            "run_id_consistency": "MATCH",
+            "record_structure": "RUN_RECORD"
+          },
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY": {
+            "applicability": "STATUS_CONFLICT",
+            "next_action": "RESOLVE_RUN_STATUS_CONFLICT_FIRST",
+            "findings": [
+              "EXECUTION_STATUS_CONFLICT"
+            ],
+            "status_verified": false,
+            "premise_binding": "MISMATCH",
+            "premise_binding_basis": "CALLER_DECLARATION",
+            "premise_plan_match": null,
+            "run_id_consistency": "MISMATCH",
+            "record_structure": "RUN_RECORD"
+          },
+          "P3_DRIFT_CORRECTED_ARM_PAIRED_CI": {
+            "applicability": "REVISIT_ON_NEW_INFORMATION",
+            "next_action": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MATCH",
+            "premise_binding_basis": "CALLER_DECLARATION",
+            "premise_plan_match": null,
+            "run_id_consistency": "UNKNOWN",
+            "record_structure": "METRICS_ONLY"
+          },
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": null,
+            "premise_binding": null,
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          }
+        }
+      }
+    }
+  },
+  "pair2": {
+    "case": "D1_misattributed",
+    "summaries": {
+      "A": {
+        "frontier": [
+          "P1_BEAM_ARM_VS_LOADCELL_BASE",
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD"
+        ],
+        "historical": [],
+        "premise_unbound": [],
+        "premise_contradicted": [
+          "P1_BEAM_ARM_VS_LOADCELL_BASE"
+        ],
+        "status_conflict": [
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY"
+        ],
+        "no_executable_next_probe": false,
+        "probes": {
+          "P1_BEAM_ARM_VS_LOADCELL_BASE": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [
+              "CLOSURE_PREMISE_CONTRADICTED"
+            ],
+            "status_verified": false,
+            "premise_binding": "MISMATCH",
+            "premise_binding_basis": "FROZEN_PLAN",
+            "premise_plan_match": null,
+            "run_id_consistency": "MATCH",
+            "record_structure": "RUN_RECORD"
+          },
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY": {
+            "applicability": "STATUS_CONFLICT",
+            "next_action": "RESOLVE_RUN_STATUS_CONFLICT_FIRST",
+            "findings": [
+              "EXECUTION_STATUS_CONFLICT"
+            ],
+            "status_verified": false,
+            "premise_binding": "MISMATCH",
+            "premise_binding_basis": "CALLER_DECLARATION",
+            "premise_plan_match": null,
+            "run_id_consistency": "MISMATCH",
+            "record_structure": "RUN_RECORD"
+          },
+          "P3_DRIFT_CORRECTED_ARM_PAIRED_CI": {
+            "applicability": "REVISIT_ON_NEW_INFORMATION",
+            "next_action": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MATCH",
+            "premise_binding_basis": "CALLER_DECLARATION",
+            "premise_plan_match": null,
+            "run_id_consistency": "UNKNOWN",
+            "record_structure": "METRICS_ONLY"
+          },
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": null,
+            "premise_binding": null,
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          }
+        }
+      },
+      "B": {
+        "frontier": [
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY",
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD"
+        ],
+        "historical": [
+          "P1_BEAM_ARM_VS_LOADCELL_BASE"
+        ],
+        "premise_unbound": [],
+        "premise_contradicted": null,
+        "status_conflict": [],
+        "no_executable_next_probe": false,
+        "probes": {
+          "P1_BEAM_ARM_VS_LOADCELL_BASE": {
+            "applicability": "HISTORICAL_EVIDENCE_ONLY",
+            "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+            "findings": [],
+            "status_verified": true,
+            "premise_binding": "MATCH",
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          },
+          "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MISMATCH",
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          },
+          "P3_DRIFT_CORRECTED_ARM_PAIRED_CI": {
+            "applicability": "REVISIT_ON_NEW_INFORMATION",
+            "next_action": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
+            "findings": [],
+            "status_verified": false,
+            "premise_binding": "MATCH",
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          },
+          "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD": {
+            "applicability": "NOT_YET_RUN",
+            "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+            "findings": [],
+            "status_verified": null,
+            "premise_binding": null,
+            "premise_binding_basis": null,
+            "premise_plan_match": null,
+            "run_id_consistency": null,
+            "record_structure": null
+          }
+        }
+      }
+    }
+  }
+}

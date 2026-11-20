@@ -2,10 +2,12 @@
 from __future__ import annotations
 import sqlite3
 from .config import Settings
-from .schemas import failure
+from .schemas import failure, classify_storage_error
 from .projects import get_project_context
 from .rules import get_applicable_rules
 from .memory import search_research_memory
+from . import (case_bridge, case_export, case_gates, case_knowledge,
+               case_learning)
 from .evidence import find_experiment_evidence
 from .experiments import check_duplicate_experiment
 from .runtime.receipts import begin_operation, checkpoint_operation, execution_status
@@ -42,6 +44,15 @@ class ResearchService:
                 lambda _settings, **inputs: review_lesson_applicability(**inputs),
             "get_applicable_rules": get_applicable_rules,
             "search_research_memory": search_research_memory,
+            "review_case_transfer": case_learning.case_transfer_review,
+            "extract_case_candidates": case_learning.extract_candidates,
+            "case_gate_check": case_gates.case_gate_check,
+            "project_case_bridge": case_bridge.project_case_bridge,
+            "export_case_markdown": case_export.export_case_markdown,
+            "build_case_knowledge": case_knowledge.build,
+            "verify_case_knowledge":
+                lambda _settings, **inputs: case_knowledge.verify(settings=_settings,
+                                                                 **inputs),
             "find_experiment_evidence": find_experiment_evidence,
             "check_duplicate_experiment": check_duplicate_experiment,
             "get_resume_context": get_resume_context,
@@ -56,5 +67,14 @@ class ResearchService:
             if handler is None:
                 return {"status": "ERROR", "error_code": "UNKNOWN_TOOL"}
             return handler(self.settings, **kwargs)
-        except (ValueError, OSError, UnicodeError, TypeError, sqlite3.Error) as exc:
+        except sqlite3.Error as exc:
+            # Storage failures are operational, never INVALID_INPUT. Keep the
+            # real SQLite class/message so a readonly or locked DB is visible.
+            return {"status": "ERROR",
+                    "error_code": classify_storage_error(exc),
+                    "detail": f"{type(exc).__name__}: {exc}"[:250],
+                    "storage_error_class": (type(exc).__module__ + "." +
+                                            type(exc).__qualname__),
+                    "authorization_verified": False}
+        except (ValueError, OSError, UnicodeError, TypeError) as exc:
             return failure(exc)

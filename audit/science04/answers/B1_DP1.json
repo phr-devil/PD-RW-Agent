@@ -1,0 +1,105 @@
+{
+  "decision_point": "DP1-POPU-HOLD",
+  "opportunity": {
+    "claim": "把评估单位从『帧』改成『重复测量键/窗』，并先量化这条链路的噪声地板（within-key 方差份额 + 键均值上限），再决定负结果的科学含义。可见证据里所有 Run 都在帧级报 MAE（RUN-004 M1 raw 9.139519 / dropallGT100 8.356480，`RUN-004/metrics.json:aggregate.raw.M1_direct_hgb.intensity_mae`），而数据本身是重复测量结构：5,040 个姿态逻辑键对应 50,396 帧（`STATE.md:DATA_INSIGHTS`，约 10 帧/键；RUN-005 单受试者测试帧 840 = 84 键 × 10，`RUN-005/metrics.json:fold_details[0].n_test_frames=840`，10 为算术推断）。如果同一键内 10 帧的目标值本身差异很大，那么『预测不到』在帧级是一个测量/配对噪声陈述，而不是『下层无信息』；此时把预测在窗内做合法的时间聚合（部署可得，只用连续帧的下层观测与自身预测）可能直接改变可部署结论。这一个机会同时给出两种可能的、都可发表的结局：(a) 噪声地板接近观测误差 → 把负结果升级为『帧级不可预测是测量精度上限』的定量陈述；(b) 键均值上限远低于观测误差 → 负结果被重新定位为『键级结构没被可部署输入捕获』，指向新的表示学习目标。两种结局都会改变论文的中心论证，因此仍有信息价值。",
+    "why_not_already_done": "五个 Run 各自关闭了不同问题，没有一个碰过重复测量结构或窗级评估单位。(1) RUN-001（60 折 LOSO，n_frames 50396）比较真实下层 vs 条件置换 vs 姿态先验，全部是帧级 MAE，见 `RUN-001/metrics.json:aggregate.raw.C0_global=10.997`、`C0_posture=10.021`、`C4_oracle=9.894`——即便姿态 Oracle 也只值 0.1 MAE，这个事实从未被解释成『键级结构 vs 键内噪声』的分解。(2) RUN-002 只把 RUN-001 的比较做公平化（单拟合置换），仍是帧级。(3) RUN-003 用姿态标签做分类（`RUN-003/metrics.json:aggregate_stageA.fine_28.P1_logreg.macro_f1=0.5405`），姿态标签只作为分类目标与 C1/C2 输入，从未作为误差归因的分组变量。(4) RUN-004 判细分姿态中间表示无独立价值（`M3−M1=−0.05891`，CI 跨 0），评估单位仍是帧、bootstrap 单位仍是受试者（`RUN-004/metrics.json:validity_checks.bootstrap_unit 取 subject (12)`）。(5) RUN-005 最接近，但它的『上限』是固定覆盖率下按真实误差排序的选择性上限（`RUN-005/metrics.json:aggregate.raw.selective_mae.cov_0.70.ORACLE_DIAGNOSTIC_UPPER_BOUND=5.4356`，`limitation_note` 明确写 『oracle ordering is a diagnostic ceiling, never a method』），那是**排序**上限，不是**信息**上限；它回答『能不能挑出会错的帧』，不回答『这些帧里有多少本来就不可预测』。另外所有协议都把目标写死成同一个估计量（`PROTO-POPU-DEPLOY-v3-DEV003.json:targets.intensity 取 mean of top-1% (k=18) Tactilus cells per frame`，`PROTO-POPU-RELIABILITY-v5-DEV005.json:base_model.target` 同），没有任何 Run 做过目标定义（top-1% 的 k=18 不连续/受饱和影响的稳定性）的敏感性。因此『窗级评估 + 噪声地板 + 目标定义敏感性』这三件在同一份已冻结预测上可做、且从未做过的事，是新的。",
+    "evidence_refs": [
+      "STATE.md:DATA_INSIGHTS（5,040 姿态逻辑键 / 50,396 有效帧；28 姿态×3 shift）",
+      "DEV/runs/RUN-005/metrics.json:fold_details[0].n_test_frames=840 与 n_dev_frames=10078",
+      "DEV/runs/RUN-004/metrics.json:aggregate.raw.M1_direct_hgb.intensity_mae=9.139519097874947（及 intensity_r2=−0.16603）",
+      "DEV/runs/RUN-004/metrics.json:validity_checks.bootstrap_unit=\"subject (12)\"",
+      "DEV/runs/RUN-005/metrics.json:aggregate.raw.selective_mae.cov_0.70.ORACLE_DIAGNOSTIC_UPPER_BOUND=5.4356",
+      "DEV/runs/RUN-005/metrics.json:limitation_note（oracle ordering 只是诊断上限）",
+      "DEV/runs/RUN-001/metrics.json:aggregate.raw.C0_posture=10.020530002186549 / C4_oracle=9.893943092056409",
+      "DEV/runs/RUN-003/metrics.json:aggregate_stageA.fine_28.P1_logreg.macro_f1=0.5404832129742122",
+      "protocol/PROTO-POPU-DEPLOY-v3-DEV003.json:targets.intensity（唯一目标定义，无替代目标）",
+      "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json:secondary_outcome.oracle_reference（排序上限，非信息上限）"
+    ]
+  },
+  "hypotheses": [
+    {
+      "id": "H1_aleatoric_replicate_noise",
+      "mechanism": "帧级目标的一半以上方差是键内重复测量噪声：同一 (受试者, 姿态, shift) 键的 10 帧在名义上同一状态，但上层 top-1%(k=18) 强度仍逐帧跳动（接触/位移抖动 + 上下层帧级时间配准未验证，STATE 的 GAP-003）。若成立，则任何只用下层 72 通道的帧级预测器都撞在一个键内噪声地板上，RUN-004 的负 R² 不是模型不足而是目标不可预测；同时窗内时间聚合（部署可得的合法操作）会显著降低误差。诊断量：(S) 键内方差份额；(G) M1 帧级 MAE 与键均值上限 MAE 之差；(H) 窗内聚合后 MAE vs 帧级 MAE。",
+      "strongest_baseline": "键均值预测器（每 (受试者,姿态,shift) 键取该键目标均值；这是信息上限口径，含测试受试者自身标签，只作诊断，绝不作为方法）；可部署侧基线 = 冻结的 M1_direct_hgb（下层 72 通道，`RUN-004/metrics.json:hgb_config_selected`）。",
+      "prediction": "NO_CHANGE"
+    },
+    {
+      "id": "H2_hidden_key_structure",
+      "mechanism": "键内几乎无噪声，残余误差几乎全部是键级系统偏置——即目标主要由 (姿态,shift) 决定，而这个变量不可从 72 通道恢复（RUN-003 fine_28 macro-F1 仅 0.54），所以问题是可观测性/表示不足，不是噪声。若成立，键均值上限会远低于 M1 的 9.14，且窗内聚合无收益，误差在键间呈系统结构（并且与 RUN-001 C0_posture=10.02 只解释 1 MAE 的事实相容：28 类先验收不回 shift 与受试者特异的键效应）。诊断量：(G) 大且稳健为正；(H) ≈ 0。",
+      "strongest_baseline": "同一键均值上限（诊断上限）+ 训练折 28 类姿态先验 C0_posture（`RUN-001/metrics.json:aggregate.raw.C0_posture`）；两者差值才是『键级结构里未被姿态先验覆盖的部分』。",
+      "prediction": "INCREASE"
+    },
+    {
+      "id": "H3_subject_scale_offset",
+      "mechanism": "误差主要由受试者级幅度标定失配造成：不同人的绝对压力水平与下层耦合增益不同（Sensomatt 物理单位 UNKNOWN，GAP-002），而被冻结的模型是跨受试者池化 + 训练折标准化的单一映射，必须对一个它看不到的受试者偏移取平均。若成立，用该受试者**无标签**帧的下层统计做测试时重定心（合法、部署可得、不看标签）应显著降 MAE，而键级上限与窗内聚合几乎不动；注意 G 在 H3 下不涨（键是受试者内的，键均值已吸收受试者偏移），所以 H3 与 H1 只能靠 B/C 分开、不能靠 G 分开；此外误差的受试者间方差份额会很高（RUN-004 逐受试者 delta 从 −0.745 到 +0.503 的离散、以及 RUN-005 中受试者 12 的 AUC 0.27 反证结构迁移失败，都是该机制的可观察痕迹）。诊断量：(B) 受试者间均值偏移占目标方差份额；(C) 测试时重定心后 MAE 变化。",
+      "strongest_baseline": "同一冻结 M1（池化、训练折标准化）；对照 = 仅用该受试者无标签帧做特征重定心/预测仿射校正后的 M1，两者同一模型同一折，只有可用信息不同。",
+      "prediction": "INCREASE"
+    },
+    {
+      "id": "H4_target_estimator_artifact",
+      "mechanism": "『不可预测』有相当部分来自目标估计量本身：top-1%(k=18 of 1728) 均值在顶层单元换手时跳变，且量程在上端有饱和/哨兵（Tactilus >100 占 0.0823%，STATE DATA_INSIGHTS），使帧级目标带离散跳变与重尾。若成立，把目标换成平滑估计量（如 top-5% 均值或 90 分位）后，键内方差与观测误差同步下降，说明一部分残差是估计量不稳定而非物理不可恢复；这直接决定论文能否说『信号不可用』。诊断量：(T) 同一批帧在 top-1% 与平滑目标下的键内方差份额与 M1 MAE 变化；(D) 目标落在饱和/近饱和区的帧占比与其误差贡献。",
+      "strongest_baseline": "同一 M1 在同一批帧上对 top-1% 目标的结果（`RUN-004/metrics.json:aggregate.*.M1_direct_hgb`，raw 与 dropallGT100 两量程已是现成的量程敏感性对照），平滑目标版本与之逐帧配对。",
+      "prediction": "DECREASE"
+    }
+  ],
+  "experiment": {
+    "id": "EXP-A_REPLICATE_AWARE_REEVAL",
+    "observable": "在同一批已评估帧上做四项分解，四项读数共同定位机制：(S) 键内方差份额 = 1 − ICC，按键 (受试者,姿态,shift) 分组，对 raw 与 dropallGT100 两量程各算一次；(G) 键均值上限与 M1 帧级 MAE 的差（G = MAE_M1 − MAE_keymean，MAE_M1 用 `RUN-004/metrics.json` 记录值做锚）；(H) 把 M1 的逐帧预测在键内（10 帧窗）做时间平均后的 MAE vs 帧级 MAE；(B) 受试者间均值偏移占目标方差份额 + 测试时仅用该受试者无标签帧的合法重定心后 MAE 变化；(T) 目标换成平滑估计量后的 S、G、MAE 变化。判定读法：S 大且 G≈0 且 H 明显下降 → H1；S 小且 G 大 → H2；B 大且 C 下降、G 不动 → H3；T 下 S 与 MAE 同步下降 → H4。四项可同时读出，允许混合（例如 H1+H4），此时按份额排序给主因。",
+    "evaluation_unit": "受试者（12 名固定 DEV 受试者，每名一次留出）为主单位，与既有 `bootstrap_unit=\"subject (12)\"` 对齐；键/窗为次级单位，用按受试者聚类的 bootstrap 汇总（不把 10 帧当作独立样本，避免把重复测量当样本量）。逐折报告，不只报均值。",
+    "comparison_reference": "可部署参照 = 冻结的 M1_direct_hgb（仅下层 72 通道，`RUN-004/metrics.json:hgb_config_selected` 的原始配置，seed 固定为 0）；诊断为 (a) 键均值上限（H1/H2 的信息上限）、(b) 受试者无标签重定心的 M1（H3 的可部署对照）、(c) 平滑目标下的 M1（H4 的配对对照）。三个诊断都不进入任何部署预测路径，地位等同 `RUN-005/metrics.json:aggregate.*.selective_mae.*.ORACLE_DIAGNOSTIC_UPPER_BOUND` 已确立的『诊断上限，不是方法』口径。",
+    "predictions": {
+      "H1_aleatoric_replicate_noise": "NO_CHANGE",
+      "H2_hidden_key_structure": "INCREASE",
+      "H3_subject_scale_offset": "INCREASE",
+      "H4_target_estimator_artifact": "DECREASE"
+    },
+    "cost_band": "LOW",
+    "why_legal": "三点：(1) 预测路径完全不变——唯一被重新执行的模型是 RUN-004 已冻结的直接 HGB 配置，不调参、不新增可靠性分数，只把 seed 固定（`PROTO-POPU-RELIABILITY-v5-DEV005.amendment-002.json:changes_made.seeding` 已把 seed 定为项目规范，且 `anchor_rule_v2` 给出与历史记录比对的抖动尺度 0.085611，`RUN-005/verification.json:anchors[*].jitter_scale`），因此不会出现『用新调参换结论』。(2) 姿态/键/受试者标签只用于**事后误差归因与分组**，不作为任何特征——与 `PROTO-POPU-DEPLOY-v3-DEV003.json:split_and_fairness.deployable_input` 的禁止清单一致；键均值与受试者均值都是含测试受试者自身信息的诊断上限，明确标注不可部署，与项目既有的 Oracle/C1/C4 惯例同构。(3) 唯一新增的『可部署』条件（键内时间平均、无标签重定心）在预测时确实可得：只用连续帧的下层观测与模型自身输出，不看上层、不看标签、不看测试受试者标签。(4) 不触碰 SEALED、不下载、不付费、不写作，仍在 H7 的 DEV 授权内；也不违反 STATE『不在同一 12 人子集上加可靠性变体』——本轮不新增可靠性模型（没有 R3），只改评估单位与误差归因口径。",
+    "why_minimal": "它不需要新数据、新模型族、新真值、新超参：S、G、B、T 四项在『目标矩阵 + 键标签』上就是闭式计算（`PROTO-POPU-DEPLOY-v3-DEV003.json:data.derived_numeric_cache` 已含 pose_stems.json 与 T_upper1728.npy），H 与 C 只需一次 seed 固定的 M1 重跑把逐帧预测落盘（`RUN-005/metrics.json:elapsed_sec=123.5` 给出同规模单次运行的时间量级）。它是能同时排除四个机制的最小组合：单独做 S 无法区分 H1/H2（需要 G 的绝对量级），单独做 G 无法区分 H1/H3（需要 B），不做 T 则 H4 会伪装成 H1。再少任何一项，四种机制里就有一对不可区分。",
+    "already_run": false,
+    "which_run_if_so": null
+  },
+  "contribution": {
+    "claim": "现在最可信的贡献是一条**有界的、经过审计的负结果 + 一套可复用的评估协议**：在受试者独立划分、训练折唯一预处理、真实下层 vs 自身单拟合置换、以及匹配非线性容量四重控制下，PoPu 下层 72 通道在本协议内没有给出超越姿态先验/公平置换的可部署局部高压增量（RUN-002 公平基线 raw −0.0216 / dropall −0.0229；RUN-004 M3−M1 raw −0.05891 CI 跨 0，增益约 76% 由容量解释）；并且恢复失败在可部署结构特征上无法在『预测幅值』之外被排序（RUN-005 R1−R0 AUC −0.0881/−0.1017，R1 反而比随机差）。附带的方法学贡献是可复现性纪律本身：锚点校验抓出了 DEFECT-005（未设 seed 的 HGB 触发随机 early stopping，单折抖动可达 0.48），并把 RUN-004 降级为 METRIC_REPRODUCIBILITY_DEGRADED 而不改写历史数字。",
+    "evidence_support": "PARTIAL",
+    "missing_evidence": [
+      "噪声地板/信息上限的定量：没有 S 与 G，读者无法区分『下层没信息』与『帧级目标不可预测』，这是负结果最容易被误读的一点（RUN-005 的上限是排序上限，`ORACLE_DIAGNOSTIC_UPPER_BOUND=5.4356`，不是信息上限）。",
+      "独立确认：12 人子集在 RUN-002–005 反复使用（`RUN-005/metrics.json:scope=\"DEV_ONLY / EXPLORATORY_CONFIRMATION_NOT_INDEPENDENT\"`），SEALED 未访问，无第二库。RUN-001 的全 60 折结论强度已被 DEV-002 撤回（`STATE.md:EVIDENCE_SUPERSESSION`）。",
+      "管线灵敏度正控：没有任何一次注入已知增量的实验证明该 harness 能在本数据上检出真实存在的增量；缺它，『未检出』与『检不出』不可分。",
+      "可复现性：RUN-001–004 的逐条件 MAE 带未量化的随机抖动（DEFECT-005），RUN-004 的决定性效应量小于抖动，需 seeded 重述。",
+      "物理边界：空间配准、Sensomatt 单位、硬件时间同步仍 UNKNOWN（`STATE.md:CRITICAL_UNKNOWN`），因此定位结论只能读作统计映射，且 H1 的『噪声』可能部分是上下层帧级失配而非生理噪声。"
+    ],
+    "shortest_path": [
+      "1) 跑 EXP-A（键内方差分解 + 键均值上限 + 窗内聚合 + 无标签重定心 + 平滑目标敏感性，锚定 RUN-004 记录 MAE，seed 固定重跑一次 M1 落逐帧预测）。它排除的替代解释：『残余误差=可部署输入缺失的信息』——若 G≈0 且 S 大，负结果被定位为帧级噪声/测量精度，若 G 大则被定位为键级结构未捕获；同时 T 排除『top-1% 估计量不稳被误读为信号缺失』，B 排除『误差是受试者标定问题』。",
+      "2) 在同一 harness 上做一次注入式正控（在 held-out 帧的下层通道里注入已知强度、已知方向的目标耦合，检查 M1 是否能检出并把效应量报出）。它排除的替代解释：『这条评估管线本身没有灵敏度，任何增量都检不出』——这是目前唯一没有被动过的替代解释，且不需要新数据、不触碰 SEALED。",
+      "3) 若 1–2 通过，把同一套分解与 seeded 配置扩到全 60 受试者 LOSO（RUN-001 已有 60 折先例，但需新授权，`STATE.md:NEXT` 明确扩 60 人需授权）。它排除的替代解释：『负结果来自 12 人子集的选择与四次复用』，并把 RUN-004 的不可复现数字换成带抖动的区间。"
+    ]
+  },
+  "read_files": [
+    "audit/science04/tasks/B1_DP1.md",
+    "frozen/DP1-POPU-HOLD/MANIFEST.json",
+    "frozen/DP1-POPU-HOLD/STATE.md",
+    "frozen/DP1-POPU-HOLD/RESEARCH_RECORD.md",
+    "frozen/DP1-POPU-HOLD/PAPER_BLUEPRINT.md",
+    "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-DEPLOY-v3-DEV003.json",
+    "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+    "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.amendment-001.json",
+    "frozen/DP1-POPU-HOLD/protocol/PROTO-POPU-RELIABILITY-v5-DEV005.amendment-002.json",
+    "frozen/DP1-POPU-HOLD/DEV/runs/RUN-001/metrics.json（键字段：status/scope/n_frames/n_folds/aggregate/verdict/validity_checks）",
+    "frozen/DP1-POPU-HOLD/DEV/runs/RUN-002/metrics.json（aggregate）",
+    "frozen/DP1-POPU-HOLD/DEV/runs/RUN-003/metrics.json（aggregate_stageA/aggregate_stageB）",
+    "frozen/DP1-POPU-HOLD/DEV/runs/RUN-004/metrics.json（aggregate/paired/validity_checks/decision_mapping）",
+    "frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/metrics.json（aggregate/paired_comparisons/fold_details/harness_jitter/limitation_note）",
+    "frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/verification.json",
+    "frozen/DP1-POPU-HOLD/DEV/runs/RUN-005/RUN-005_RESULT.md"
+  ],
+  "uncertainties": [
+    "每键约 10 帧是算术推断（50,396 帧 / 5,040 键 ≈ 10；RUN-005 `fold_details[0].n_test_frames=840` = 84 键 × 10），不是文件里直接写出的字段；逐帧掩码后各键帧数可能不等（4 帧损坏 + 16 others 异常已按帧剔除），实际分组大小 UNKNOWN。",
+    "EXP-A 需要的 pose_stems.json（键标签）与 T_upper1728.npy 只在 `PROTO-POPU-DEPLOY-v3-DEV003.json:data.derived_numeric_cache` 中被引用，实体不在本冻结快照内（MANIFEST.withheld 已排除原始数据与缓存），我无法验证其当前可用性与键定义是否与 5,040 逻辑键一致。",
+    "RUN-005 的 metrics.json 只保留聚合与逐折汇总，不保留逐帧预测；H（窗内聚合）与 C（无标签重定心）必须 seed 固定重跑一次 M1 才能算，重跑与 RUN-004 记录值之间会有 ≤2×jitter_scale（0.085611）的差异，需按 `AMENDMENT-002:anchor_rule_v2` 口径报，不能当成新数字精度。",
+    "H1 与 H4 在我的分解里可能同时成立（目标估计量不稳会直接抬高键内方差），届时『份额排序给主因』这一步依赖主观切点；我没有事前冻结切点，任何阈值都需要在跑之前写进协议，否则会变成事后解释。",
+    "『帧级时间配准 UNKNOWN（GAP-003）』使键内方差无法唯一归因为生理/接触噪声还是上下层配对抖动；若 GAP-003 未解决，H1 的正确读法只能是『不可预测，原因待分』。PRIOR：我预期 S 会偏大（负 R² 且连 Oracle 姿态也只值 0.1–0.8 MAE），但这是领域先验，不是文件证据。",
+    "我的四个假设都是在本 12 人子集、本模型族、本目标上表述的；它们不涉及『床垫信号是否物理可恢复』这一更强命题，这一点与项目现有边界声明一致。"
+  ],
+  "wall_clock_minutes": 15
+}

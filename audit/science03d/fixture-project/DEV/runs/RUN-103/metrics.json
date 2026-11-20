@@ -1,0 +1,7 @@
+{
+  "aggregate": {
+    "base_mae": 9.17,
+    "sensor_arm_mae": 8.98
+  },
+  "note": "copied from a scratch run; identity and status were never recorded"
+}

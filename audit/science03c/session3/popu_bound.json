@@ -1,0 +1,122 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "In the PoPu DEV pool, is there a deployable pressure-recovery increment beyond the posture prior, and can the frames where recovery fails be identified at prediction time?",
+  "claim_evidence_refs": [
+    "48/DEV/runs/RUN-004/RUN-004_RESULT.md",
+    "48/DEV/runs/RUN-005/RUN-005_RESULT.md",
+    "48/STATE.md#L-SUPERSESSION"
+  ],
+  "hypotheses": [
+    "H_deployable_increment",
+    "H_prior_or_magnitude_only",
+    "H_failure_identifiable"
+  ],
+  "proposed_premise": {
+    "premise_id": "POPU_LOWER72_RECOVERY",
+    "scope": {
+      "dataset": "PoPu DEV 12 subjects",
+      "input": "lower 72 channels",
+      "target": "top-1% intensity MAE"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json"
+      ]
+    },
+    "legal_inputs": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/STATE.md"
+      ]
+    },
+    "evaluation_integrity": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/DEV/runs/RUN-004/metrics.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P-POSTURE-VARIANTS-RERUN",
+      "observable": "intensity MAE of posture-representation variants",
+      "evaluation_unit": "FRAME",
+      "comparison_reference": "same HGB config, random onehot capacity control",
+      "predictions": {
+        "H_deployable_increment": "DECREASE",
+        "H_prior_or_magnitude_only": "NO_CHANGE",
+        "H_failure_identifiable": "UNKNOWN"
+      },
+      "cost_band": "LOW",
+      "prediction_evidence_refs": [
+        "48/DEV/runs/RUN-004/RUN-004_RESULT.md"
+      ],
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-004",
+        "record_ref": "RESEARCH_RECORD.md#EXP-006",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "conclusion": "NEG_SCOPED_EXPRESSIVENESS_CONFOUNDED"
+      }
+    },
+    {
+      "id": "P-RELIABILITY-GATE",
+      "observable": "subject AUC of predicted error and selective MAE at 70% coverage",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "predicted magnitude only, same folds",
+      "predictions": {
+        "H_deployable_increment": "UNKNOWN",
+        "H_prior_or_magnitude_only": "NO_CHANGE",
+        "H_failure_identifiable": "INCREASE"
+      },
+      "cost_band": "MEDIUM",
+      "prediction_evidence_refs": [
+        "48/DEV/runs/RUN-005/RUN-005_RESULT.md"
+      ],
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-005",
+        "record_ref": "RESEARCH_RECORD.md#EXP-007",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "conclusion": "NEG_NOT_PREDICTABLE_BEYOND_MAGNITUDE"
+      }
+    },
+    {
+      "id": "P-SECOND-LIBRARY",
+      "observable": "cross-library intensity MAE ranking of the same models",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same protocol on a second public mattress array",
+      "predictions": {
+        "H_deployable_increment": "INCREASE",
+        "H_prior_or_magnitude_only": "NO_CHANGE",
+        "H_failure_identifiable": "UNKNOWN"
+      },
+      "cost_band": "HIGH",
+      "prediction_evidence_refs": [
+        "48/STATE.md"
+      ],
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    }
+  ],
+  "prior_negative_lessons": [
+    {
+      "premise_id": "POPU_LOWER72_RECOVERY",
+      "scope": {
+        "dataset": "PoPu DEV 12 subjects",
+        "input": "lower 72 channels",
+        "target": "top-1% intensity MAE"
+      },
+      "validity": "VALID_NEGATIVE",
+      "evidence_refs": [
+        "48/DEV/runs/RUN-002/metrics.json",
+        "48/DEV/runs/RUN-004/metrics.json"
+      ]
+    }
+  ]
+}

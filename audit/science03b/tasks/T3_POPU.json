@@ -1,0 +1,80 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "After RUN-004 closed the posture-representation branch, what is the next DEV experiment for deployable pressure recovery in PoPu?",
+  "claim_evidence_refs": [
+    "48/DEV/runs/RUN-003/metrics.json",
+    "48/DEV/runs/RUN-004/metrics.json"
+  ],
+  "hypotheses": [
+    "H_deployable_increment",
+    "H_prior_only",
+    "H_failure_identifiable"
+  ],
+  "proposed_premise": {
+    "premise_id": "POPU_LOWER72_RECOVERY",
+    "scope": {
+      "dataset": "PoPu DEV 12 subjects",
+      "input": "lower 72 channels"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "POPU-P1-POSTURE-VARIANTS",
+      "observable": "intensity MAE of posture-representation variants",
+      "evaluation_unit": "FRAME",
+      "comparison_reference": "same HGB config, random onehot capacity control",
+      "predictions": {
+        "H_deployable_increment": "DECREASE",
+        "H_prior_only": "NO_CHANGE",
+        "H_failure_identifiable": "UNKNOWN"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "RUN-004",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "conclusion": "NEG_SCOPED_EXPRESSIVENESS_CONFOUNDED"
+      }
+    },
+    {
+      "id": "POPU-P2-RELIABILITY-GATE",
+      "observable": "subject AUC of predicted error and selective MAE at 70% coverage",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "predicted magnitude only, same folds",
+      "predictions": {
+        "H_deployable_increment": "UNKNOWN",
+        "H_prior_only": "NO_CHANGE",
+        "H_failure_identifiable": "INCREASE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "NOT_EXECUTED"
+      }
+    },
+    {
+      "id": "POPU-P3-SECOND-LIBRARY",
+      "observable": "cross-library intensity MAE ranking of the same models",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same protocol on a second public mattress array",
+      "predictions": {
+        "H_deployable_increment": "INCREASE",
+        "H_prior_only": "NO_CHANGE",
+        "H_failure_identifiable": "UNKNOWN"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}

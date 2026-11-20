@@ -1,0 +1,90 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Project 19 (REASSEMBLE CRPS L2 skill segmentation): the champion GRUctx|lag3 beats SF|lag3 by +0.0418 Segmental F1 (0.7135 vs 0.6717) and by +0.0623 over the capacity-matched DualHead (0.6468) on 111 DEV episodes / 17 objects / 5 recordings. Is that increment caused by explicitly aligned predicted parent-action fusion rather than by extra capacity, longer history or action-label supervision, and does it survive recording-level resampling and a cross-recording (sealed) replication?",
+  "hypotheses": [
+    "H_ALIGN",
+    "H_CAPACITY"
+  ],
+  "proposed_premise": {
+    "premise_id": "C1-PREMISE-ALIGNED-PARENT-CONTEXT",
+    "scope": {
+      "dataset": "REASSEMBLE dev 111 ep / 5 recordings",
+      "input": "frozen DEV predictions + frozen sealed predictions",
+      "unit": "EPISODE",
+      "outcome": "paired delta Segmental F1",
+      "grouping": "recording date (5 clusters), object LODO folds"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {
+      "status": "PASS",
+      "evidence_refs": [
+        "D:/workbuddy-work/19/CONFIRMATION_FREEZE.md:3.1",
+        "D:/workbuddy-work/19/CRPS_L2_EVAL.json:proto"
+      ]
+    },
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "D:/workbuddy-work/19/CONFIRMATION_FREEZE.md:3.1",
+        "D:/workbuddy-work/19/CRPS_L2_ALGO_ROUND.json:proto"
+      ]
+    },
+    "legal_inputs": {
+      "status": "PASS",
+      "evidence_refs": [
+        "D:/workbuddy-work/19/CONFIRMATION_FREEZE.md:5",
+        "D:/workbuddy-work/19/CRPS_L2_EVAL.json:results.*.SF|lag3.seg_f1"
+      ]
+    },
+    "evaluation_integrity": {
+      "status": "PASS",
+      "evidence_refs": [
+        "D:/workbuddy-work/19/CONFIRMATION_FREEZE.md:3.1",
+        "D:/workbuddy-work/19/FINAL_ALGO_ROUND_REPORT.md:2"
+      ]
+    },
+    "metric_appropriateness": {
+      "status": "PASS",
+      "evidence_refs": [
+        "D:/workbuddy-work/19/CRPS_L2_ALGO_ROUND_AGG.json:summary",
+        "D:/workbuddy-work/19/FINAL_ALGO_ROUND_REPORT.md:4"
+      ]
+    },
+    "effect_size": {
+      "status": "PASS",
+      "evidence_refs": [
+        "D:/workbuddy-work/19/CRPS_L2_ALGO_ROUND_AGG.json:gain_vs_SF",
+        "D:/workbuddy-work/19/FINAL_ALGO_ROUND_REPORT.md:4"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P1_CLUSTERED_REANALYSIS",
+      "observable": "episode-clustered paired delta Segmental F1 (GRUctx|lag3 minus capacity-matched DualHead|lag3 and minus SF|lag3) recomputed from frozen DEV predictions",
+      "evaluation_unit": "EPISODE",
+      "comparison_reference": "same frozen DEV predictions, capacity-matched DualHead|lag3 and no-context SF|lag3, no new training",
+      "predictions": {
+        "H_ALIGN": "INCREASE",
+        "H_CAPACITY": "NO_CHANGE"
+      },
+      "cost_band": "LOW"
+    },
+    {
+      "id": "P2_SEALED_CROSS_RECORDING",
+      "observable": "sealed 37-episode paired delta Segmental F1 (GRUctx|lag3 minus SF|lag3) with one full-DEV model, plus per-recording and per-object signs",
+      "evaluation_unit": "EPISODE",
+      "comparison_reference": "same single full-DEV model, SF|lag3 head on the same sealed frames",
+      "predictions": {
+        "H_ALIGN": "INCREASE",
+        "H_CAPACITY": "NO_CHANGE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}
