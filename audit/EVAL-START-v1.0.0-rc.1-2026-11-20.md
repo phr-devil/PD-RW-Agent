@@ -119,7 +119,7 @@ Exposure measured against the current public tree, after the keys were removed:
 | task | key | answer values already in public reports | verdict |
 | --- | --- | --- | --- |
 | T1 | public (now offline) | project 48's records quoted in `audit/SCIENCE-03B/03C/03D/04`; its key is qualitative (mechanisms + probe) | exploratory only |
-| T2 | public (now offline) | 4 of 6 numeric tokens (`0.0003`, `0.0084`, `0.0625`) appear in `audit/rc_integration/answers/S1_report.json` and `docs/RC_V1.0.md` | exploratory only |
+| T2 | public (now offline) | 3 of 6 numeric tokens (`0.0003`, `0.0084`, `0.0625`) appear in `audit/rc_integration/answers/S1_report.json` and `docs/RC_V1.0.md` | exploratory only |
 | T3 | public (now offline) | all 6 numeric tokens (`0.0625`, `0.5894`, `0.5948`, `0.6717`, `0.7135`, `1464`) appear in public audit docs | exploratory only |
 
 They remain usable for regression ("does a change break what used to work") and for an
@@ -161,7 +161,7 @@ not a substitute for a Run, and this document does not present it as one.
 | --- | --- |
 | subject wall clock | 2.3 + 2.2 + 1.9 + 1.9 = **8.3 min** |
 | subject tool calls | 15 + 20 + 16 + 22 = **73** (cap was 60 each; none exceeded) |
-| grading | 4 blind grader runs, 2 per task, ~9 min total |
+| grading | 4 blind grader runs, 2 per task, launched together; not separately metered |
 | paid compute / downloads / training / GPU | 0 / 0 / 0 / 0 |
 | tokens | `NOT_MEASURED` (host exposes no meter) |
 | major errors | **0** across four answers — no fabricated number, no reserved read, no repeated experiment |
