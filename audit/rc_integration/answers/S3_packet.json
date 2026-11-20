@@ -1,0 +1,97 @@
+{
+  "claim_type": "LAW/BOUNDARY",
+  "question": "Project 44 / H5-A-GEOM-HS-NOMINAL is in author-decided HOLD (H8 option A, 2026-11-16). Given that RUN-002 already shows the DC-demeaned, amplitude-normalised residual is not better than a 23-dim FSR flat/saturation shortcut on DEV, does any further read of held-out data (VAL, SEALED) still have information value for the single CLM-001 DEV_ONLY conditional negative claim, or is the only honest next step a zero-fit re-verification of the existing Run?",
+  "hypotheses": [
+    "H_TRANSFER_CUE",
+    "H_SHORTCUT_IDENTITY"
+  ],
+  "proposed_premise": {
+    "premise_id": "PREM-044-RESIDUAL-NO-TRANSFER-v1",
+    "scope": {
+      "dataset": "D1 Zenodo 20843033 v1, DEV folds only",
+      "unit": "SUBJECT",
+      "outcome": "balanced-accuracy gap vs FSR shortcut after DC and amplitude removal"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {
+      "status": "UNKNOWN",
+      "evidence_refs": [
+        "protocol/PROTO-GEOM-HS-v2.json"
+      ]
+    },
+    "group_independence": {
+      "status": "NOT_CHECKED",
+      "evidence_refs": []
+    },
+    "legal_inputs": {
+      "status": "UNKNOWN",
+      "evidence_refs": [
+        "protocol/PROTO-GEOM-HS-v2.json"
+      ]
+    },
+    "evaluation_integrity": {
+      "status": "NOT_CHECKED",
+      "evidence_refs": []
+    },
+    "metric_appropriateness": {
+      "status": "UNKNOWN",
+      "evidence_refs": [
+        "protocol/PROTO-GEOM-HS-v2.json"
+      ]
+    },
+    "effect_size": {
+      "status": "NOT_CHECKED",
+      "evidence_refs": []
+    }
+  },
+  "probes": [
+    {
+      "id": "P-DEV-RERUN002",
+      "observable": "per-fold balanced accuracy recomputed from stored RUN-002 predictions, reported as max abs deviation from the stored metrics.json values",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "stored RUN-002 metrics.json for the same 26 folds and 18 arms",
+      "predictions": {
+        "H_TRANSFER_CUE": "NO_CHANGE",
+        "H_SHORTCUT_IDENTITY": "NO_CHANGE"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-002",
+        "premise_ref": "protocol/PROTO-GEOM-HS-v2.json",
+        "premise_id": "PREM-044-RESIDUAL-NO-TRANSFER-v1"
+      }
+    },
+    {
+      "id": "P-VAL-HOLDOUT-GAP",
+      "observable": "balanced-accuracy gap between the DC-and-amplitude-removed arm and the FSR shortcut arm, evaluated only on the reserved VAL folds",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "23-dim FSR flat/saturation shortcut on the same VAL folds, frozen hyperparameters, zero model selection",
+      "predictions": {
+        "H_TRANSFER_CUE": "INCREASE",
+        "H_SHORTCUT_IDENTITY": "NO_CHANGE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    },
+    {
+      "id": "P-SEALED-CONFIRM",
+      "observable": "sealed holdout balanced accuracy of the frozen 18-arm design, used once after VAL, with no re-tuning and no model selection",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "the frozen VAL-selected arm versus the FSR shortcut arm on the same sealed holdout",
+      "predictions": {
+        "H_TRANSFER_CUE": "INCREASE",
+        "H_SHORTCUT_IDENTITY": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}

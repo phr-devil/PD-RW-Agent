@@ -4,6 +4,15 @@
 version `1.0.0rc1`, tag `v1.0.0-rc.1`. Nothing in this repository is merged to
 `main`; the RC lives on `rc/v1.0-integration` and is mergeable as one history.
 
+**What it is, before what it does.** PD-RW-Agent is a component that WorkBuddy
+loads — Skill, CLI, optional stdio MCP server. It is not an LLM and it does not
+compete with WorkBuddy. The division the RC assumes is: WorkBuddy executes;
+PD-RW supplies the research rules; the project's own records supply the evidence;
+ChatGPT supplies strategy and review. Every claim below is about what the
+component adds *inside* that division, and the comparison plan in
+`audit/agent_comparison/PLAN.md` varies that component rather than treating it as
+a rival system.
+
 This page exists so that no claim about the RC has to be taken from the README.
 It separates three things that are easy to blur:
 
@@ -221,8 +230,13 @@ so acceptance ran through the CLI), `artifact_links_verified` (still `false`),
    credible contribution" half rests on one narrow confirmation plus four
    negative/conditional points.
 7. **One arm, non-blind.** Every acceptance session, and this patch, come from
-   one model family; the case-library on/off comparison is n=1. Cross-model
-   comparison is prepared, not run — see `audit/agent_comparison/PLAN.md`.
+   one model family; the case-library on/off comparison is n=1. The frozen task
+   set for the next round is `audit/agent_comparison/` — two calibration tasks
+   (`CAL-1`, `CAL-2`) and three formal ones (`T1` scientific judgement, `T2`
+   algorithm design, `T3` evidence validity and paper contribution). Each has a
+   manifest with per-file hashes, a prompt, an exclusion list and a hidden answer;
+   the copied project bytes stay local because this repository is public.
+   Prepared and verified; **not run**.
 
 ---
 
@@ -234,3 +248,34 @@ so acceptance ran through the CLI), `artifact_links_verified` (still `false`),
 - Not a claim that a written plan is permitted: no packet field is a permit.
 - Not a claim that `identity` is verified: `DECLARED_ID_MATCH` means the project
   map and `STATE.md` agree about a string.
+
+---
+
+## 7. What is frozen for evaluation
+
+`audit/agent_comparison/` holds the v1.0 comparison as prepared material: a plan,
+a rubric, five task bundles and five answer keys. Nothing there has been run.
+
+| config | what it is |
+| --- | --- |
+| `A` | ChatGPT + WorkBuddy + PD-RW rules and records — the workflow without this component |
+| `B` | `A` + PD-RW-Agent; the old ablation survives inside it as `B1` (Skill only) vs `B2` (Skill + CLI/MCP) |
+| `C` | `B` + one external agent capability — feasibility checked read-only; AIDE is the only candidate that would add a capability this component lacks, and only on `T2` |
+
+Held fixed: model family and version, the ChatGPT strategy brief (hashed), tool
+permissions, and the budget — ≤ 40 min, ≤ 60 tool calls, ≤ 12 model turns, one
+clarification, zero paid compute, zero downloads, zero training per (task, arm).
+
+Scored on four 0–3 dimensions (scientific correctness, validity of the proposed
+experiment, contribution calibration, boundary and authorization) with cost and
+interventions recorded beside the scores and never folded into them. Three blind
+graders, median with a fourth adjudicator when the range is ≥ 2, and major errors
+counted rather than averaged. No config is favoured in advance, and the
+pre-registered expectation is written down in `RUBRIC.md` so that a null result
+still counts as a result.
+
+To verify the bundles are the ones that were frozen:
+
+```
+PYTHONPATH=src python audit/agent_comparison/build_tasks.py --verify
+```

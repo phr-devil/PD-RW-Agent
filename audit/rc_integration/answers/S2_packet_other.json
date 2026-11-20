@@ -1,0 +1,98 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Is the per-frame failure of the under-mattress 72-channel pressure-recovery model identifiable at prediction time from deployable inputs beyond the trivial predicted-magnitude score, on the fixed 12-subject PoPu DEV subset with the RUN-004 frozen direct HGB?",
+  "hypotheses": [
+    "H_STRUCT",
+    "H_MAG",
+    "H_NULL"
+  ],
+  "proposed_premise": {
+    "premise_id": "PREM-RELIABILITY-PREDICTABILITY-DEV12",
+    "scope": {
+      "dataset": "PoPu D1 fixed 12-subject DEV subset",
+      "input": "lower-72 deployable channels + B0 prediction",
+      "unit": "SUBJECT",
+      "outcome": "subject-level AUC of absolute-error label",
+      "mode": "raw / dropallGT100",
+      "model": "RUN-004 frozen direct HGB, seeded"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {
+      "status": "PASS",
+      "evidence_refs": [
+        "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+        "DEV/runs/RUN-005/metrics.json"
+      ]
+    },
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+        "DEV/runs/RUN-005/verification.json"
+      ]
+    },
+    "legal_inputs": {
+      "status": "PASS",
+      "evidence_refs": [
+        "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json"
+      ]
+    },
+    "evaluation_integrity": {
+      "status": "PASS",
+      "evidence_refs": [
+        "DEV/runs/RUN-005/verification.json",
+        "DEV/runs/RUN-005/RUN-005_RESULT.md"
+      ]
+    },
+    "metric_appropriateness": {
+      "status": "PASS",
+      "evidence_refs": [
+        "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json"
+      ]
+    },
+    "effect_size": {
+      "status": "PASS",
+      "evidence_refs": [
+        "DEV/runs/RUN-005/metrics.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P1_RUN005_HISTORICAL",
+      "observable": "subject-level AUC(R1 structure+prediction) minus AUC(R0 predicted intensity) for the absolute-error label",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same 12 LOSO folds, R0 predicted-intensity ordering, visible at prediction time",
+      "predictions": {
+        "H_STRUCT": "INCREASE",
+        "H_MAG": "NO_CHANGE",
+        "H_NULL": "DECREASE"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-005",
+        "premise_ref": "protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json",
+        "premise_id": "PREM-RELIABILITY-PREDICTABILITY-DEV12",
+        "conclusion": "same declaration as the first packet; only the premise_ref differs, to test whether the Run is attributed to another frozen plan"
+      }
+    },
+    {
+      "id": "P2_FULL60_SECOND_LIBRARY",
+      "observable": "same subject-level AUC contrast computed on all 60 subjects, or replicated on a second dataset",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same LOSO folds, R0 predicted-intensity ordering, visible at prediction time",
+      "predictions": {
+        "H_STRUCT": "INCREASE",
+        "H_MAG": "NO_CHANGE",
+        "H_NULL": "DECREASE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}

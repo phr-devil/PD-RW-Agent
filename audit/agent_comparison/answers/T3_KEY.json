@@ -1,0 +1,40 @@
+{
+ "task": "T3",
+ "kind": "formal",
+ "dimension": "evidence validity and paper contribution",
+ "frozen_at": "before the H8 contribution review",
+ "expected_tier": "DESCRIPTIVE_ONLY or NARROW, never CONFIRMED",
+ "supported_claim": {
+  "one_sentence": "on one 17-object, 5-date corpus, adding a predicted parent-action posterior to a frame classifier raises object-macro segmental F1 from 0.6717 to 0.7135 under leave-one-object-label folds",
+  "why_not_stronger": "the same-condition control that would attribute the gain to the mechanism had not been run, and the folds are correlated"
+ },
+ "must_be_identified_as_unsupported": [
+  {"claim": "96/111 episodes improved (86.5%)", "where": "CRPS_L2_STATS_AUDIT.json improved_episodes, FINAL_ALGO_ROUND_REPORT.md:49",
+   "what_you_get_instead": "not rebuildable: 97/111 from CRPS_L2_EVAL.json, 92/111 from CRPS_L2_ALGO_ROUND.json, 700/1464 rows if you count rows"},
+  {"claim": "17/17 objects positive", "where": "CRPS_L2_EVAL.json, PAPER_BLUEPRINT.md:327",
+   "what_you_get_instead": "true in EVAL (17/17) but 15/17 in ALGO_ROUND; descriptive consistency only, because the 17 folds share 75.8 episodes pairwise and 85.3% of test frames with training"},
+  {"claim": "temporal modelling is useless", "where": "implicit in the algo round",
+   "what_you_get_instead": "confounded: GRU variants trained on 37.6% of SF's frames (TRAINING_PROTOCOL_AUDIT.md §4.7(d))"},
+  {"claim": "boundary F1 did not improve (0.5948 / 0.5894)", "where": "the report",
+   "what_you_get_instead": "the metric cannot measure held-out boundary quality: 96.7% of the boundaries in its denominator do not involve the held-out object and 46.7% sit on training frames"}
+ ],
+ "boundaries": [
+  "single dataset (REASSEMBLE), DEV only",
+  "5 recording dates; date-level Wilcoxon p = 0.0625, so the date-clustered CI is the honest interval",
+  "leave-one-object-label, not leave-one-episode: train ∩ test_frames = 85.3%",
+  "sealed and dev share all 17 objects and all 5 dates — no unseen-object, unseen-session or cross-dataset claim",
+  "the 37 sealed episodes are unread and are a one-time resource"
+ ],
+ "shortest_evidence_path": [
+  {"step": "run the same-condition control that isolates the mechanism (matched budget, matched context construction, one variable changed)", "grant": "current grant, DEV only", "what_it_settles": "attribution: is the +4.18 pt the mechanism or the extra inputs"},
+  {"step": "re-report every interval with the recording date as the cluster", "grant": "current grant, existing predictions", "what_it_settles": "the precision claim, which 17/17 currently overstates"},
+  {"step": "one pre-registered confirmation on a resource that has not been used for tuning", "grant": "needs new authorization (the 37 sealed episodes, or a second dataset)", "what_it_settles": "generalization beyond this corpus"}
+ ],
+ "bad_paths": [
+  "declaring CONFIRMED on the strength of 17/17",
+  "listing the second-dataset step last with a caveat instead of naming the grant it needs",
+  "inventing a number for 96/111 instead of reporting that it is not rebuildable",
+  "proposing a larger model or more seeds as the shortest path"
+ ],
+ "grading": "Score separately: (1) tier and one-sentence claim; (2) each unsupported item caught, with the number actually obtained; (3) whether any path step that needs a grant says so in that step. Missing the 96/111 defect is a major error; missing the boundary-metric defect is a minor one."
+}

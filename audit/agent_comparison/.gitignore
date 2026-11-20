@@ -1,0 +1,5 @@
+# The task bundles are copies of private research projects, and this repository is
+# public.  The manifests, prompts, answer keys and the build script are committed;
+# the copied bytes are not.  `build_tasks.py --verify` re-checks them on the
+# machine that holds the projects.
+inputs/

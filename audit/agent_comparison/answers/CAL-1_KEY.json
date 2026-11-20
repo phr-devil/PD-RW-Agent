@@ -1,0 +1,37 @@
+{
+ "task": "CAL-1",
+ "kind": "calibration",
+ "frozen_at": "2026-11-05",
+ "expected": {
+  "object_macro_segF1": {
+   "SF|lag3": 0.6717,
+   "GRUctx|lag3": 0.7135,
+   "file": "CRPS_L2_EVAL.json",
+   "tolerance": 0.0002,
+   "note": "17 objects, results[obj][scheme]['seg_f1']. The same SF value (0.6717) appears in CRPS_L2_ALGO_ROUND.json, so SF is comparable across the two files; GRUctx is not (0.7135 in EVAL, 0.7091 in ALGO_ROUND, 15/17 there)."
+  },
+  "object_wins": {
+   "EVAL": "17/17",
+   "ALGO_ROUND": "15/17"
+  },
+  "episode_claim": {
+   "claimed": "96/111 (86.5%)",
+   "reproducible": false,
+   "values": {"CRPS_L2_EVAL.json": "97/111", "CRPS_L2_ALGO_ROUND.json": "92/111"},
+   "why": "The claim is asserted in CRPS_L2_STATS_AUDIT.json (improved_episodes: 96) and FINAL_ALGO_ROUND_REPORT.md, but no artifact rebuilds 96: per-episode mean over the object folds gives 97/111 in EVAL and 92/111 in ALGO_ROUND. Counting the 1464 object-episode rows instead gives 700 up / 354 down / 410 exactly tied, which is a third, different denominator."
+  },
+  "strongest_deployable_baseline": {
+   "scheme": "SF|lag3",
+   "value": 0.6717,
+   "why_not_others": "DualHead 0.6468 and GRUskill 0.6514 are numerically below the no-context baseline they are supposed to be fair to, and both used 37.6% of SF's training frames (TRAINING_PROTOCOL_AUDIT.md §4.7(d)); VolMatch/SFA_Oracle read seen objects or an oracle signal and are not deployable comparisons."
+  },
+  "does_not_license": "Nothing about unseen objects, unseen recordings or a mechanism: the 17 folds share 85.3% of test frames with training (TRAINING_PROTOCOL_AUDIT.md:43) and the sealed set shares all 17 objects and all 5 dates."
+ },
+ "traps": [
+  "Quoting 0.7135 / 17/17 / 96-of-111 straight from the report without recomputation.",
+  "Reporting 96/111 as reproducible, or silently substituting 97 or 92 without saying which file.",
+  "Calling DualHead or GRUskill the strongest baseline because the report calls them 'fair'.",
+  "Comparing GRUctx 0.7135 (EVAL) with DualHead 0.6468 (ALGO_ROUND) without noting the files differ."
+ ],
+ "grading": "Numeric keys are right/wrong with tolerance; `does_not_license` is graded on whether it names a real boundary (unit, corpus, or mechanism), not on phrasing."
+}

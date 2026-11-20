@@ -1,0 +1,88 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Project 19: the label-level Segmental-F1 gain of GRUctx over SF (+0.0418, 17-object LODO, 111 DEV episodes) is so far only shown across held-out OBJECTS inside 5 recording sessions. Does that gain come from a transferable predicted-parent-action context, or is it an artifact of sharing recording sessions (same rig/day, same operator, same label statistics)? Decide with leave-one-DATE-out on the 111 DEV episodes (legal now, no new data), and - only with a new grant - with the 37 sealed recordings as a true cross-session test.",
+  "hypotheses": [
+    "H_TRANSFER",
+    "H_SESSION"
+  ],
+  "proposed_premise": {
+    "premise_id": "PREMISE-CRPS-XSESSION-v1",
+    "scope": {
+      "dataset": "REASSEMBLE dev pool, 111 episodes, 5 recording dates (2025-01-09..14)",
+      "input": "proprioception 5ch + force/torque 2ch, causal lag-3, no vision, no test-time truth",
+      "unit": "RECORDING (date); episodes nested inside date",
+      "outcome": "object-macro Segmental F1 gap GRUctx minus SF on held-out date",
+      "grouping": "leave-one-date-out, GRUctx/SF refit on the other 4 dates",
+      "reference": "SF (single-frame LR 72->9, no context), same folds, prediction-time only"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {
+      "status": "PASS",
+      "evidence_refs": [
+        "CRPS_L2_EVAL.json",
+        "CRPS_PROTOCOL_FIX_REPORT.md"
+      ]
+    },
+    "group_independence": {
+      "status": "FAIL",
+      "evidence_refs": [
+        "CRPS_L2_STATS_AUDIT.json"
+      ]
+    },
+    "legal_inputs": {
+      "status": "PASS",
+      "evidence_refs": [
+        "CRPS_L2_EVAL.json",
+        "RESEARCH_SUMMARY.md"
+      ]
+    },
+    "evaluation_integrity": {
+      "status": "PASS",
+      "evidence_refs": [
+        "CRPS_L2_EVAL.json",
+        "FINAL_ALGO_ROUND_REPORT.md"
+      ]
+    },
+    "metric_appropriateness": {
+      "status": "PASS",
+      "evidence_refs": [
+        "CRPS_L2_STATS_AUDIT.json"
+      ]
+    },
+    "effect_size": {
+      "status": "PASS",
+      "evidence_refs": [
+        "CRPS_L2_STATS_AUDIT.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P1",
+      "observable": "object-macro Segmental F1 gap (GRUctx minus SF) on the held-out recording date, signed against 0",
+      "evaluation_unit": "RECORDING",
+      "comparison_reference": "SF refit on the other 4 dates, same held-out frames, prediction-time inputs only",
+      "predictions": {
+        "H_TRANSFER": "INCREASE",
+        "H_SESSION": "NO_CHANGE"
+      },
+      "cost_band": "MEDIUM"
+    },
+    {
+      "id": "P2",
+      "observable": "object-macro Segmental F1 gap (GRUctx minus SF) on the 37 sealed recordings, signed against 0",
+      "evaluation_unit": "RECORDING",
+      "comparison_reference": "SF and GRUctx trained on all 111 DEV episodes, one inference pass over sealed frames, no sealed labels in fitting",
+      "predictions": {
+        "H_TRANSFER": "INCREASE",
+        "H_SESSION": "NO_CHANGE"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}

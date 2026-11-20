@@ -1,0 +1,65 @@
+{
+ "task": "T3",
+ "kind": "formal",
+ "project": "19",
+ "frozen_at": "before the H8 contribution review",
+ "question": "what does this corpus support today, and what is the shortest evidence path to a defensible claim",
+ "source_root": "D:\\workbuddy-work\\19",
+ "visible": [
+  {
+   "path": "STATE.md",
+   "bytes": 2537,
+   "sha256": "ac03de5d4383f5dbe1de02e4a264b0124390fd268d19cf76140d04c97ed5c6ee"
+  },
+  {
+   "path": "FINAL_ALGO_ROUND_REPORT.md",
+   "bytes": 5994,
+   "sha256": "013a4d8c8e6bcd2141556a27318fe3314f46b583309a9f55638949f8975435b0"
+  },
+  {
+   "path": "CRPS_L2_EVAL.json",
+   "bytes": 464553,
+   "sha256": "072428a71f3d96db97e112f52cee07b5c5fd3b354649b8c51a63b8f03b03fd82"
+  },
+  {
+   "path": "CRPS_L2_ALGO_ROUND.json",
+   "bytes": 586734,
+   "sha256": "2e69e3b5c66cc4f928d4710037129ea585ad41f87109dec707cb851bfa590a21"
+  },
+  {
+   "path": "CRPS_L2_STATS_AUDIT.json",
+   "bytes": 3780,
+   "sha256": "5cb2a1d5f58b5cb4d1e2ae87752f76643384b79c1be596ce95ecd666e753ce75"
+  },
+  {
+   "path": "CRPS_L2_ANALYSIS.json",
+   "bytes": 4452,
+   "sha256": "6a7319a0556218ff0148a1bbe6c9a4a932f5cff268055f5a605560beac616cce"
+  },
+  {
+   "path": "CRPS_EVAL_AUDIT.json",
+   "bytes": 13791,
+   "sha256": "bb2bfeb799551b0d8484e64acc3cb1415e96169eb0a5087a39eb51ad17e04aa9"
+  },
+  {
+   "path": "TRAINING_PROTOCOL_AUDIT.md",
+   "bytes": 28121,
+   "sha256": "74938291fa4a3f4dbb5c0c977d8c48bee10b851ab3be15c0c3943f5740eac82d"
+  },
+  {
+   "path": "PAPER_BLUEPRINT.md",
+   "bytes": 63179,
+   "sha256": "02cc8efa8e151bf0b3e8452956e9cbc2284edd7c22429fcb72c7336b94de42ad"
+  }
+ ],
+ "excluded": [
+  "dev_h8_v1/ (the answer: the mechanism is refuted)",
+  "dev_h9_v1/",
+  "dev_h10_v1/",
+  "REASSEMBLE/"
+ ],
+ "total_bytes": 1173141,
+ "bundle_sha256": "7dc06ce6830e114eb0c72691a4d9a2cf407dc27cf647c146852e5416e1c7b662",
+ "note": "Inputs are copies, taken once. Re-verify with `python audit/agent_comparison/build_tasks.py --verify`; a change in the source project must not change what an arm saw.",
+ "dimension": "evidence validity and paper contribution"
+}

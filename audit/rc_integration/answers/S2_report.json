@@ -1,0 +1,261 @@
+{
+  "session": "S2_project48",
+  "independent_session": true,
+  "project_root": "D:/workbuddy-work/48",
+  "repo_root": "D:/workbuddy-agent/PD-RW-Agent",
+  "valid_negative": {
+    "primary_run": "RUN-005",
+    "verdict": "NEG_NOT_PREDICTABLE_BEYOND_MAGNITUDE",
+    "scope_label": "DEV_ONLY / EXPLORATORY_CONFIRMATION_NOT_INDEPENDENT",
+    "statement": "On the fixed 12-subject PoPu DEV subset, the per-frame failure of the RUN-004 frozen direct HGB pressure-recovery model is NOT identifiable at prediction time beyond the trivial predicted-magnitude ordering: adding 12 deployable lower-72 structural summaries (R1) does not raise subject-level AUC over R0 (predicted intensity) and in fact lowers it.",
+    "boundaries": {
+      "dataset": "PoPu D1 = PoPu_data_no_segments.zip (SHA-256 c0788650...dc91), single library, no second dataset",
+      "subjects": "fixed 12 DEV subjects [9,12,14,34,38,40,42,44,48,54,58,60]; 12 LOSO folds; 10,078 DEV frames; the same 12 subjects were reused in RUN-002/003/004/005",
+      "metric": "subject-level ROC AUC for label 'absolute intensity error >= 75th pct of training-subject inner-OOF errors'; secondary selective intensity MAE at coverage 0.70/0.50",
+      "magnitude_range": "two modes: raw and dropallGT100 (saturated >=100 dropped)",
+      "model_family": "B0 = RUN-004 frozen direct HGB (max_iter=120, lr=0.08, leaves=31, l2=1.0), seeded; reliability model = HGB on inner-OOF errors",
+      "truth_proxy": "upper-layer Tactilus top-1% (k=18 of 1728) mean intensity, instrument proxy, not clinical truth; labels are the model's own errors",
+      "key_numbers": "AUC raw: R0 0.5785 / R1 0.4905 / R2 0.4986; dropallGT100: R0 0.5927 / R1 0.4909 / R2 0.4994; R1-R0 = -0.0881 CI[-0.164,-0.018] (raw) and -0.1017 CI[-0.178,-0.034] (dropallGT100); selective MAE@0.70 R1-R0 = +0.604 CI[0.095,1.220] / +0.591 CI[0.190,1.050]; Oracle diagnostic upper bound 5.436/4.979 vs R0 8.633/7.896 (about -37% headroom, diagnostic only, never a method)"
+    },
+    "what_it_does_not_say": [
+      "not 'the mattress signal is physically unrecoverable'",
+      "not a project failure or STOP",
+      "not a generalisation to all 60 subjects or to another library",
+      "not a POS/NEG statement about the geometry-registered or time-synchronised setting (both UNKNOWN)"
+    ],
+    "earlier_valid_negative_still_in_force": {
+      "run": "RUN-004",
+      "verdict": "NEG_SCOPED_EXPRESSIVENESS_CONFOUNDED",
+      "scope": "same fixed 12-subject DEV subset, raw/dropallGT100, matched-expressiveness pairs",
+      "caveat": "numbers are METRIC_REPRODUCIBILITY_DEGRADED (PROJECT-48-DEFECT-005: HGB without random_state, 0.271 per-condition jitter > effect M3-M1 raw -0.059); conclusion stands because its CI already crossed 0, but the digits are not literally reproducible"
+    }
+  },
+  "run001_invalidation": {
+    "invalid_claim": "RUN-001's comparison 'real lower-72 input vs 5-seed ENSEMBLE conditional permutation' -- intensity dMAE +0.1605 (59/60 folds worse) and localisation +0.00076 (60/60 worse) -- i.e. the claim that the real input is significantly WORSE than the permutation null",
+    "why_invalid": "unfair comparison: the permutation null was a 5-seed ensemble mean (variance reduction) while the real condition was a single fit; the gap is an artefact of ensembling, not information content",
+    "superseded_by": "DEV-002 full-60-fold audit: real - perm_ensemble = +0.1605 / 59-of-60, but real - perm_SINGLE_SEED = -0.0008 / 30-of-60 (coin flip); the valid fair comparison baseline is now RUN-002's single-fit self-permutation controls (Ridge -0.0216 raw / -0.0229 dropall, CI excluding 0; HGB did not beat its own permutation)",
+    "evidence_supersession": "STATE.md EVIDENCE_SUPERSESSION: 'RUN-001 unfair-ensemble conclusion = INVALIDATED_BY_DEV-002; current valid comparison baseline = RUN-002 single-fit fair controls (Ridge vs its own fair permutation raw -0.0216 / dropall -0.0229 CI excluding 0; HGB not beyond its own permutation). Citing RUN-001 requires citing this correction simultaneously; +0.1605 / 59-of-60 must never be used alone.'",
+    "what_survives": "only the directional statement 'no deployable increment beyond the posture prior / fair permutation'; the strength numbers are withdrawn; original RUN-001 files and hash 088983e2... kept unmodified and not overwritten",
+    "note": "a second, unrelated invalidation exists and must not be confused with it: RUN-005/attempt-1-invalid-anchor is INVALID_HARNESS_TRAINING_SET_RESTRICTED (anchor 10.4825 vs 9.1395), kept for audit, its verdict is not a scientific result"
+  },
+  "attribution_same": {
+    "packet": "audit/rc_integration/answers/S2_packet_same.json",
+    "probe": "P1_RUN005_HISTORICAL",
+    "prior_execution": {
+      "status": "COMPLETED_VALID",
+      "run_ref": "DEV/runs/RUN-005",
+      "premise_ref": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json"
+    },
+    "attribution_basis": "CALLER_PREMISE_PLAN",
+    "applicability": "HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED",
+    "next_action": "CITE_AS_EVIDENCE_ONLY_AND_CONFIRM_THE_PLAN_IS_THIS_EXPERIMENT",
+    "supporting_echo": {
+      "reference_present": true,
+      "file_binding": "BOUND",
+      "run_id_consistency": "MATCH",
+      "record_ref": "DEV/runs/RUN-005/metrics.json",
+      "record_sha256": "90362addfb2133bcfbaea2fe47280de8136e8e741f0d5ab6cc3a670b108c2c43",
+      "status_consistency": "CONSISTENT",
+      "premise_binding": "MATCH",
+      "premise_binding_basis": "CALLER_DECLARATION",
+      "premise_evidence": "FROZEN_PLAN_WITHOUT_PREMISE",
+      "premise_verified": false,
+      "premise_contradicted": false,
+      "plan_ref": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+      "plan_hash_match": true,
+      "premise_plan_match": true,
+      "attribution_verified": true,
+      "execution_verified": true,
+      "status_verified": false,
+      "closure_verified": false,
+      "artifact_links_verified": false,
+      "run_status_declared": "COMPLETED",
+      "verdict_declared": "NEG_NOT_PREDICTABLE_BEYOND_MAGNITUDE",
+      "anchor_pass_declared": true
+    },
+    "reading": "RUN-005 is citable evidence for THIS probe, but not a closure: the frozen plan records protocol_id/sha256 b9b31799... matching the plan bytes, yet no premise_id is written anywhere on disk, so premise_verified and status_verified stay false. It answers the reliability-predictability experiment, and must be quoted as evidence only."
+  },
+  "attribution_other": {
+    "packet": "audit/rc_integration/answers/S2_packet_other.json",
+    "probe": "P1_RUN005_HISTORICAL",
+    "only_change": "prior_execution.premise_ref -> protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json (another frozen plan of the same project); question, premise, predictions, prechecks and P2 left identical",
+    "attribution_basis": "NONE",
+    "applicability": "NOT_YET_RUN",
+    "next_action": "CONFIRM_WHICH_EXPERIMENT_THE_RUN_ANSWERED",
+    "probe_findings": ["CLOSURE_PREMISE_CONTRADICTED"],
+    "supporting_echo": {
+      "premise_binding": "MISMATCH",
+      "premise_binding_basis": "PREMISE_PLAN",
+      "plan_ref": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+      "premise_plan": "protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json",
+      "premise_plan_match": false,
+      "premise_contradicted": true,
+      "execution_verified": false,
+      "status_verified": false,
+      "premise_contradicted_ids": ["P1_RUN005_HISTORICAL"]
+    },
+    "reading": "The tool refuses the declaration: RUN-005 executed PROTO-POPU-RELIABILITY-v5-DEV005 (posture-value v4 is RUN-004's plan), so citing v4 re-opens the probe as unrun rather than accepting a caller label. This is the intended guard, not a science verdict."
+  },
+  "next_legal_action": {
+    "tier_now": {
+      "step": "Agent-side, read-only: assemble the H8 contribution-review input from existing artifacts only -- the valid boundaries of RUN-004/RUN-005, the RUN-001 INVALIDATED_BY_DEV-002 supersession note, and the two open levers (geometric registration, second library). No new fit, no new data, no new subject, no manuscript text, no figure.",
+      "authority": "STATE.md AUTH/BUDGET 2026-11-17 (project registration, frame index, bounded local CPU/GPU DEV, ordinary coding/tuning/ablation/fix autonomy) + REVIEW:H7 delegation; spends only read-only project documents and data an existing Run already produced",
+      "what_it_is_not": "not a new reliability variant on the same 12 subjects (the v5 protocol's NEG consequence and STATE both forbid that)"
+    },
+    "decision_owner": "H8 scientific-contribution choice belongs to the author (core strategy change); the agent cannot make it and does not treat this memo as a decision"
+  },
+  "needs_new_authorization": {
+    "declared_probe": "P2_FULL60_SECOND_LIBRARY",
+    "declaration": "prior_execution.status = NOT_EXECUTED, prior_execution.requires_new_authorization = true",
+    "applicability": "NEEDS_AUTHORIZATION",
+    "next_action": "OBTAIN_AUTHORIZATION_FIRST",
+    "stayed_out_of_frontier": true,
+    "needs_authorization_ids_same": ["P2_FULL60_SECOND_LIBRARY"],
+    "needs_authorization_ids_other": ["P2_FULL60_SECOND_LIBRARY"],
+    "what_is_missing": [
+      "expanding to all 60 subjects (VAL and the full corpus) -- new grant",
+      "second dataset / new download -- new grant",
+      "geometric registration evidence and hardware time-synchronisation work -- new grant",
+      "SEALED read or any independent-confirmation set (currently NOT_APPLICATED/NOT_ACCESSED)",
+      "formal figures, manuscript text, submission (WRITING_LOCKED / FIGURE_DRAWING_LOCKED)"
+    ],
+    "granted_by": "the original author (user), not the Agent and not any packet field; authorization_basis in the payload is CALLER_DECLARED_ONLY for every probe"
+  },
+  "decision_same": {
+    "frontier_candidate_ids_as_declared": [],
+    "exploratory_probe_ids": [],
+    "diagnostic_upper_bound_ids": [],
+    "needs_unit_verification_ids": [],
+    "context": {
+      "status": "ADVISORY_REVIEW_ONLY",
+      "historical_evidence_ids": ["P1_RUN005_HISTORICAL"],
+      "needs_authorization_ids": ["P2_FULL60_SECOND_LIBRARY"],
+      "attribution_unchecked_ids": [],
+      "premise_contradicted_ids": [],
+      "no_decisive_probe": false,
+      "no_legal_decisive_probe": false,
+      "no_executable_next_probe": true,
+      "scientifically_ranked": false,
+      "source_predictions_verified": false,
+      "automatic_go": false,
+      "automatic_stop": false,
+      "original_user_authorization": "UNVERIFIED"
+    }
+  },
+  "decision_other": {
+    "frontier_candidate_ids_as_declared": ["P1_RUN005_HISTORICAL"],
+    "exploratory_probe_ids": [],
+    "diagnostic_upper_bound_ids": [],
+    "needs_unit_verification_ids": [],
+    "context": {
+      "status": "ADVISORY_REVIEW_ONLY",
+      "historical_evidence_ids": [],
+      "needs_authorization_ids": ["P2_FULL60_SECOND_LIBRARY"],
+      "attribution_unchecked_ids": [],
+      "premise_contradicted_ids": ["P1_RUN005_HISTORICAL"],
+      "no_decisive_probe": false,
+      "no_legal_decisive_probe": false,
+      "no_executable_next_probe": false,
+      "scientifically_ranked": false,
+      "source_predictions_verified": false,
+      "automatic_go": false,
+      "automatic_stop": false,
+      "original_user_authorization": "UNVERIFIED"
+    },
+    "delta_vs_same": "the only change is the premise_ref. P1 moves from HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED to NOT_YET_RUN + CLOSURE_PREMISE_CONTRADICTED, leaves historical_evidence_ids, re-enters the frontier, and no_executable_next_probe flips true -> false. P2 (requires_new_authorization) stays NEEDS_AUTHORIZATION and off the frontier in both runs."
+  },
+  "packet_rounds": {
+    "S2_packet_same.json": {
+      "rounds": 1,
+      "packet_check": "SHAPE_OK, violation_count 0, no ignored_fields, no warnings (accepted on the first attempt)"
+    },
+    "S2_packet_other.json": {
+      "rounds": 1,
+      "packet_check": "SHAPE_OK, violation_count 0, no ignored_fields, no warnings (accepted on the first attempt)"
+    },
+    "repairs_needed": 0,
+    "budget_used": "2 of 4 allowed rounds (one check per packet)"
+  },
+  "calls": [
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli template",
+      "status": "OK",
+      "result": "TEMPLATE printed (packet skeleton, pdrw-packet-v1)"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.cli context --project-id 48",
+      "status": "ERROR then OK",
+      "result": "first attempt CONFIG_REQUIRED; re-run with PDRW_AGENT_CONFIG=D:/workbuddy-agent/PD-RW-Agent/project-map.local.json and PDRW_WORKFLOW_ROOT=D:/workbuddy-agent/Problem-Data-Research-Workflow -> SOURCE_REVIEW_REQUIRED, identity DECLARED_ID_MATCH, identity_verified false, project_root D:\\workbuddy-work\\48, missing [], original_user_authorization UNVERIFIED, next CHECK_PROJECT_IDENTITY_ORIGINAL_AUTH_AND_RELEVANT_RUN"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.cli verify-run --project-id 48 --run-id RUN-005",
+      "status": "OK",
+      "result": "status RUN_HISTORY_NOT_ATTESTABLE, history_status HISTORY_SOURCES_MISSING, scope ORIGINAL_RUN_BYTES_AND_STRUCTURAL_CONTRACT_ONLY, scientific_validity_verified false, execution_authorized false, sealed_access NOT_ATTEMPTED"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.cli audit --project-id 48",
+      "status": "OK",
+      "result": "status PARTIAL_RECOVERY, blocker EVENTS_MISSING, advisories [OPTIONAL_STANDALONE_MANIFEST_NOT_PRESENT], manifest_audit NO_MANIFESTS, rule_versions record 1.13 == local authority 1.13 (@68e29c3), remote_freshness NOT_CHECKED, scientific_claims_verified false, execution_authorized false, next REVIEW_ORIGINAL_SOURCES_AND_RESOLVE_BLOCKERS_NO_AUTO_EXECUTION"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli packet-check --packet audit/rc_integration/answers/S2_packet_same.json",
+      "status": "OK",
+      "exit_code": 0,
+      "result": "SHAPE_OK"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli decision --packet audit/rc_integration/answers/S2_packet_same.json --project-root D:/workbuddy-work/48",
+      "status": "OK",
+      "result": "ADVISORY_REVIEW_ONLY; P1 HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED / CALLER_PREMISE_PLAN; P2 NEEDS_AUTHORIZATION; frontier empty; no_executable_next_probe true"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli packet-check --packet audit/rc_integration/answers/S2_packet_other.json",
+      "status": "OK",
+      "exit_code": 0,
+      "result": "SHAPE_OK"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli decision --packet audit/rc_integration/answers/S2_packet_other.json --project-root D:/workbuddy-work/48",
+      "status": "OK",
+      "result": "ADVISORY_REVIEW_ONLY; P1 NOT_YET_RUN + CLOSURE_PREMISE_CONTRADICTED / attribution_basis NONE; P2 NEEDS_AUTHORIZATION; frontier [P1]; no_executable_next_probe false"
+    }
+  ],
+  "errors_and_retries": [
+    {
+      "what": "pdrw_agent.cli context --project-id 48",
+      "error": "CONFIG_REQUIRED: 'Set PDRW_AGENT_CONFIG and PDRW_WORKFLOW_ROOT to local paths'",
+      "retries": 1,
+      "fix": "exported PDRW_AGENT_CONFIG=<repo>/project-map.local.json and PDRW_WORKFLOW_ROOT=D:/workbuddy-agent/Problem-Data-Research-Workflow; every later CLI call used the same prefix",
+      "note": "the configured prefix is an environment variable, not a written file; no project file was changed"
+    },
+    {
+      "what": "first decision-output capture (tee /tmp/dec_same.json)",
+      "error": "Windows Python could not read the MSYS '/tmp' path; the JSON file was not found on re-read",
+      "retries": 1,
+      "fix": "re-ran decision and piped stdout straight into a python JSON reader; same command, no packet change"
+    },
+    {
+      "what": "packet-check / decision",
+      "error": "none",
+      "retries": 0,
+      "fix": "n/a -- both packets passed on the first round"
+    }
+  ],
+  "wall_clock_minutes": 17,
+  "tokens": {
+    "measured": false,
+    "value": "NOT_MEASURED",
+    "note": "the session has no token meter; no figure is invented"
+  },
+  "uncertainties": [
+    "Attribution is CALLER_PREMISE_PLAN, not RUN_RECORD or FROZEN_PLAN: neither DEV/runs/RUN-005/metrics.json nor PROTO-POPU-RELIABILITY-v5-DEV005.json states a premise_id, so premise_verified / status_verified / closure_verified are all false. What makes RUN-005 attributable is that its recorded protocol_sha256 b9b31799... matches the cited plan bytes -- not a premise label on disk. Quoting it as evidence is allowed; calling the premise settled is not.",
+    "RUN-005 is DEV_ONLY / EXPLORATORY_CONFIRMATION_NOT_INDEPENDENT: the same 12 subjects were reused in RUN-002/003/004/005, so nothing here is independent confirmation, and the truth proxy is the upper Tactilus layer, not clinical truth.",
+    "PROJECT-48-DEFECT-005 (HGB without random_state) degrades RUN-004's numeric precision; only its NEG direction is safe. RUN-005 was seeded and re-ran identically twice, so its numbers are reproducible, but the seed convention post-dates RUN-001-004.",
+    "SCIENCE-03C correction: RUN-004's paired M3-M1 CI is 'exact-per-fit' and therefore optimistic (seed jitter not inside it); the -0.059 must not be compared directly with the 0.271 marginal jitter. Conclusion unaffected.",
+    "RUN-005 intermediate attempt after AMENDMENT-001 has no artifact (INTERMEDIATE_ATTEMPT_ARTIFACT_ABSENT) and one of four runner executions has no recorded wall clock (NOT_RECORDED); the '123.5 s' cost line undercounts.",
+    "verify-run returns RUN_HISTORY_NOT_ATTESTABLE / HISTORY_SOURCES_MISSING and audit returns PARTIAL_RECOVERY with blocker EVENTS_MISSING: this project keeps no EVENTS.jsonl, so no event chain is attestable and original_user_authorization stays UNVERIFIED at the tool level. Authorization claims in this report rest on STATE.md / RESEARCH_RECORD.md text only, which is a declaration, not a verified grant.",
+    "The second packet's NOT_YET_RUN is a guard against a mis-cited plan, not evidence that RUN-005 failed to run; reading it as a science verdict would be wrong.",
+    "Whether the H8 decision memo is itself 'within authorization' is my reading of STATE/RESEARCH_RECORD (read-only, no new data, no new fit); if the author regards even the synthesis as strategy work, the NOW tier collapses to nothing but reading.",
+    "The two frontier keys not exercised (exploratory, diagnostic, unit-verification) stayed empty in both runs simply because both probes used a legal SUBJECT-level reference; this says nothing about probes we did not declare."
+  ]
+}

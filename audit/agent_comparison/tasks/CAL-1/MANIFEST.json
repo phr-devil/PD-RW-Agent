@@ -1,0 +1,39 @@
+{
+ "task": "CAL-1",
+ "kind": "calibration",
+ "project": "19",
+ "frozen_at": "2026-11-05",
+ "question": "recompute rates from artifacts, not from the report",
+ "source_root": "D:\\workbuddy-work\\19",
+ "visible": [
+  {
+   "path": "CRPS_L2_EVAL.json",
+   "bytes": 464553,
+   "sha256": "072428a71f3d96db97e112f52cee07b5c5fd3b354649b8c51a63b8f03b03fd82"
+  },
+  {
+   "path": "CRPS_L2_ALGO_ROUND.json",
+   "bytes": 586734,
+   "sha256": "2e69e3b5c66cc4f928d4710037129ea585ad41f87109dec707cb851bfa590a21"
+  },
+  {
+   "path": "CRPS_L2_STATS_AUDIT.json",
+   "bytes": 3780,
+   "sha256": "5cb2a1d5f58b5cb4d1e2ae87752f76643384b79c1be596ce95ecd666e753ce75"
+  },
+  {
+   "path": "FINAL_ALGO_ROUND_REPORT.md",
+   "bytes": 5994,
+   "sha256": "013a4d8c8e6bcd2141556a27318fe3314f46b583309a9f55638949f8975435b0"
+  }
+ ],
+ "excluded": [
+  "dev_h8_v1/ (the later refutation)",
+  "dev_h9_v1/ (the one-time confirmation)",
+  "CRPS_HIERARCHICAL.json and every other CRPS_*.json",
+  "REASSEMBLE/ (raw data)"
+ ],
+ "total_bytes": 1061061,
+ "bundle_sha256": "980523aebc4d7c72fa8755c945602aed637123a4e5aa17a79850f9dab1052967",
+ "note": "Inputs are copies, taken once. Re-verify with `python audit/agent_comparison/build_tasks.py --verify`; a change in the source project must not change what an arm saw."
+}

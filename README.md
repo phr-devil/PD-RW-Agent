@@ -1,5 +1,13 @@
 # PD-RW-Agent
 
+> **What this is.** A research-workflow component that WorkBuddy loads — a Skill
+> (rules and procedure), a CLI (`pdrw-agent`, `science`) and an optional stdio MCP
+> server. It is **not** an LLM and does not compete with WorkBuddy: WorkBuddy
+> executes, PD-RW supplies the research rules, the project's own records supply
+> the evidence, and ChatGPT supplies strategy and review. Nothing here authorizes
+> a download, a reserved-data read, a manuscript, a figure or a submission; only
+> the host can, and it does not delegate that.
+>
 > **Current release — 1.0.0-rc.1 (package `1.0.0rc1`; feature-frozen).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**

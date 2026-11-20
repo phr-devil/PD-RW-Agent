@@ -1,0 +1,58 @@
+{
+ "task": "CAL-2",
+ "kind": "calibration",
+ "project": "44",
+ "frozen_at": "2026-11-16",
+ "question": "identity, rule version, Run binding and the authorization line",
+ "source_root": "D:\\workbuddy-work\\44",
+ "visible": [
+  {
+   "path": "STATE.md",
+   "bytes": 10627,
+   "sha256": "de4c33e46d8344c9f873e1c391fcc1c70b7bf7d8be9e9f74e6060273ae94c298"
+  },
+  {
+   "path": "RESEARCH_RECORD.md",
+   "bytes": 40990,
+   "sha256": "6057c73fc5ef09d37e87eefb24097857a653f9989c71189beae7b1c6d5e89db5"
+  },
+  {
+   "path": "H8_DECISION_BRIEF_2026-11-16.md",
+   "bytes": 9748,
+   "sha256": "6eb73853a82484ccbf30c4673d975a361a334a1e455d0170905e74005c8fe193"
+  },
+  {
+   "path": "D1_ACCEPTANCE_REPORT_2026-11-14.md",
+   "bytes": 18476,
+   "sha256": "c7a6a1608f42752535ab3167341e45633b077964f549e182137bd7cd46871c9b"
+  },
+  {
+   "path": "protocol/PROTO-GEOM-HS-v1.json",
+   "bytes": 11667,
+   "sha256": "35239fa48e7539e70f1a5ddc853f8307868e59b726c1f8e00ace27de24f9ca40"
+  },
+  {
+   "path": "protocol/PROTO-GEOM-HS-v2.json",
+   "bytes": 22055,
+   "sha256": "b1b3557d456d514a4435672a6d932453db35111e05f31dbbb1f7d647dd348d01"
+  },
+  {
+   "path": "DEV/runs/RUN-001/metrics.json",
+   "bytes": 207982,
+   "sha256": "92e45f03da02d1c606e4477fc255b93c2201fd3ca72ad7775bc70b0efa00182d"
+  },
+  {
+   "path": "DEV/runs/RUN-002/metrics.json",
+   "bytes": 411202,
+   "sha256": "da11226903f2dd43a92fe896b12a0536d50e0cdc985d893aff18dd1cbed14e50"
+  }
+ ],
+ "excluded": [
+  "VAL/",
+  "SEALED/",
+  "any *.csv prediction dump"
+ ],
+ "total_bytes": 732747,
+ "bundle_sha256": "2d38e322fee8bca1998aa34645b619271ca72a3ab6a64d8dc6c8176cc46897e5",
+ "note": "Inputs are copies, taken once. Re-verify with `python audit/agent_comparison/build_tasks.py --verify`; a change in the source project must not change what an arm saw."
+}
