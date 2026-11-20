@@ -1,7 +1,11 @@
 """Evaluate the frozen packets under both code versions, blind-label ready.
 
-Runs each packet through 0.9.11 (worktree `_v0911`) and the patched tree, then
-prints a comparison keyed by packet. Nothing is written into the projects.
+Runs each packet through 0.9.11 and the patched tree, then prints a comparison
+keyed by packet. Nothing is written into the projects.
+
+The 0.9.11 arm is a detached worktree; create it once with:
+
+    git worktree add D:/workbuddy-agent/_v0911 16e7dd4
 
 Run: python audit/science03d/eval_packets.py > audit/science03d/eval_packets.json
 """
