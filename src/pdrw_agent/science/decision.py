@@ -33,23 +33,122 @@ _REPEATED_UNIT = frozenset({"WINDOW", "FRAME", "RECORD", "SEGMENT", "TOKEN", "RO
 _PROBE_RULE = {
     "REFERENCE_NOT_LEGAL": "ALGORITHM_ENGINEERING §1 BASELINE / CASE-02",
     "PROBE_UNIT_NOT_INDEPENDENT": "HIGH_VALUE_RESEARCH_DESIGN §B INDEPENDENT_N / CASE-11",
+    "EXECUTION_DECLARED_NOT_VERIFIED": "SCIENCE_RESULT_HARVEST §RUN_EVIDENCE / CASE-20",
 }
 _PROBE_PRECEDENT = {
     "REFERENCE_NOT_LEGAL": ["CASE-02", "CASE-12"],
     "PROBE_UNIT_NOT_INDEPENDENT": ["CASE-11", "EXT-X3"],
+    "EXECUTION_DECLARED_NOT_VERIFIED": ["CASE-20", "CASE-21"],
 }
 _PROBE_QUESTION = {
     "REFERENCE_NOT_LEGAL": "Which reference is legal at prediction time, and does it exist already?",
     "PROBE_UNIT_NOT_INDEPENDENT": "How many independent units (not windows) does this probe compare?",
+    "EXECUTION_DECLARED_NOT_VERIFIED": (
+        "Which Run or record proves this probe already ran under this premise?"),
 }
 # What the probe may still be used for. A test-time-truth reference is a
 # legitimate diagnostic upper bound and an illegitimate decisive comparison;
-# an unresolved unit question asks for a count, not for a ban on the metric.
+# an unresolved unit question asks for a count, not for a ban on the metric;
+# an unverifiable closure is a record to check, not a reason to rerun.
 _PROBE_USAGE = {
     "REFERENCE_NOT_LEGAL": "DIAGNOSTIC_UPPER_BOUND_ONLY",
     "PROBE_UNIT_NOT_INDEPENDENT": "VERIFY_INDEPENDENT_UNITS_FIRST",
+    "EXECUTION_DECLARED_NOT_VERIFIED": "DO_NOT_TREAT_AS_CLOSED_OR_AS_NEW",
 }
 _DISQUALIFYING_FROM_FRONTIER = frozenset({"REFERENCE_NOT_LEGAL"})
+
+# CASE-20/CASE-21: an experiment that already answered this premise cannot
+# answer it again. The declared execution state decides what the next action is,
+# and a state without a Run reference stays a claim, never a verified closure.
+EXECUTION_STATUSES = {"NOT_EXECUTED", "COMPLETED_VALID", "COMPLETED_INVALID",
+                      "INCONCLUSIVE", "BLOCKED"}
+_PRIOR_EXECUTION_FIELDS = {"status", "run_ref", "record_ref", "premise_id",
+                           "conclusion", "new_information", "requires_new_authorization"}
+_MAX_PRIOR_TEXT = 240
+
+# The next action each declared state implies. Nothing here runs, stops, or
+# approves anything: it names what would have to be true before a rerun.
+_NEXT_ACTION = {
+    "NOT_YET_RUN": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+    "NEEDS_AUTHORIZATION": "OBTAIN_AUTHORIZATION_FIRST",
+    "HISTORICAL_EVIDENCE_ONLY": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+    "CLOSURE_DECLARED_NOT_VERIFIED": "VERIFY_RUN_BEFORE_DECIDING",
+    "TARGETED_REPAIR": "REPAIR_NAMED_DEFECT_FIRST",
+    "REVISIT_ON_NEW_INFORMATION": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
+    "AWAIT_NEW_INFORMATION": "HOLD_UNTIL_NEW_INFORMATION_EXISTS",
+    "BLOCKER_UNRESOLVED": "RESOLVE_BLOCKER_FIRST",
+}
+
+
+def _prior_execution(value, premise_id: str) -> dict:
+    """Read the declared execution state of one probe without trusting it.
+
+    Absent means "not run", which is the only reading that keeps old packets
+    valid. Everything else is echoed back with an explicit `status_verified`
+    flag: a Run reference makes the claim checkable, never checked.
+    """
+    if value is None:
+        return {
+            "declared_status": "NOT_EXECUTED",
+            "run_ref": None,
+            "status_verified": False,
+            "premise_match": None,
+            "history_applicable": False,
+            "requires_new_authorization": False,
+            "new_information_declared": False,
+            "applicability": "NOT_YET_RUN",
+            "next_action": _NEXT_ACTION["NOT_YET_RUN"],
+        }
+    if not isinstance(value, dict) or set(value) - _PRIOR_EXECUTION_FIELDS:
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         "prior_execution accepts only declared execution fields")
+    status = value.get("status", "NOT_EXECUTED")
+    if not isinstance(status, str) or status not in EXECUTION_STATUSES:
+        raise AgentError("SCIENCE_PACKET_INVALID", "Unsupported declared execution status")
+    texts = {}
+    for key in ("run_ref", "record_ref", "conclusion", "new_information"):
+        item = value.get(key)
+        if item is None:
+            texts[key] = None
+            continue
+        if not isinstance(item, str) or not item.strip() or len(item) > _MAX_PRIOR_TEXT:
+            raise AgentError("SCIENCE_PACKET_INVALID", f"prior_execution.{key} must be bounded text")
+        texts[key] = item
+    prior_premise = value.get("premise_id")
+    if prior_premise is not None:
+        _id(prior_premise, "prior_execution.premise_id")
+    needs_auth = value.get("requires_new_authorization", False)
+    if not isinstance(needs_auth, bool):
+        raise AgentError("SCIENCE_PACKET_INVALID",
+                         "requires_new_authorization must be boolean")
+
+    verified = status != "NOT_EXECUTED" and bool(texts["run_ref"])
+    # A closure recorded under another premise says nothing about this one.
+    premise_match = None if prior_premise is None else prior_premise == premise_id
+    if status == "NOT_EXECUTED":
+        applicability = "NEEDS_AUTHORIZATION" if needs_auth else "NOT_YET_RUN"
+    elif premise_match is False:
+        applicability = "NOT_YET_RUN"
+    elif status == "COMPLETED_VALID":
+        applicability = "HISTORICAL_EVIDENCE_ONLY" if verified else "CLOSURE_DECLARED_NOT_VERIFIED"
+    elif status == "COMPLETED_INVALID":
+        applicability = "TARGETED_REPAIR"
+    elif status == "INCONCLUSIVE":
+        applicability = ("REVISIT_ON_NEW_INFORMATION" if texts["new_information"]
+                         else "AWAIT_NEW_INFORMATION")
+    else:
+        applicability = "BLOCKER_UNRESOLVED"
+    return {
+        "declared_status": status,
+        "run_ref": texts["run_ref"],
+        "status_verified": verified,
+        "premise_match": premise_match,
+        "history_applicable": premise_match is not False and status != "NOT_EXECUTED",
+        "requires_new_authorization": needs_auth,
+        "new_information_declared": bool(texts["new_information"]),
+        "applicability": applicability,
+        "next_action": _NEXT_ACTION[applicability],
+    }
 
 
 def _id(value, label: str) -> str:
@@ -227,6 +326,11 @@ def assess_proposal(packet: dict) -> dict:
             if prechecks["group_independence"]["declared_status"] == "PASS":
                 repeated_unit_probes.append(pid)
                 findings.append("PROBE_UNIT_NOT_INDEPENDENT")
+        # A claimed closure that cannot be traced to a Run is a record to
+        # check, not a finished experiment and not a free rerun (CASE-20).
+        prior = _prior_execution(probe.get("prior_execution"), premise_id)
+        if prior["applicability"] == "CLOSURE_DECLARED_NOT_VERIFIED":
+            findings.append("EXECUTION_DECLARED_NOT_VERIFIED")
         if findings:
             probe_findings.append({
                 "probe_id": pid,
@@ -239,7 +343,7 @@ def assess_proposal(packet: dict) -> dict:
                     code in _DISQUALIFYING_FROM_FRONTIER for code in findings),
                 "independently_verified": False,
             })
-        summaries.append({
+        summary = {
             "id": pid, "observable": observable,
             "evaluation_unit": evaluation_unit,
             "comparison_reference": comparison_reference,
@@ -252,8 +356,14 @@ def assess_proposal(packet: dict) -> dict:
             "prediction_evidence_refs": refs,
             "prediction_source_verified": False,
             "findings": findings,
+            "applicability": prior["applicability"],
+            "next_action": prior["next_action"],
             "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK",
-        })
+        }
+        # Only echo an execution history the caller actually declared.
+        if "prior_execution" in probe:
+            summary["prior_execution"] = prior
+        summaries.append(summary)
 
     # A precheck cannot stay "declared PASS" while the probe it is attached to
     # counts repeated windows as independent units: that is the CASE-11 defect
@@ -264,6 +374,7 @@ def assess_proposal(packet: dict) -> dict:
     no_decisive = bool(summaries) and all(s["pair_count"] == 0 for s in summaries)
     efficiency = summarize_declared_probe_frontier(summaries)
     no_legal = efficiency["no_legal_decisive_probe"]
+    no_executable = efficiency["no_executable_next_probe"]
 
     return {
         "status": "ADVISORY_REVIEW_ONLY",
@@ -287,6 +398,16 @@ def assess_proposal(packet: dict) -> dict:
             "separates the hypotheses only against test-time truth can bound what is "
             "achievable, but cannot decide between them."
             if no_legal and not no_decisive else None),
+        # Distinct from the two flags above: the probes can decide and are legal,
+        # but none of them is a step you can take now (already answered, needs a
+        # repair, needs new information, or needs an authorization).
+        "no_executable_next_probe": no_executable,
+        "no_executable_next_probe_question": (
+            "Which listed probe has not already answered this premise and can start "
+            "under the current authorization? A closed probe is recorded evidence, an "
+            "invalid one needs its named defect repaired, and an ungranted one is a "
+            "candidate rather than a next action."
+            if no_executable else None),
         "no_claim_of_novelty_or_scientific_validity": True,
         "original_user_authorization": "UNVERIFIED",
         "automatic_stop": False,

@@ -1,0 +1,139 @@
+{
+  "status": "ADVISORY_REVIEW_ONLY",
+  "question": "In RCT-CONTACT-26 DEV, does the contact response identify the material's mechanics or the sensor instance and press trajectory?",
+  "claim_type": "MECHANISM/CAUSAL",
+  "claim_evidence_refs": [
+    "RCT-CONTACT-26/research/dev_audit/contrast_table.json",
+    "RCT-CONTACT-26/research/dev_audit/v1r_direction.json"
+  ],
+  "premise_candidates": [],
+  "positive_premise_candidates": [],
+  "prechecks": {
+    "label_provenance": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "group_independence": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "legal_inputs": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "evaluation_integrity": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "metric_appropriateness": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "effect_size": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    }
+  },
+  "probe_comparisons": [
+    {
+      "id": "RCT-P1-DEV-SLOPE-RERUN",
+      "observable": "per-material force-Z slope across sensors",
+      "evaluation_unit": "FRAME",
+      "comparison_reference": "same-material repeat press replicates",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_material",
+          "H_sensor_trajectory"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    },
+    {
+      "id": "RCT-P2-SENSOR-SWAP",
+      "observable": "per-material slope difference between the two DIGIT instances",
+      "evaluation_unit": "SEQUENCE",
+      "comparison_reference": "other sensor instance, same material and position",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_material",
+          "H_sensor_trajectory"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "MEDIUM",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    },
+    {
+      "id": "RCT-P3-EXTERNAL-MODULUS-PRESS",
+      "observable": "force-Z slope vs external modulus under controlled press",
+      "evaluation_unit": "MATERIAL",
+      "comparison_reference": "external modulus of the same material",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_material",
+          "H_sensor_trajectory"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "HIGH",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    }
+  ],
+  "declared_probe_efficiency": {
+    "frontier_candidate_ids_as_declared": [
+      "RCT-P1-DEV-SLOPE-RERUN"
+    ],
+    "dominated_candidates_as_declared": [
+      {
+        "id": "RCT-P2-SENSOR-SWAP",
+        "dominated_by": [
+          "RCT-P1-DEV-SLOPE-RERUN"
+        ]
+      },
+      {
+        "id": "RCT-P3-EXTERNAL-MODULUS-PRESS",
+        "dominated_by": [
+          "RCT-P1-DEV-SLOPE-RERUN",
+          "RCT-P2-SENSOR-SWAP"
+        ]
+      }
+    ],
+    "unknown_cost_ids": [],
+    "scientifically_ranked": false,
+    "automatically_selected": false,
+    "source_predictions_verified": false,
+    "note": "Declared pairs and cost bands only: compare original evidence, scientific importance, independent groups and legal scope before acting. No candidate is rejected by this hint."
+  },
+  "no_claim_of_novelty_or_scientific_validity": true,
+  "original_user_authorization": "UNVERIFIED",
+  "automatic_stop": false,
+  "automatic_go": false,
+  "guidance": "Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; verify original Run and named literature before choosing a Task or Probe.",
+  "source_binding": {
+    "status": "NOT_CHECKED",
+    "scientific_claims_verified": false
+  }
+}

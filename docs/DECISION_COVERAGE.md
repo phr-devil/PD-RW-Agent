@@ -350,3 +350,76 @@ existing `science.cli decision` path. Full trace: `audit/science03/SCIENCE-03-v0
    second arm, no independent packet author. "The model designs better experiments" is
    `NOT_MEASURED`; what is measured is one trace with its artifacts.
 5. Token, real experiment cost, scientific value, MCP integration: `NOT_MEASURED`.
+
+## SCIENCE-03B — an experiment that already ran is not a next action (2026-11-20)
+
+Baseline `c6e045e` (v0.9.9), branch `science/03b-dev-loop`. One optional per-probe field
+(`prior_execution`), two per-probe codes (`applicability`, `next_action`), eight additive ID lists
+and one new flag (`no_executable_next_probe`). No required field, no rule, no H-node, no permission,
+no MCP tool, no profile count, no `next_actions` shape, no new ledger.
+
+### Measured defect
+
+| # | Defect | Reproduction (before) | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 7 | A LOW-cost probe that had already answered the premise stayed on the frontier **and dominated** both live probes | `frontier=[R1-DEV-SLOPE]`, `dominated=[R2-CONTROLLED-PRESS, R3-SENSOR-SWAP]` | `HISTORICAL_EVIDENCE_ONLY` — excluded from dominance and from the frontier | `test_science03b_probe_applicability` (12) |
+| 8 | An INVALID run was still recommended as the next experiment | `frontier=[R1-INVALID-TRANSFORM]` | `TARGETED_REPAIR`, with `REPAIR_NAMED_DEFECT_FIRST` | same file |
+| 9 | A caller-declared closure with no Run reference was silently treated as fresh | `frontier=[R1-DECLARED-CLOSED]` | `CLOSURE_DECLARED_NOT_VERIFIED` + `EXECUTION_DECLARED_NOT_VERIFIED` finding: verify, do not accept, do not rerun | same file |
+
+`INCONCLUSIVE` continues only with named `new_information`; `requires_new_authorization` keeps the
+probe as a candidate without claiming it is executable; a closure under another `premise_id` does not
+close this one.
+
+### Three-way comparison on frozen historical decisions
+
+Same packet, same evidence, three checkers. Reviewer was a separate session, labels A/B/C shuffled
+per task, told that more fields ≠ more correct.
+
+| Task (decision time) | v0.9.6 | v0.9.9 | 0.9.10 | Blind pick |
+| --- | --- | --- | --- | --- |
+| MCS-HEMO-26 (02c) | `MCS-P1-CROSS-SESSION-ICC` | same | none: P1 historical, P3 needs authorization | 0.9.10 |
+| RCT-CONTACT-26 (V1-R) | `RCT-P1-DEV-SLOPE-RERUN` | same | none: P1+P2 historical, P3 needs authorization | 0.9.10 |
+| PoPu-48 (after RUN-004) | `POPU-P1-POSTURE-VARIANTS` + P2 | same | `POPU-P2-RELIABILITY-GATE` only | 0.9.10 |
+
+The reviewer's own reasons: P1 in MCS "cannot be estimated at n=3/4 and the reference is same-source";
+P1 in RCT "already done, frame unit violates independence, 0/979 determinable, exceeds zero-fit
+authorization"; P1 in PoPu "already negated by RUN-004, pure repetition". It also flagged that the
+0.9.10 arm was the *least* verbose in T3 yet the most correct — i.e. field count is not the signal.
+
+### Real DEV loop (project 48 PoPu)
+
+Protocol frozen before fitting: `PROTO-POPU-RELIABILITY-v5-DEV005` + two amendments (training-set
+alignment; seeding and a measured jitter baseline). `RUN-005`: **NEG**, failure is not predictable
+beyond predicted magnitude (AUC R1−R0 = −0.088 raw / −0.102 dropall, CIs excluding 0; selective MAE
+worse by 0.60; oracle ceiling 5.44 vs 8.63 MAE at 70 % coverage). 123.5 s CPU, no download, no
+SEALED, no new truth.
+
+Defect found by the pre-registered anchor rule, not by inspection: RUN-001–004 never seeded HGB, and
+with ~49.5 k training rows sklearn enables early stopping on a random 10 % validation split, so the
+same fold re-runs to a MAE that differs by 0.27 on average (0.48 on one fold). RUN-004's recorded
+numbers therefore cannot be reproduced bit-exactly, and its decisive effect (M3−M1 = −0.059 raw) is
+smaller than that jitter. Its verdict stands (that CI already spanned zero); its precision does not.
+Recorded as `PROJECT-48-DEFECT-005`; historical files untouched.
+
+### Preservation in this round
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| H1–H10, H5-with-H6, H7 in-scope DEV, SEALED, source tiers, DEV/VAL/SEALED | unchanged; no new author node, no new stop | full suite **546 passed / 8 skipped**; `case_gate_eval` 17/17 |
+| Existing payloads | V1/V2/V3 unchanged: 15 512 / 12 824 / 15 787 chars | `case_decision_eval` 9/10 (V9 skipped: `mcp` SDK absent in this checkout, same on baseline) |
+| MCP surface | 24 tools, profiles 11/21/24, none added | `PROFILE_TOOLS` |
+| Old packets | no `prior_execution` → byte-compatible behaviour | `test_a_packet_without_execution_fields_behaves_as_before` |
+| Historical Run files, raw archive, STATE of other projects | read-only | `verification.json` hashes before/after; MCS/RCT mtimes unchanged |
+
+### Unverified in this round
+
+1. **One loop, one project, negative.** The DEV loop proves the machinery works end to end; it does
+   not prove the agent picks *good* experiments. The reliability probe was a defensible open question
+   and it came back negative.
+2. **The three-way comparison is deterministic-only.** No historical LLM session was re-run; the
+   "arms" are checker outputs on frozen packets. Model behaviour is measured once, in the single
+   unblinded session of Part 2 — `NOT_MEASURED` as a general claim.
+3. **Blinding is imperfect.** Labels were shuffled, but a richer output can be guessed as newer.
+4. **`run_ref` is a string, not a verified link.** `status_verified` means "a reference was cited",
+   not "the Run was read". Cross-checking it against `feedback_link`/Run integrity is not wired.
+5. Token, paid compute, real experiment cost, MCP integration: `NOT_MEASURED`.

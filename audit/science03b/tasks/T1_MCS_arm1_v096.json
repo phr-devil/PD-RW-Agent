@@ -1,0 +1,138 @@
+{
+  "status": "ADVISORY_REVIEW_ONLY",
+  "question": "In MCS-HEMO-26 DEV, is the blood-pressure association of the ear signal identifiable as physiology, or is it same-source reference plus hardware offset?",
+  "claim_type": "MECHANISM/CAUSAL",
+  "claim_evidence_refs": [
+    "MCS-HEMO-26/research/dev_audit/oa_verification_stats.json",
+    "MCS-HEMO-26/research/dev_audit/ob_reference_recheck.json"
+  ],
+  "premise_candidates": [],
+  "positive_premise_candidates": [],
+  "prechecks": {
+    "label_provenance": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "group_independence": {
+      "declared_status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/SPLIT_PROTOCOL.md"
+      ],
+      "review": "SOURCE_NOT_VERIFIED",
+      "independently_verified": false
+    },
+    "legal_inputs": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "evaluation_integrity": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "metric_appropriateness": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "effect_size": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    }
+  },
+  "probe_comparisons": [
+    {
+      "id": "MCS-P1-CROSS-SESSION-ICC",
+      "observable": "cross-session ICC of SBP and of the ear band ratio",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same recording, second session",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_same_source_reference",
+          "H_state_physiology"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [
+        "H_hardware_offset"
+      ],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    },
+    {
+      "id": "MCS-P2-DOC-CHECK",
+      "observable": "presence of periodic arm-cuff readings in the official record",
+      "evaluation_unit": "RECORD",
+      "comparison_reference": "official documentation, no new measurement",
+      "distinguishable_hypothesis_pairs_as_declared": [],
+      "pair_count": 0,
+      "missing_hypothesis_predictions": [
+        "H_state_physiology",
+        "H_hardware_offset"
+      ],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    },
+    {
+      "id": "MCS-P3-NEW-INSTRUMENTED-DATA",
+      "observable": "group delay and cuff values from a synchronised pulse and log",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "independent calibration of the same device",
+      "distinguishable_hypothesis_pairs_as_declared": [],
+      "pair_count": 0,
+      "missing_hypothesis_predictions": [
+        "H_state_physiology"
+      ],
+      "declared_cost_band": "HIGH",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    }
+  ],
+  "declared_probe_efficiency": {
+    "frontier_candidate_ids_as_declared": [
+      "MCS-P1-CROSS-SESSION-ICC"
+    ],
+    "dominated_candidates_as_declared": [
+      {
+        "id": "MCS-P2-DOC-CHECK",
+        "dominated_by": [
+          "MCS-P1-CROSS-SESSION-ICC"
+        ]
+      },
+      {
+        "id": "MCS-P3-NEW-INSTRUMENTED-DATA",
+        "dominated_by": [
+          "MCS-P1-CROSS-SESSION-ICC",
+          "MCS-P2-DOC-CHECK"
+        ]
+      }
+    ],
+    "unknown_cost_ids": [],
+    "scientifically_ranked": false,
+    "automatically_selected": false,
+    "source_predictions_verified": false,
+    "note": "Declared pairs and cost bands only: compare original evidence, scientific importance, independent groups and legal scope before acting. No candidate is rejected by this hint."
+  },
+  "no_claim_of_novelty_or_scientific_validity": true,
+  "original_user_authorization": "UNVERIFIED",
+  "automatic_stop": false,
+  "automatic_go": false,
+  "guidance": "Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; verify original Run and named literature before choosing a Task or Probe.",
+  "source_binding": {
+    "status": "NOT_CHECKED",
+    "scientific_claims_verified": false
+  }
+}

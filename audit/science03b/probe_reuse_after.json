@@ -1,0 +1,78 @@
+{
+  "REUSE-A": {
+    "frontier": [
+      "R3-SENSOR-SWAP"
+    ],
+    "dominated": [
+      {
+        "id": "R2-CONTROLLED-PRESS",
+        "dominated_by": [
+          "R3-SENSOR-SWAP"
+        ]
+      }
+    ],
+    "exploratory": [],
+    "historical_evidence": [
+      "R1-DEV-SLOPE"
+    ],
+    "repair_required": [],
+    "unverified_closure": [],
+    "needs_authorization": [],
+    "no_legal_decisive_probe": false,
+    "no_executable_next_probe": false,
+    "applicability": {
+      "R1-DEV-SLOPE": "HISTORICAL_EVIDENCE_ONLY",
+      "R2-CONTROLLED-PRESS": "NOT_YET_RUN",
+      "R3-SENSOR-SWAP": "NOT_YET_RUN"
+    },
+    "payload_chars": 4783
+  },
+  "REUSE-B": {
+    "frontier": [
+      "R3-SENSOR-SWAP"
+    ],
+    "dominated": [
+      {
+        "id": "R2-CONTROLLED-PRESS",
+        "dominated_by": [
+          "R3-SENSOR-SWAP"
+        ]
+      }
+    ],
+    "exploratory": [],
+    "historical_evidence": [],
+    "repair_required": [
+      "R1-INVALID-TRANSFORM"
+    ],
+    "unverified_closure": [],
+    "needs_authorization": [],
+    "no_legal_decisive_probe": false,
+    "no_executable_next_probe": false,
+    "applicability": {
+      "R1-INVALID-TRANSFORM": "TARGETED_REPAIR",
+      "R2-CONTROLLED-PRESS": "NOT_YET_RUN",
+      "R3-SENSOR-SWAP": "NOT_YET_RUN"
+    },
+    "payload_chars": 4752
+  },
+  "REUSE-C": {
+    "frontier": [
+      "R2-CONTROLLED-PRESS"
+    ],
+    "dominated": [],
+    "exploratory": [],
+    "historical_evidence": [],
+    "repair_required": [],
+    "unverified_closure": [
+      "R1-DECLARED-CLOSED"
+    ],
+    "needs_authorization": [],
+    "no_legal_decisive_probe": false,
+    "no_executable_next_probe": false,
+    "applicability": {
+      "R1-DECLARED-CLOSED": "CLOSURE_DECLARED_NOT_VERIFIED",
+      "R2-CONTROLLED-PRESS": "NOT_YET_RUN"
+    },
+    "payload_chars": 4497
+  }
+}

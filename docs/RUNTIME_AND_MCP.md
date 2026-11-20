@@ -1,11 +1,11 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.9.** Read this section only; everything below the
+**Current release: 0.9.10.** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.9` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `0.9.10` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
 | Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
@@ -53,6 +53,24 @@ stops automatically, and no key was removed. Measured size cost (compact JSON, a
 character proxy — not tokens): clean two-probe packet 2 858 → 3 054 (+6.9%),
 three defective packets 8 211 → 9 124 (+11.1%); the increase is the three new
 ID lists and the per-finding `usage`.
+
+0.9.10 adds one optional per-probe field and never requires it: `prior_execution`
+(`status`, `run_ref`, `premise_id`, `conclusion`, `new_information`,
+`requires_new_authorization`). The frontier now only names a probe that can
+still produce information and can start today; a probe that already answered
+this premise is `HISTORICAL_EVIDENCE_ONLY`, an invalid one is
+`TARGETED_REPAIR`, an inconclusive one waits for named new information, and an
+ungranted one is `NEEDS_AUTHORIZATION`. A closure claimed without a `run_ref`
+becomes `CLOSURE_DECLARED_NOT_VERIFIED` plus an `EXECUTION_DECLARED_NOT_VERIFIED`
+finding — checked, not trusted, and not rerun on assumption. New keys:
+`historical_evidence_ids`, `repair_required_ids`, `awaiting_new_information_ids`,
+`revisit_on_new_information_ids`, `needs_authorization_ids`, `blocked_ids`,
+`unverified_closure_ids`, and `no_executable_next_probe` (distinct from
+`no_legal_decisive_probe`: legal and decidable, but nothing startable now). Each
+probe summary carries `applicability` and `next_action`. Packets without the
+field behave exactly as in 0.9.9. Measured cost (compact JSON, character proxy):
+clean two-probe packet 3 054 → 3 541 (+15.9%), three defective packets
+9 124 → 10 429 (+14.3%), all of it the two short per-probe codes.
 
 Nothing here authorizes anything: Python and MCP **cannot** approve a download,
 a SEALED read, a manuscript, a figure, a payment or a submission, and no
@@ -173,7 +191,7 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.9 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.10 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
 
