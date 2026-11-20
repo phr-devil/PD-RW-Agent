@@ -1,0 +1,159 @@
+{
+  "decision_point": "DP3-ACRF-PIVOT",
+  "opportunity": {
+    "claim": "这条线的负结果有一个唯一的软肋，而且这个软肋可以在现有授权内补掉：它的判定理由（ICC 上界 0.4–3.3%）是模型无关的、硬的，但它的幅度证据全部来自 12 个 DEV 材料、CI 半宽 ±2–3%（STATE.md §10 自述），点估计都在 1% 量级、低于本设计的可分辨下限。因此机会不是重开 ΔF 路线，而是把两条已声明的对比（C2−B0b 校准增量、C3−C2 触觉增量）搬到 TRAIN 的 90 个材料上做材料级交叉拟合复核，并同时折外检验『无标签 ICC 能否预测增益大小』。这把一个『幅度不可靠、方向可靠』的负结果升级为『上界 + 幅度 + 上界的可预测性』三段式定量结论，是本项目唯一还能显著改变论文说服力、且不需要任何新数据的信息增益。注意：即使这条复核把幅度放大，也不会推翻 PIVOT——终止理由落在 ICC 上界（K=2 时 ≤3.3%，K→∞ 也仅 3.2–10%）而不是落在点估计上。",
+    "why_not_already_done": "已看到的五个 Run 都不是这件事：(1) RUNS_PHASE5.tsv 的 phase5_fewshot_calibration（n_train 3942 / n_dev 19026，metrics_json 键 B0b@K0…C3@K2）——它的 n_dev 是 19,026 条评价行，但评价总体是 12 个 DEV 材料（STATE.md §4 标题写明『DEV，材料等权 MAE，12 材料』），TRAIN 只用来拟合 λ/β，从未作为评价总体；(2) RUNS.tsv 的 shrinkage_probe（alpha_star 0.43, shrink 0.6002, oracle_matsen 0.6492）——它是 transductive 诊断（备注原文『uses other DEV presses of same cell; not zero-shot』），既不是零样本也不是 TRAIN 评价；(3) phase2_baselines、phase4_scale（RUNS_PHASE4.tsv）同样全部 DEV 读出；(4) C2g（λ 在 TRAIN 网格搜索，0.6068/0.6027）只证明『收缩量取对了』，仍然 DEV 读出，所以它排除的是调参不足，不是读出分辨率不足；(5) STATE.md §3 只把 ICC 上界与实测做『同量级』的定性对照，没有把 ICC 当作折外预测量去测它的斜率与残差。简言之：K-shot 的池化问题已被答过，『该答案的分辨率是否够、以及 ICC 是否是可迁移的预测量』没有被答过。",
+    "evidence_refs": [
+      "STATE.md:§10 边界声明（n=12 材料级 CI 半宽 ±2–3%；所有效应点估计在 1% 量级，低于可分辨下限；方向可靠、幅度不可靠）",
+      "STATE.md:§4 主结果表（C3 vs C2 K=1 −0.0071/+1.2% CI(−0.026,+0.012)；K=2 −0.0042/+0.7% CI(−0.023,+0.014)；C2 vs B0b K=1 −0.0061/+1.0% CI(−0.022,+0.008)；K=2 −0.0105/+1.7% CI(−0.035,+0.012)）",
+      "STATE.md:§3 ICC 表（h=2/5/8 的 ICC=0.06/0.15/0.20、λ*(K=1)=0.06/0.15/0.20、λ*(K=2)=0.12/0.26/0.33）与可回收上界表（K=2 时 0.4%/1.9%/3.3%）",
+      "RUNS_PHASE5.tsv:phase5_fewshot_calibration 的 n_train=3942 / n_dev=19026 与 metrics_json（全部为 DEV 值）",
+      "RUNS.tsv:shrinkage_probe 的 note『transductive diagnostic only: uses other DEV presses of same cell; not zero-shot』",
+      "RUNS.tsv:phase5 行 note『lambda,beta TRAIN-only』（TRAIN 只用于拟合）",
+      "DATA_AUDIT.md:§7 可学性表（h=8 的 η²(材料)=0.236、η²(传感器)=0.252；材料效应 split-half r=0.592；MAE 参考上限 0.865/0.701）",
+      "STATE.md:§5 逐传感器表（C2 在 sensor 1 上 0.6511–0.6523 略优于 B0b 0.6539，加回触觉项 C3 立刻升到 0.6676–0.6695）",
+      "HOLDOUT_STATUS.md:§2.2（artifacts/tactile_features.csv 仅 TRAIN+DEV 1,515 序列，无 Holdout；全部模型拟合只用 TRAIN）"
+    ]
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "mechanism": "信息上界（方差分量锁定）：单元（材料×传感器）偏移方差 τ² 相对单元内按压间方差 σ² 本来就小，ICC 0.05–0.20 就是真上限；观测到的 +1.0%/+1.7% 已经贴着 ICC 上界，因此任何单元级自适应（材料身份、K 个力标签、触觉先验）都不可能越过它。这一机制的核心预言是『增益由 ICC 决定、与样本量无关』——换到 90 个材料上只会让 CI 收紧，不会让幅度变大。",
+      "strongest_baseline": "B0b（(h,sensor,position) 组均值，不消耗任何 query 标签）；其最强的对手是 C2g 与 C2 的等价性（ΔMAE +0.0002/+0.0004，CI ±0.001），二者已经把『调参不足』排除，剩下的只有上界一条解释。",
+      "prediction": "NO_CHANGE",
+      "prior_note": "PRIOR"
+    },
+    {
+      "id": "H2",
+      "mechanism": "估计方差受限（读出分辨率不足）：真增益是报告的 2–3 倍，但 12 个材料的机器级读出半宽 ±2–3% 把点估计压回 1% 量级并让 CI 全部跨零；同时 K 从 1 增到 2 时增益从 +1.0% 升到 +1.7%（以及 +1.2%→+0.7% 的反向），与『还没到饱和、只是测不准』相容。把评价总体换成 90 个材料后，同一对比应当显著变大且 CI 不含零。",
+      "strongest_baseline": "C2g（λ 在 TRAIN 网格搜索后仍在 DEV 上读出 0.6068/0.6027）——它证明收缩量已最优，因此『估计不足』这条机制只能是读出侧的，不能是拟合侧的；最强反证据是 C2g≡C2（CI ±0.001）。",
+      "prediction": "INCREASE",
+      "prior_note": "PRIOR"
+    },
+    {
+      "id": "H3",
+      "mechanism": "效应异质与符号抵消（混合而非上界）：校准对少数『难』单元有大正效应、对『易』单元与 sensor 1 为负，池化均值接近大正负相消的净残差。证据形态支持这一点：逐单元只有 41.7%（K=1）/44.4%（K=2）优于 B0b，而材料等权均值仍更好；收益集中在 B0b 误差本就高的 0701250/701440/0701220，容易材料 0700300 增益为零或负。若机制成立，扩大评价总体会让抵消更彻底——池化增益应当向 0 收缩，而单元级增益的绝对值大且可由预测时可得代理（support 标签离散度、单元 n、TRAIN 估计的 τ²/σ²）预测。",
+      "strongest_baseline": "C0p 安慰剂（K 个标签取自别的材料，同样花掉 K 个标签、同样吸收全局水平漂移）——它是判断『增益究竟是材料特异性还是全局漂移』的唯一合法对照；现值为 C2 vs C0p +3.0%/+5.2%，CI 分别 (−0.047,+0.004)/(−0.077,+0.004)，是本轮最弱的一环。",
+      "prediction": "DECREASE",
+      "prior_note": "PRIOR"
+    }
+  ],
+  "experiment": {
+    "id": "X1-TRAIN-CF-MAGNITUDE",
+    "observable": "在 TRAIN 的 90 个材料上做材料级 K 折交叉拟合（λ/β 与 B0b/安慰剂均在折内、仅用其余 TRAIN 材料估计），读出主对比 C2−B0b 的配对 ΔMAE（材料等权，h=5/8 合并）及其材料级 bootstrap 95% CI；同一次拟合同时读出三个次要量：(a) C2−C0p（材料特异性）、(b) C3−C2（触觉增量）、(c) 逐传感器分层的 C3−C2 与逐单元增益。判定方向以主对比为准，次要量用于区分机制。",
+    "evaluation_unit": "material",
+    "comparison_reference": "B0b，即 (h, sensor_id, position_id) 组均值，在折外 TRAIN 材料上估计；安慰剂 C0p 的 K 个标签取自折内其它材料。两者在预测时都不需要 query 的力标签。",
+    "predictions": {
+      "H1": "NO_CHANGE",
+      "H2": "INCREASE",
+      "H3": "DECREASE"
+    },
+    "cost_band": "LOW",
+    "why_legal": "全部输入在预测时可得：B0b 只用部署时已知的硬件/几何条件（BASELINE_PLAN.md §1 的合法输入白名单），support 的 K 个真实力标签按任务定义本来就允许（STATE.md §2『Support 按压带真实实测力标签』），C0p 只借别的材料的 support 标签、不借 query 标签；query 的力标签始终不可见。数据范围只用 TRAIN（HOLDOUT_STATUS.md §2.2 确认 tactile_features.csv 只覆盖 TRAIN+DEV，无 Holdout），不打开 Holdout、不启用 40 个封存材料、不下载、不训练网络、不用 GPU。而且评估总体是 TRAIN 内部的折外材料，不消耗 DEV 的选择次数（SPLIT_PROTOCOL.md §1.5『Dev 只用于选择，选择次数需记账』），因此不会抬高 DEV 的多重比较负担。",
+    "why_minimal": "不新增任何模型、不新增特征、不新增超参搜索：五个模型（B0b/C0p/C1/C2/C2g，必要时 C3）与 λ 的 TRAIN 网格全部沿用 phase5 已冻结的定义，唯一改动是把评价总体从 12 个 DEV 材料换成 TRAIN 的材料级折外读数，因此只有一次交叉拟合、一个主读数即可判定。它也不同 phase5 的假设：phase5 已经答过『K-shot 池化后有没有增益』（答案：方向为正、幅度 ≤2%），本实验问的是『那个幅度是不是 12 材料读出的产物，以及 ICC 能否折外预测它』。为控制成本，support 子集可只枚举整集（K=1 全 201 / K=2 全 609 子集 × 90 材料）的一个预先固定的随机子样，抽样规则与种子在任何结果读出前写死。",
+    "already_run": false,
+    "which_run_if_so": null,
+    "already_run_note": "否。最接近的是 RUNS_PHASE5.tsv 的 phase5_fewshot_calibration（n_train=3942, n_dev=19026），但其 metrics_json 全部是 DEV 读出、STATE.md §4 明写评价总体为『12 材料』；RUNS.tsv 的 shrinkage_probe 是 transductive 诊断（note 原文『not zero-shot』）。两条记录的字段里都不存在 TRAIN 折外对比。",
+    "discrimination_logic": "H1 预言『幅度不动、只有 CI 收紧』（NO_CHANGE）；H2 预言『同一对比显著变大』（INCREASE）；H3 预言『池化幅度向 0 收缩，但单元级 |增益| 大且与 support-only 代理相关、且 C2−C0p 同步收缩』（DECREASE）。三者在主读数上互斥；若主读数落入 NO_CHANGE 但 C2−C0p 同时塌到 0，则 H1 的上界归因被削弱而 H3 的『不是材料特异性』分支成立，这是可判定的次级读数，不是模糊地带。",
+    "cost_note": "CPU 分钟级：沿用 tools/acrf_fewshot.py 的 ICC/λ 与 tools/acrf_baselines.py 的 boot/mat_mae 口径，特征已在 artifacts/tactile_features.csv 缓存；无需 GPU、无需重算图像特征。"
+  },
+  "contribution": {
+    "claim": "在 RCT 的单步开环按压任务上，『用少量带真实力标签的参考按压做单元级自适应』的可回收增益被单元间偏移方差占比结构性锁死：ICC 仅 0.05–0.20，K=2 时理论上界 0.4%/1.9%/3.3%（h=2/5/8），实测 0.2%/2.9%/1.8% 与之一致；且不做收缩的自适应是明确有害的（λ=1 时 MAE 恶化 14.7–32.3%，12/12 与 9/12 材料变差，是本轮唯一 CI 不跨零的对比）；触觉在 K 个力标签之上只再贡献 0.7–1.2%，sensor 1 上恒为负。因此该路线的终止理由是信息量上界而非实现不足，可复用的产出是一套『先算 ICC 再决定要不要建模』的诊断与一条『朴素少样本校准必须先收缩』的方法学警告。",
+    "evidence_support": "PARTIAL",
+    "support_reasoning": "上界这一半是 STRONG：ICC 与可回收上界是模型无关的统计量，不依赖 DEV 点估计，且与实测同量级（STATE.md §3–§4），因此『K=2 时增益 ≤3.5%』这类上界陈述可以写。但『实测 +1.0%/+1.7%』与『触觉 +0.7–1.2%』这两半是 PARTIAL：CI 全部跨零、n=12 的读出半宽 ±2–3% 大于点估计本身（STATE.md §10）。唯一可当 STRONG 引用的是 C1 的有害性（CI 远离零、12/12 材料同向），但它是方法学结论，不是机制结论。因此整篇只能主张『上界 + 有害性』，不能主张『精确幅度』。",
+    "missing_evidence": [
+      "用 TRAIN 的 90 个材料做材料级折外复核，把 1% 级效应与 0 分开（本计划 NOW-1）——现有唯一读出是 12 个材料、CI 半宽 ±2–3%",
+      "单元级效应异质性的折外证据：现有只有池化均值与『41.7%/44.4% 单元优于 B0b』这一计数，没有增益与任何预测时可得代理的相关性（本计划 NOW-2）",
+      "独立验证集：RCT 的 20 个 Holdout 材料的力标签已在 Phase-3 被用于刚度机制统计（HOLDOUT_STATUS.md §2.2 B 类污染），RCT 内部已无真正未见的材料，真正干净的确认需新采集材料或与 RCT 无重叠的第二数据集（HOLDOUT_STATUS.md §4）",
+      "第二数据集上的 ICC–增益关系，才能把『ICC 可预测可回收增益』从单数据集观察升级为可迁移设计规则",
+      "力的单位与传感器型号/采样率文档缺失（DATA_AUDIT.md §3、D5），因此一切主张只能停留在 raw force unit 的相对比较，绝对力与安全阈值的主张仍然禁用"
+    ]
+  },
+  "plan": {
+    "now": [
+      {
+        "step": "NOW-1 幅度复核：在 TRAIN 90 材料上做材料级 K 折交叉拟合，折内重估 B0b / λ(ICC-EB) / β，折外读出 C2−B0b、C3−C2、C2−C0p 的配对 ΔMAE 与材料级 bootstrap CI；抽样规则与种子在任何结果出现前写死。",
+        "authority": "冻结协议 acrf-material-split-v1 下的 TRAIN 90 材料子集与已有 TRAIN 力标签（SPLIT_PROTOCOL.md §2、§5 冻结条款）+ 已缓存特征 artifacts/tactile_features.csv（TRAIN+DEV，无 Holdout，HOLDOUT_STATUS.md §2.2）。不消耗 DEV 选择次数，不触碰 Holdout。",
+        "excludes": "排除 H2 的『1% 是 12 材料读出产物』这一替代解释；同时给 H1 的『幅度不动』与 H3 的『幅度向 0 收缩』一个不依赖 DEV 的判据。"
+      },
+      {
+        "step": "NOW-2 异质性读数：把折外逐单元（材料×传感器）增益与三个预测时可得代理（support 标签的离散度、单元内可用按压数 n、折内估计的 τ²/σ²）做秩相关，并报告增益的分布形状（是否双峰、|增益| 与 B0b 误差的相关）。",
+        "authority": "同上（TRAIN 折外读数 + 已存在的 DEV 预测产物 artifacts/preds_dev_fewshot.csv 作为只读旁证）；不新增数据。",
+        "excludes": "排除 H3 中『异质性存在但不可预测』的分支——若秩相关接近 0，则『选择性校准/弃权规则』这条潜在贡献不成立，H3 退化为纯噪声解释。"
+      },
+      {
+        "step": "NOW-3 上界算术与诊断复算：按 λ*=Kτ²/(Kτ²+σ²) 与 STATE.md §3 的口径重算 ICC 与可回收上界表，核对 0.4%/1.9%/3.3% 与 0.2%/2.9%/1.8% 的一致性；把该诊断整理成可复现脚本与小表。",
+        "authority": "只读文档（STATE.md、DATA_AUDIT.md）+ TRAIN 方差分量；纯 CPU 复算，不产生新预测。",
+        "excludes": "排除『上界换算或 ICC 估计本身有工程错误』这一替代解释——本项目已出现过一次同类错误（STATE.md §9：分裂半相关在 n=5 时退化、任何信号强度都给 −1），同类风险必须再审一遍。"
+      },
+      {
+        "step": "NOW-4 有害性加固：在 TRAIN 90 材料上做材料级留一，复核 C1（λ=1）相对 B0b 的恶化幅度与逐材料同向性，把这条唯一的 STRONG 结论从 12 材料扩到 90 材料。",
+        "authority": "同上（TRAIN + 已有 DEV 预测读数）；不新增数据、不训练。",
+        "excludes": "排除『朴素校准有害只是小样本偶然』这一替代解释，使方法学警告可以独立于 12 材料的读出而成立。"
+      }
+    ],
+    "needs_new_authorization": [
+      {
+        "step": "AUTH-1 打开 RCT 的 20 个 Holdout 材料做一次性评价，且仅用于『材料级排序/相对比较』这类与本轮不同的任务，并在文中明写其力标签曾在 Phase-3 被用于机制统计。",
+        "grant_needed": "项目作者（user）对 Holdout 的一次性评估授权——SPLIT_PROTOCOL.md §5 明写『正式确认（打开 Holdout）需要用户单独授权』，且 STATE.md §3 本轮记录为『Holdout 未再访问』。同时需要作者接受 HOLDOUT_STATUS.md §5 的半独立定位（只能称半独立复核，不能称确认）。",
+        "excludes": "排除『结论只在 12 个 DEV 材料上成立』这一泛化性质疑；但不能排除污染本身——它只能排除纯泛化失败，不能把结果升级为确认。"
+      },
+      {
+        "step": "AUTH-2 启用 meta_matholdout_K20_bal_seed{0,7} 的另 40 个封存材料做鲁棒性复核（当前一律封存）。",
+        "grant_needed": "对这 40 个封存材料的启用授权——SPLIT_PROTOCOL.md §2 规定它们『当前一律封存；只有在主 Holdout 结论需要鲁棒性复核时才启用，且启用后不得回头改主结论』。这是一份与 AUTH-1 分开的授权，不能由 AUTH-1 顺带覆盖。",
+        "excludes": "排除『主 Holdout 的读数只是 seed42 这一个划分的偶然』这一替代解释，但不能排除数据集层面的限制。"
+      },
+      {
+        "step": "AUTH-3 获取真正独立的确认数据：新采集材料，或与 RCT 无材料重叠的第二触觉-力数据集（含下载/付费/外部执行）。",
+        "grant_needed": "新数据采集或外部数据集获取的授权（下载 / 付费 / 外部执行）——现有授权只覆盖已在本地的 RCT 副本（DATA_AUDIT.md §1 记录的 9.23 GiB 本地副本），不覆盖任何新数据；HOLDOUT_STATUS.md §4 也明写『确认性结论需要新的独立验证集（新采集材料，或与 RCT 无重叠的另一数据集）』。",
+        "excludes": "排除『RCT 内部污染 + 单数据集』这一根本限制，这是唯一能把负结果从『本数据集定律』升级为『跨数据集定律』的路径。"
+      }
+    ],
+    "future_conditional": [
+      {
+        "step": "若 NOW-1 的池化 C2−B0b 在 90 材料上显著变大且越过 3% 的既有决策阈值，则先复核 ICC 是否被低估（重估 τ²/σ² 的单元定义、是否该按 (材料,传感器,位置) 拆分），再提交 H8 层面的战略复核决定是否重开 ΔF 路线。",
+        "condition": "NOW-1 的 C2−B0b ≥3% 且材料级 CI 不含 0，同时 NOW-3 复算确认 ICC 上界与实际增益不再同量级（即上界被证伪）。仅幅度变大而 ICC 上界仍成立时，不得重开——因为 PIVOT 落在上界而不是落在点估计上。",
+        "excludes": "防止把『测得更准』误读为『机制成立』；也防止在 ICC 上界未动的情况下重开一条已被上界锁死的路线。"
+      },
+      {
+        "step": "若 NOW-2 显示逐单元增益可由 support-only 代理折外预测，则把它写成一个独立的『选择性校准/弃权规则』小贡献（method note 级），并重新走 H6 贡献选择。",
+        "condition": "折外秩相关显著（预先声明的阈值：Spearman ρ ≥ 0.4 且 CI 不含 0），且仅对高预测增益单元施加校准后的子集 MAE 明显优于无差别校准（预先声明：子集增益 ≥ 无差别校准的 2 倍）。",
+        "excludes": "排除把『平均无效』误写成『对任何单元都无效』；同时避免在没有折外证据时先把弃权规则写成结论。"
+      },
+      {
+        "step": "若 AUTH-3 到位且第二数据集上 ICC 仍 ≤0.2、上界同量级，则把结论升级为跨数据集的『可学性上界定律』，按负结果/方法学论文路线组织（需要新的写作与投稿授权）。",
+        "condition": "第二数据集的 ICC 与可回收上界与 RCT 同量级，且 C1 的有害性在第二数据集上复现。",
+        "excludes": "排除『这只是某个数据集太难的个例』这一替代解释，使负结果具备可复用价值。"
+      },
+      {
+        "step": "若 AUTH-3 到位而第二数据集 ICC 明显更高（例如 >0.5），则说明 RCT 的失败是数据集特性，可在新数据集上重跑 B2/B3（CNN 触觉编码器）与 K-shot 校准。",
+        "condition": "第二数据集 ICC >0.5 且其可回收上界足以越过 3% 决策阈值；此时才需要 BASELINE_PLAN.md §2 记明的『训练预算（下一轮需授权）：单卡 ≤4 GPU·h/配置、3 seeds』这一份 GPU/付费执行授权，以及新的 H4/H6 证据路线选择。",
+        "excludes": "排除『换数据集就一定更好』的乐观假设——它把重开条件绑定在可测的 ICC 上，而不是绑定在愿望上。"
+      }
+    ]
+  },
+  "read_files": [
+    "audit/science04/frozen/DP3-ACRF-PIVOT/MANIFEST.json",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/STATE.md",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/RUNS.tsv",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/RUNS_PHASE4.tsv",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/RUNS_PHASE5.tsv",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/BASELINE_PLAN.md",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/SPLIT_PROTOCOL.md",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/DATA_AUDIT.md",
+    "audit/science04/frozen/DP3-ACRF-PIVOT/HOLDOUT_STATUS.md",
+    "skills/pd-rw-research/SKILL.md",
+    "skills/pd-rw-research/references/execution.md"
+  ],
+  "uncertainties": [
+    "MANIFEST.json 的 withheld 列明 _rct_repo/ 与 artifacts/（原始与中间数据）、9.9 GB RCT 归档均不在快照内，因此 ICC 表、上界表、preds_dev_fewshot.csv、fewshot_diag.json 的实际内容我没有核过，全部数值来自 STATE.md 与 RUNS_*.tsv 的转述；NOW-3 的前提正是『这些转述需要复算』。",
+    "口径不一致需先对齐：RUNS.tsv 的 phase2 行是 sample-weighted DEV MAE（B0b 0.6237），STATE.md §4 是材料等权（B0b 0.6128）；本计划的对比一律按 STATE.md 的材料等权口径，跨表引用时不可混用。",
+    "n=90 时 CI 半宽约 ±0.7–1.1% 是我按材料的平方根比例（sqrt(12/90)≈0.365）从 STATE.md §10 的 ±2–3% 外推的，属于推算而非实测（标 PRIOR/推算），真实宽度取决于材料间增益的异质性，H3 若成立则实际半宽会更大。",
+    "TRAIN 折外复核的可行性未实测：K=2 全枚举是 609 子集 × 90 材料，叠加 K 折会显著放大计算量，因此我在 why_minimal 里预设了『固定随机子样 + 结果前写死种子』；该子样是否足以保持与 phase5 的可比性未核。",
+    "TRAIN 的 90 材料是否包含与 DEV 同类别分布的构成（DEV 缺 Wood/Crafts/Small 三类，SPLIT_PROTOCOL.md §2 类别覆盖表）会让 TRAIN 折外读数与 DEV 读数不完全同分布，这可能使差异部分来自类别构成而非分辨率——需要在结果解释时分层核对，我无法在快照内确认材料清单。",
+    "force 的单位与传感器型号/采样率无文档（DATA_AUDIT.md §3、D5），所以任何『增益 x%』都只是 raw force unit 下的相对量，不能换成物理单位或阈值。",
+    "按任务边界我未读 src/、tests/、docs/、audit/science03*、audit/science04/answers/、audit/rc_preflight/，因此无法核对与『04 的 B4』这一对照的差异，也无法确认 04 在同一个决策点上写过什么措辞。",
+    "H1/H2/H3 的机制区分依赖我对触觉-力回归在传感器实例间的可迁移性的领域先验（PRIOR），快照只给了 sensor 1 的形态证据（STATE.md §5），没有给逐传感器的 ICC 分解。"
+  ],
+  "wall_clock_minutes": 24
+}

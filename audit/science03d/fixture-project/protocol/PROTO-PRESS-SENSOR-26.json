@@ -1,0 +1,15 @@
+{
+  "protocol_id": "PROTO-PRESS-SENSOR-26",
+  "premise_id": "SENSOR_DRIFT_MECHANISM",
+  "scientific_line": "sensor drift as the dominant residual after calibration",
+  "frozen_before_fitting": true,
+  "scope": {
+    "dataset": "PRESS DEV 26",
+    "input": "raw sensor channels",
+    "unit": "SUBJECT"
+  },
+  "goal": "Is the residual explained by sensor drift rather than by beam compliance?",
+  "primary_outcome": "subject-level MAE of reconstructed contact force",
+  "decision_rule_frozen_before_results": "POS if drift-corrected arm lowers paired MAE CI",
+  "authorization_basis": "DEV_ONLY"
+}

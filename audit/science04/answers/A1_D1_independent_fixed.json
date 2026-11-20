@@ -1,0 +1,117 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "在 PRESS DEV 26 上，接触力重构的残差主要由传感器漂移解释，还是由梁刚度解释？",
+  "hypotheses": [
+    "H_SENSOR_DRIFT",
+    "H_BEAM_STIFFNESS",
+    "H_SUBJECT_OFFSET",
+    "H_DRIFT_BEAM_COUPLING"
+  ],
+  "proposed_premise": {
+    "premise_id": "SENSOR_DRIFT_MECHANISM",
+    "scope": {
+      "dataset": "PRESS DEV 26",
+      "input": "raw sensor channels",
+      "unit": "SUBJECT",
+      "primary_outcome": "subject-level MAE of reconstructed contact force",
+      "authorization_basis": "DEV_ONLY"
+    }
+  },
+  "prechecks": {
+    "protocol_frozen_before_fitting": {
+      "status": "PASS",
+      "note": "两份协议均声明 frozen_before_fitting=true，决策规则先于结果冻结。"
+    },
+    "unit_scope_match": {
+      "status": "PASS",
+      "note": "协议 scope.unit=SUBJECT；RUN-101 记录 12 subjects，与评估单元一致。"
+    },
+    "group_independence": {
+      "status": "UNKNOWN",
+      "note": "仅记录 folds=12 与 subjects=12，分割是否按受试者分组（LOSO）在运行记录中无显式说明。"
+    },
+    "run_identity_uniqueness": {
+      "status": "FAIL",
+      "note": "RUN-102 记录的 run_id 为 RUN-101，与 RUN-101 同 protocol_sha256、同 verdict，属同一记录的副本。"
+    },
+    "sensor_arm_paired_ci_available": {
+      "status": "FAIL",
+      "note": "RUN-103 只有聚合 MAE，无配对 delta 及其 CI，无法套用 PROTO-PRESS-SENSOR-26 的 POS 规则。"
+    }
+  },
+  "probes": [
+    {
+      "id": "P1_BEAM_ARM_VS_LOADCELL_BASE",
+      "observable": "受试者级重构接触力 MAE 的配对差（beam-strain 臂 − load-cell-only 基线；<0 表示梁刚度项带来改进）及其 95% CI",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "load-cell-only 基线重构（base_mae）",
+      "predictions": {
+        "H_SENSOR_DRIFT": "NO_CHANGE",
+        "H_BEAM_STIFFNESS": "DECREASE",
+        "H_SUBJECT_OFFSET": "NO_CHANGE",
+        "H_DRIFT_BEAM_COUPLING": "UNKNOWN"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-101/metrics.json",
+        "premise_id": "BEAM_STIFFNESS_MECHANISM",
+        "conclusion": "NEG_BEAM_STIFFNESS：base_mae 9.171 vs beam_arm_mae 9.204，delta_ci95 [-0.09, 0.16] 在 95% 下包含 0，按冻结规则判定为负；梁应变臂未在载荷基线之上提供可用信息。anchor PASS，12 folds / 12 subjects。",
+        "new_information": "将“梁刚度解释残差”这一支在该 scope 内基本排除；残差解释权移交给漂移/其它机制假设。"
+      }
+    },
+    {
+      "id": "P2_BEAM_ARM_REPLICATION_UNDER_DISTINCT_RUN_IDENTITY",
+      "observable": "同一 beam 臂 − 基线配对 MAE 差，但要求产出记录具备与 RUN-101 不冲突的 run_id、完整的 folds/subjects 与 CI",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "load-cell-only 基线重构（base_mae）",
+      "predictions": {
+        "H_SENSOR_DRIFT": "NO_CHANGE",
+        "H_BEAM_STIFFNESS": "DECREASE",
+        "H_SUBJECT_OFFSET": "NO_CHANGE",
+        "H_DRIFT_BEAM_COUPLING": "UNKNOWN"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "COMPLETED_INVALID",
+        "run_ref": "DEV/runs/RUN-102/metrics.json",
+        "premise_id": "BEAM_STIFFNESS_MECHANISM",
+        "conclusion": "记录内部 run_id 写为 RUN-101，protocol_sha256 与 RUN-101 相同，字段是 RUN-101 的子集（无 aggregate），不构成独立重复；不能作为新增证据计入。",
+        "new_information": "独立重复仍需在唯一 run 身份下重跑；当前梁刚度结论只有单次执行支撑。"
+      }
+    },
+    {
+      "id": "P3_DRIFT_CORRECTED_ARM_PAIRED_CI",
+      "observable": "受试者级配对 MAE 差（漂移校正臂 − 基线；<0 且 CI 上界 <0 表示改进）及 95% CI",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "load-cell-only 基线重构（base_mae）",
+      "predictions": {
+        "H_SENSOR_DRIFT": "DECREASE",
+        "H_BEAM_STIFFNESS": "NO_CHANGE",
+        "H_SUBJECT_OFFSET": "NO_CHANGE",
+        "H_DRIFT_BEAM_COUPLING": "DECREASE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "INCONCLUSIVE",
+        "run_ref": "DEV/runs/RUN-103/metrics.json",
+        "premise_id": "SENSOR_DRIFT_MECHANISM",
+        "conclusion": "仅有聚合 base_mae 9.17 vs sensor_arm_mae 8.98（差 −0.19，方向偏向漂移校正），但无配对 delta CI、无 protocol_id、无 status、无 folds/subjects；文件自述为 scratch run 的拷贝且身份与状态从未记录，不满足冻结的 POS 规则（POS if drift-corrected arm lowers paired MAE CI）。",
+        "new_information": "仅为方向性线索：漂移臂可能有效，但在缺少配对 CI 与可追溯身份的情况下不能据此宣称漂移主导；该问题在现有证据下仍未获答。"
+      }
+    },
+    {
+      "id": "P4_DRIFT_VS_STATIC_SUBJECT_OFFSET_HEAD_TO_HEAD",
+      "observable": "同一受试者上漂移校正臂与静态受试者偏置校正臂的配对 MAE 差（drift − offset；<0 表示时变漂移优于静态偏置）",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "静态 per-subject 偏置校正臂",
+      "predictions": {
+        "H_SENSOR_DRIFT": "DECREASE",
+        "H_BEAM_STIFFNESS": "NO_CHANGE",
+        "H_SUBJECT_OFFSET": "INCREASE",
+        "H_DRIFT_BEAM_COUPLING": "UNKNOWN"
+      },
+      "cost_band": "MEDIUM"
+    }
+  ]
+}

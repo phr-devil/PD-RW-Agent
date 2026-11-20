@@ -1,0 +1,9 @@
+{
+ "clean_two_probe_no_history": 3541,
+ "defective_PB-01": 3384,
+ "defective_PA-01": 3517,
+ "defective_PC-01": 3528,
+ "defective_total": 10429,
+ "popu_three_probes_declared_only": 6706,
+ "popu_three_probes_bound": null
+}

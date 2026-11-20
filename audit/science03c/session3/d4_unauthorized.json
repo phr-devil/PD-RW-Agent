@@ -1,0 +1,44 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Is there a deployable increment beyond the posture prior in PoPu DEV?",
+  "claim_evidence_refs": [
+    "48/DEV/runs/RUN-004/metrics.json",
+    "48/DEV/runs/RUN-005/metrics.json"
+  ],
+  "hypotheses": [
+    "H_deployable",
+    "H_prior_only"
+  ],
+  "proposed_premise": {
+    "premise_id": "POPU_LOWER72_RECOVERY",
+    "scope": {
+      "dataset": "PoPu DEV 12",
+      "input": "lower 72"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P-GEOMETRY-REGISTRATION",
+      "observable": "MAE after geometric registration",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same protocol without registration",
+      "predictions": {
+        "H_deployable": "INCREASE",
+        "H_prior_only": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "recheck_date": "2026-11-20",
+  "read_only": true,
+  "plans": [
+    {
+      "project": "MCS-HEMO-26",
+      "proposed_by_science03": "zero-fit subject-level cross-session ICC + motion control, because the reference layer is same-source",
+      "already_answered": true,
+      "executed_as": [
+        "O8 (02b) Ear_sync cross-session ICC",
+        "O12 (02c) device-mask sensitivity ICC",
+        "O22 (02e) N1-R cross-session repeatability"
+      ],
+      "measured": {
+        "n1r_g1_coverage": {
+          "n_subjects_with_both_bands": 13,
+          "threshold": 30,
+          "pass": false,
+          "n_subjects_with_both_bands_sensitivity": 33
+        },
+        "n1r_bout_rows": 375,
+        "n1r_valid_bout_core": 349
+      },
+      "state_facts": {
+        "O8 FACT": "- **O8 FACT (02b)**：C 层无独立信息证据 — 偏相关 −0.095、HR 分箱 −0.072；效应最大的 `Ear_sync` 跨 session ICC=**−0.222**（基线 rho=−0.150），而 `PAT_foot` 静息基线 rho=+0.823",
+        "O12 FACT": "- **O12 FACT (02c)**：设备 mask 不改变结论（28 名 HC 双 session，n=26）：SBP ICC 0.332→**0.334**、DBP 0.332→**0.325**、HR 0.530→**0.533**；静息回合 flag0 中位仅 1.17%；中位偏移 0.0（p95 |Δ|≤1.8）。**血压 ICC 的 subject bootstrap 95% CI 跨越 0**（SBP [−0.156,0.647]、DBP [−0.100,0.710]）→ 原 0.41 不可当精确常数",
+        "O22 FACT": "- **O22 FACT**：跨会话重复性主分析 LOW n=3 / HIGH n=4 → rho/ICC **不可估计**；no-mask 敏感性 n=10/14，rho 0.144 / 0.033、ICC(1,1) −0.160 / +0.085（CI 均跨 0）、方向一致性 0.70 / 0.50，未优于 02b 基准（`PAT_foot` rho +0.823、`Ear_sync` ICC −0.222）。混杂分层退化（高质量层 0 人、低运动层 1 人、<300 s 仅 2.4% bout）→ G4 不可评价，阈值未回调。"
+      },
+      "why_no_new_information": "The cross-session ICC was already computed three times; O22 reports the main analysis has n=3 (LOW) / n=4 (HIGH) usable bouts, so rho/ICC are NOT ESTIMABLE, and the no-mask sensitivity analysis gives CIs that cross 0. Re-running the same statistic on the same DEV pool cannot produce a new estimate; only new instrumented data can.",
+      "residual_value": {
+        "documentation_check": "U9/U10 (was a cuff reading recorded; what generates HR) - non-decisive, no new data",
+        "decisive_path": "channel-level group delay / independent calibration / new dataset - requires new authorization"
+      }
+    },
+    {
+      "project": "RCT-CONTACT-26",
+      "proposed_by_science03": "split: sensor-swap contrast now, external-modulus press only for the material claim",
+      "already_answered": true,
+      "executed_as": [
+        "Q_R1B sensor_1 vs sensor_2 on the same material AND position"
+      ],
+      "measured": {
+        "Q_R1B_contrast": "sensor_1 vs sensor_2 on the same material AND same position",
+        "Q_R1B_group_n": {
+          "independent_materials": 98,
+          "independent_sensor_instances_in_DEV": 2,
+          "material_position_pairs_with_both_sensors": 489
+        },
+        "Q_R1B_verdict": "PARTIAL_OR_CONFOUNDED",
+        "Q_R1B_confounds": [
+          "sensor instance is perfectly confounded with its own gel/illumination/background",
+          "no per-sensor calibration or independent physical reference",
+          "some force logs are byte-identical across sensor instances (see shortcut checks)",
+          "only 1 further sensor instance exists and it is SEALED (n=1)"
+        ],
+        "Q_R1C_verdict": "UNIDENTIFIABLE_WITH_CURRENT_DATA"
+      },
+      "state_facts": {
+        "MODEL_TRAINING_NOT_AUTHORIZED": "MODEL_TRAINING_NOT_AUTHORIZED   = TRUE",
+        "R1_BRANCH_CLOSURE": "R1_BRANCH_CLOSURE_RECOMMENDED   = TRUE              # V1-R 新增（建议，待用户决定）",
+        "NO_USEFUL_NEXT_PROBE": "NO_USEFUL_NEXT_PROBE            = TRUE              # 针对后续 DEV-only 同类探针"
+      },
+      "why_no_new_information": "The 489 same-material, same-position pairs were already contrasted and classified PARTIAL_OR_CONFOUNDED: the sensor instance is perfectly confounded with its own gel, illumination and background, and some force logs are byte-identical across sensors. Removing a per-sensor offset does not break that confound, so the contrast cannot separate material mechanics from sensor physics on this DEV pool.",
+      "residual_value": {
+        "external_modulus": "the only decisive comparison for the material claim; needs new truth and new authorization",
+        "dev_only": "NO_USEFUL_NEXT_PROBE remains TRUE for another DEV-only probe of the same class"
+      }
+    }
+  ]
+}

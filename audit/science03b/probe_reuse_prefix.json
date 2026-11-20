@@ -1,0 +1,64 @@
+{
+  "REUSE-A": {
+    "frontier": [
+      "R1-DEV-SLOPE"
+    ],
+    "dominated": [
+      {
+        "id": "R2-CONTROLLED-PRESS",
+        "dominated_by": [
+          "R3-SENSOR-SWAP",
+          "R1-DEV-SLOPE"
+        ]
+      },
+      {
+        "id": "R3-SENSOR-SWAP",
+        "dominated_by": [
+          "R1-DEV-SLOPE"
+        ]
+      }
+    ],
+    "exploratory": [],
+    "no_legal_decisive_probe": false,
+    "payload_chars": 3936
+  },
+  "REUSE-B": {
+    "frontier": [
+      "R1-INVALID-TRANSFORM"
+    ],
+    "dominated": [
+      {
+        "id": "R2-CONTROLLED-PRESS",
+        "dominated_by": [
+          "R1-INVALID-TRANSFORM",
+          "R3-SENSOR-SWAP"
+        ]
+      },
+      {
+        "id": "R3-SENSOR-SWAP",
+        "dominated_by": [
+          "R1-INVALID-TRANSFORM"
+        ]
+      }
+    ],
+    "exploratory": [],
+    "no_legal_decisive_probe": false,
+    "payload_chars": 3958
+  },
+  "REUSE-C": {
+    "frontier": [
+      "R1-DECLARED-CLOSED"
+    ],
+    "dominated": [
+      {
+        "id": "R2-CONTROLLED-PRESS",
+        "dominated_by": [
+          "R1-DECLARED-CLOSED"
+        ]
+      }
+    ],
+    "exploratory": [],
+    "no_legal_decisive_probe": false,
+    "payload_chars": 3343
+  }
+}

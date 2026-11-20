@@ -1,5 +1,204 @@
 # PD-RW-Agent
 
+> **What this is.** A research-workflow component that WorkBuddy loads — a Skill
+> (rules and procedure), a CLI (`pdrw-agent`, `science`) and an optional stdio MCP
+> server. It is **not** an LLM and does not compete with WorkBuddy: WorkBuddy
+> executes, PD-RW supplies the research rules, the project's own records supply
+> the evidence, and ChatGPT supplies strategy and review. Nothing here authorizes
+> a download, a reserved-data read, a manuscript, a figure or a submission; only
+> the host can, and it does not delegate that.
+>
+> **Current release — 1.0.0-rc.1 (package `1.0.0rc1`; feature-frozen).**
+> Six explicit layers (PD-RW rules · research project · Skill · Python science
+> checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
+> projection from an evidence-linked Run to the next action, and one read-only
+> **candidate review** for the question chosen at H3. No event field
+> authenticates itself: `case_gate_check` reports what was claimed next to what
+> it actually checked, `candidate-review` reports which declared relation is
+> unstated or self-contradictory, and `decision` reports when a probe's
+> reference is not a legal baseline, when its unit contradicts a declared
+> independent group check, when no candidate probe separates any hypothesis,
+> whether the probe you are about to run has already answered this premise, and
+> whether the Run it cites actually ran this experiment — three separate
+> questions (the Run ran / something on disk places it here / the premise is
+> settled), each answered from the record or its frozen plan, never from two
+> labels the caller wrote.
+> Theory and simulation paths are representable (`ANALYTIC_DERIVATION`,
+> `INSTANCE`/`REPLICATE`), so a form check cannot eliminate a legal direction.
+> The handoff plan is three tiers — `NOW` / `NEEDS_NEW_AUTHORIZATION` /
+> `FUTURE_CONDITIONAL` — because "this step spends a grant nobody has given yet"
+> had no place to be written in a flat list.
+> No scientific rule, H-node or permission gate changed, and MCP stays 11/21/24.
+> **This is a release candidate, not a release:** what was verified by a real
+> WorkBuddy session, what only by tests, and what is still `NOT_MEASURED` are
+> listed separately in [RC 1.0](docs/RC_V1.0.md) — read that table before
+> trusting any claim here.
+> [Architecture](docs/ARCHITECTURE.md) · [Runtime](docs/RUNTIME_AND_MCP.md) ·
+> [Preservation map](docs/DECISION_COVERAGE.md) ·
+> [Feedback contract](docs/EXPERIMENT_FEEDBACK_LINK.md).
+> Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
+
+## Release notes (newest first; the release above is the current one)
+
+> **v1.0.0-rc.1 feature freeze, three integration repairs:** no new axis, no new
+> tool. (1) `MAX_RUN_RECORD_BYTES` was 128 KiB while project 44's
+> `RUN-002/metrics.json` is 411 202 bytes, so the binder refused a Run that
+> really ran and filed it as an unverified closure — the cap is now 4 MiB and
+> the record binds. (2) `SEALED`/`HOLDOUT`/`CONFIRMATION` were refused but `VAL`
+> was not: `VAL/README.md` was read and parsed as a Run candidate. A reserved
+> root is now reserved at the root segment, so `data/val/` inside DEV still
+> reads. (3) `README.md` and `RUNTIME_AND_MCP.md` still called 0.9.14 "0.9.13"
+> and described `premise_assumed_ids` as live; the header is now pinned to
+> `__version__` by a test. Acceptance was three independent sessions on projects
+> 19/48/44 (73 min, 0 paid, 0 downloads, 0 training); what they verified, what
+> only tests did, and what is `NOT_MEASURED` are separated in
+> [RC 1.0](docs/RC_V1.0.md).
+
+> **v0.9.14 a Run that ran is not yet evidence about *your* experiment:** 0.9.13 split `status_verified`
+> into `execution_verified` and `premise_verified`, and then answered the case in between with
+> `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` — recorded evidence, not a settled premise. That was still
+> too generous. A **valid, bound, status-consistent** Run that nothing on disk ties to the probe
+> retired the probe from the frontier and entered `historical_evidence_ids` on the strength of a
+> label the caller wrote twice. Reproduced on real bytes: a k-scale grid citing `DEV/runs/RUN-005`,
+> whose frozen v5 plan fixes one target scale and states no premise, came back as recorded evidence
+> with no finding, though the grid was never run. Now `attribution_basis` says what ties the Run to
+> the experiment — `RUN_RECORD`, `FROZEN_PLAN`, `CALLER_PREMISE_PLAN` (the Run executed the plan you
+> named, checked against the record's `protocol_id`/`protocol_sha256`), or `NONE`. `NONE` reads
+> `CLOSURE_ATTRIBUTION_UNCHECKED`: **not** evidence, **not** a next action, **not** a rerun — the next
+> step is `CHECK_WHICH_PLAN_THE_RUN_EXECUTED`. Naming the plan reads
+> `HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED`: citable, `premise_verified: false`, still not a closure.
+> Three levels — the Run ran / something on disk places it here / the premise is settled — and none
+> of them is a scientific conclusion. The Skill's handoff is now three tiers
+> (`NOW` / `NEEDS_NEW_AUTHORIZATION` / `FUTURE_CONDITIONAL`) because 04 produced the same defect
+> twice with one flat list: a reserved-VAL grid as *step 1* with the permission note at step 3, and a
+> holdout evaluation as *step 3* of a shortest path. No history was edited, no protocol re-hashed, no
+> new approver, ledger or checker axis; MCP stays 11/21/24.
+
+> **v0.9.13 the contract is the interface:** four independent sessions in 03D each wrote a decision
+> packet and every one was rejected — not on science, on shape. The rejections could not be
+> repaired from: only the first defect was reported, and the message named the wrong thing
+> ("Unexpected precheck names" for a `prechecks` **list**), so the obvious fix made it worse.
+> `packet-check` now returns every violation at once with a field path, the value found and what
+> the field accepts, plus the fields the decision path will silently ignore and the ones it reads
+> but does not enforce (a prose `evaluation_unit` quietly disables the repeated-unit check).
+> `normalize` moves only shapes that are a bijection of the input — a `prechecks` list keyed by its
+> own ids, `predictions` written as pairs — and refuses a prose `scope` or a hoisted execution
+> field, because choosing what those mean is the author's call. `template` prints a packet that
+> already passes, with all six check names, so the closed vocabulary is visible before it is
+> violated. Measured on the four real packets: 1/24/4/22 violations named individually instead of
+> one opaque message; a session given the template went from "never adjudicated" to a valid packet
+> in two rounds and three minutes, while a session asked to repair the four after the fact
+> **declined all four** rather than invent a prediction direction, a `scope` key or a check name.
+> Separately, `status_verified` now means the *closure* is verified and can no longer be true
+> while `premise_verified` is false; `execution_verified` is the other half, and a closure whose
+> premise is only the caller's label becomes `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` — still not a
+> next action, no longer presented as settled (0.9.14 renamed it: that label was still too
+> generous, see above). No new approver, ledger, validator or checker axis;
+> MCP stays 11/21/24.
+
+> **v0.9.12 a premise label is not a bound premise:** `prior_execution.premise_id`
+> and `proposed_premise.premise_id` are both caller text, so their equality was
+> treated as proof that a cited Run tested this premise. It is not: with
+> `--project-root` the resolver now also reads what the record claims about
+> itself (`run_id` against the directory, structure rather than a bare metrics
+> file) and which frozen plan it executed (the record's `protocol_id` /
+> `protocol_ref`, resolved inside the project, hash compared when declared;
+> `premise_ref` from the packet names the plan that encodes the premise under
+> study). A Run that executed another plan no longer closes this probe: it
+> returns to `NOT_YET_RUN` with `CLOSURE_PREMISE_CONTRADICTED` and the
+> instruction to confirm which experiment was answered. `premise_binding_basis`
+> says who answered the premise question (`RUN_RECORD`, `FROZEN_PLAN`,
+> `PREMISE_PLAN`, `CALLER_DECLARATION`), `premise_verified` stays false when only
+> the caller named it, and an unreadable plan keeps the closure unverified. No
+> new approver, ledger, second validator or tool: MCP stays 11/21/24.
+
+> **v0.9.11 a cited Run is checked, not trusted:** `status_verified` used to be
+> `bool(run_ref)`, so a missing Run, another project's Run and a Run whose own
+> record said INVALID all read as verified closure evidence, and a closure with
+> no `premise_id` still counted as history. With `--project-root`, the existing
+> `feedback_link` resolver binds the reference to a Run record inside that
+> project and reports five axes separately — reference present, file bound,
+> status consistent, same premise, therefore trustworthy. `STATUS_CONFLICT` and
+> `CLOSURE_PREMISE_UNBOUND` are new, and neither closes a premise nor removes a
+> live candidate. A `REFERENCE_NOT_LEGAL` false positive found on a real replay
+> ("oracle upper bound and deployable arm") is fixed by stripping a named
+> diagnostic arm before matching.
+
+> **v0.9.10 a closed or ungranted probe is not a next action:** a cheap probe that
+> had already answered the same premise still won the frontier, and an INVALID
+> one still got recommended. `decision` now reads one optional per-probe field,
+> `prior_execution`, and reports `applicability`/`next_action` per probe plus
+> `historical_evidence_ids`, `repair_required_ids`,
+> `revisit_on_new_information_ids`, `awaiting_new_information_ids`,
+> `needs_authorization_ids` and `no_executable_next_probe`. A closure claimed
+> without a Run reference is flagged `EXECUTION_DECLARED_NOT_VERIFIED` instead of
+> being accepted or silently rerun. Verified on three frozen historical decision
+> points (MCS-HEMO-26, RCT-CONTACT-26, PoPu-48): 0.9.6 and 0.9.9 both recommended
+> a probe the record had already closed; 0.9.10 names none and keeps the closed
+> one as evidence. One real DEV loop (PoPu RUN-005) was then executed end to end.
+
+> **v0.9.9 a cheap probe is not automatically the decisive one:** the 0.9.8
+> frontier could still name a LOW-cost probe that separated nothing, and an
+> oracle-referenced probe could **dominate** the one legal probe (same pairs,
+> lower cost) — so the only candidate left was the illegal comparison. Dominance
+> is now computed only between probes that separate at least one declared pair
+> *and* carry no `REFERENCE_NOT_LEGAL`. The others stay visible with their
+> permitted use (`exploratory_probe_ids`, `diagnostic_upper_bound_ids`,
+> `needs_unit_verification_ids`), plus `no_legal_decisive_probe`. Nothing is
+> deleted, nothing stops automatically, and a window/frame metric only asks for
+> an independent-unit count. A real two-case session is recorded in
+> `audit/science03/`: same-reason reference and pseudo-label circularity stay
+> model judgments, not checker output.
+
+> **v0.9.8 holdout and experiment-design checks:** two capabilities were tested
+> on cases that were *not* used to build them (CASE-12/13/17 and
+> INT-SUCCESS-03/04, EXT-N06): the candidate review hit 3/3 documented defects
+> with 0 false positives on the 3 successful directions, while both
+> non-experimental directions were rejected **before** the fix because the card
+> could not express a proof or a simulation replicate. `assess_proposal` now
+> reports `REFERENCE_NOT_LEGAL`, `PROBE_UNIT_NOT_INDEPENDENT` and
+> `no_decisive_probe`; previously a probe whose reference was a test-label oracle
+> sat on the "cheap" frontier, windows counted as independent units while
+> `group_independence` stayed PASS, and a packet where nothing separated anything
+> still named a probe to run. No score, no ranking, no new approval.
+
+> **v0.9.7 candidate review (science capability, not new process):** at H3 the
+> only checks were card *shape* and author-choice binding, and the H6 warning
+> heuristic fired on the literal string `UNKNOWN` — so a confident card claiming
+> "no prior work, F1 improves, 29 279 frames" passed with zero warnings, while an
+> honest card was the one that got flagged. `science.cli candidate-review`
+> cross-checks eight declared relations (named nearest gap, knowledge gain vs
+> replication, truth independence, evaluation unit, discriminating prediction,
+> confirmation independence, confounders, prediction-time inputs) and returns
+> the rule, a library precedent and the cheapest check per finding. It provides
+> no score, no GO/STOP, reads no literature or Run, and exits 3. On six frozen
+> cards reconstructed from CASE-10/11/14/21 and INT-SUCCESS-01/05 it surfaces
+> 4/4 documented defects that v0.9.6 did not flag, and leaves both historically
+> successful directions clean. **Model behaviour and research value are
+> `NOT_MEASURED`.**
+>
+> **v0.9.6 bounded-input cache key (freeze candidate):** the gate fingerprint
+> hashed only the first 900 characters of `run_feedback` and the first 500 of a
+> derived evidence declaration. Two *legal* declarations that differed later
+> therefore shared one key, and the second call was answered from the first
+> call's advisory — a declared `ENGINEERING_FAILURE` came back as
+> `VALID_SCIENTIFIC_NEGATIVE`. The digest now covers the complete bounded input
+> (the event validator already caps each field at 1200 characters and the event
+> at 20 fields); clipping survives only in the returned, human-auditable basis.
+> A T1 declaration of a valid negative that contradicts its own declared Run
+> state is still echoed as `category`, but reported as
+> `category_effective = UNKNOWN`. `CASE_GATES_VERSION` 1.2 → 1.3. No tool,
+> rule, permission, H-node or `next_actions` shape changed: MCP stays 11/21/24.
+> Scripted stdio calls confirm both fixes; **a real model session was not
+> available in this round**, so model adherence, Token cost and research gain
+> remain `NOT_MEASURED`.
+
+> **v0.9.0–v0.9.3 (summary):** evidence-linked probe feedback, a judged-Run
+> next action, separate pre-decision/post-Run case timing, a strict `as_of`
+> historical view for replay, and the `pdrw-probe-feedback-link-v1` contract.
+> Details are in the tagged commits and `docs/EXPERIMENT_FEEDBACK_LINK.md`;
+> the individual notes are not duplicated here.
+
 > **v0.8.1 lean scientific autonomy:** The WorkBuddy Skill now explicitly preserves five root boundaries while restoring first-Pilot tolerance, meaningful narrow findings, fair traditional-method improvements, positive and negative lesson reuse, selective rule loading, no automatic project STOP and evidence-first paper closure. No new hard gates or permissions. Real research gains remain **NOT_MEASURED**. [Skill](skills/pd-rw-research/SKILL.md) · [Research guidance](skills/pd-rw-research/references/research-leverage.md).
 
 > **v0.8.0 publication-first three-choice startup (historical behavior):** New PD-RW v1.4 projects require independent author H3 question, H4 evidence, and H6 contribution/Task selections; H5 is derived and bound to H6. Research focus and contribution method may adapt to stronger evidence-backed paper opportunities within an approved pivot envelope. Optional read-only H3/H4 card checks and v3 H6 upstream binding are provided, without true user authentication, real DEV/GPU execution, SEALED rights or manuscript permission. Existing v1.3/v1/v2 selections remain readable; **real WorkBuddy improvement NOT_MEASURED**. [Card contract](skills/pd-rw-research/references/plan-selection.md).
@@ -76,9 +275,13 @@
 
 **Research agent integration for WorkBuddy, powered by the existing PD-RW workflow.**
 
-> **v0.5.3 routing adjustment:** For an explicitly registered and permitted project, an MCP-enabled WorkBuddy Skill now requests an actual bounded MCP project-context call before broad file reads; the server uses the same Python service as the CLI. This is an instruction-level routing change, **not** a guaranteed host enforcement mechanism. See [WorkBuddy MCP-first acceptance](docs/RUNTIME_AND_MCP.md#v053-workbuddy-mcp-first-routing-acceptance).
+> **v0.5.3 routing adjustment:** For an explicitly registered and permitted project, an MCP-enabled WorkBuddy Skill now requests an actual bounded MCP project-context call before broad file reads; the server uses the same Python service as the CLI. This is an instruction-level routing change, **not** a guaranteed host enforcement mechanism. See [WorkBuddy MCP-first acceptance](docs/RUNTIME_AND_MCP.md#historical-v053-workbuddy-mcp-first-routing-acceptance-replay-only).
 
 > Status: **v0.5 controlled-continuation foundation** — original 5 read-only MCP tools plus 6 scoped resume/receipt/preview/handoff tools. Only private operational receipts may be written; real PD-RW Run registration is disabled in the Agent adapter (including caller-supplied callback) pending independently secured host authorization. Actual WorkBuddy end-to-end performance remains NOT_MEASURED.
+
+> **v0.5.4 local increment:** read-only, advisory reuse of `CASE_LIBRARY` (`review_case_transfer`, `extract_case_candidates`, and an additive `case_library` field on `search_research_memory`). No writes to CASE_LIBRARY / STATE / Run / SEALED and no GO/STOP. Setup, restart steps and the ON/OFF ablation are in [RUNTIME_AND_MCP.md](docs/RUNTIME_AND_MCP.md#v054-local-increment-case_library-advisory-reuse) and `evals/case_learning_ablation.py`.
+
+> **v0.5.5 local increment:** `case_gate_check` adds 3 advisory mandatory checkpoints (G1 H2–H3, G2 H6–H7, G3 H8–H10) and 2 conditional triggers (T1 anomalies/negatives, T2 material decision changes), with fingerprint-based cache reuse, real-retrieval + applicability verification and UNKNOWN marking. It reuses the existing retriever; no second database, no GO/STOP, and **no WorkBuddy host state-transition hard gate** (`enforcement_level.hard_gate=false`). See [RUNTIME_AND_MCP.md](docs/RUNTIME_AND_MCP.md#v055-local-increment-five-case-application-gates) and `evals/case_gate_eval.py`.
 
 ## v0.5.2 evidence-binding and negative lesson preview (optional local Python only)
 

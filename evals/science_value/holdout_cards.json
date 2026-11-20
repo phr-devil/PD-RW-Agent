@@ -1,0 +1,267 @@
+{
+  "schema_version": "pdrw-candidate-card-v1",
+  "note": "SCIENCE-02 holdout. Reconstructed from CASE-12, CASE-13, CASE-17, INT-SUCCESS-03, INT-SUCCESS-04 and EXT-N06 — none of these is one of the six cards used to develop candidate_review (CASE-10/11/14/21, INT-SUCCESS-01/05). Each card states a research direction as it was actually framed in the record, including the framing error where one exists. The label comes from the library's documented verdict, not from the checker.",
+  "cards": [
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "HO-01-CROSS-CONDITION-ORACLE",
+      "question": "未见材料在未见条件下的绝对精度塌缩，能否靠偏移校正在推理时恢复",
+      "failure_premise": "把跨条件塌缩当作信息缺失，而不是条件引起的截距与尺度漂移",
+      "contribution_form": "ALGORITHM",
+      "success_new_knowledge": "R3 上 R² 由 -0.409 提升到 0.60，MAE 下降约三成",
+      "refutation_consequence": "若偏移校正在新条件下无效，则说明该特征族在新条件下不含可恢复信息",
+      "named_nearest": [
+        {
+          "work": "CASE-12 原始 Run（材料 R2/R3 跨条件协议）",
+          "covers": "R3 ALL|ridge R²=-0.409，bias +0.181，Pearson 0.70-0.74 / Spearman 0.69-0.80",
+          "remaining": "未给出推理时合法可得的偏移来源，秩信息与绝对精度未分开报告"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "塌缩主要是条件间截距/尺度漂移，秩信息仍在",
+          "predicted_observation": "偏移校正后 R² 转正而 Pearson 基本不变"
+        },
+        {
+          "explanation": "新条件下特征族与目标的关系本身消失",
+          "predicted_observation": "偏移校正后 Pearson 也降到 0.2 以下"
+        }
+      ],
+      "falsifier": "新条件下重采参考标签后，若校正后 Pearson 仍不低于 0.65 且 R² 为负，则漂移解释被否定",
+      "truth_kind": "MEASURED_INSTRUMENT",
+      "truth_source": "试验机参考测量（R2/R3 协议）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时先用 DEV_VAL 标签做 ORACLE 偏移移除，再输入校正后的特征",
+      "evaluation_unit": "SPECIMEN",
+      "independent_units": 24,
+      "reported_n": 24,
+      "confounders": [
+        "材料批次",
+        "温度",
+        "夹具"
+      ],
+      "evidence_path": "复用历史 Run 的逐样本预测，CPU 复算，无 GPU",
+      "confirmation_ref": "留出制度下的新批次材料",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，无新采集"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "HO-02-SELECTOR-SAME-SIGNAL",
+      "question": "自适应决定读取哪些 pad 区域，能否提升对未来接触状态的预测",
+      "failure_premise": "选择器与评价标签共享同一 pad_* 派生信号",
+      "contribution_form": "ALGORITHM",
+      "success_new_knowledge": "在何类工况下自适应选择优于固定选择，以及该优势在何类标签下消失",
+      "refutation_consequence": "若固定选择器只换标签后增益塌缩，则该优势是标签属性而非选择能力",
+      "named_nearest": [
+        {
+          "work": "CASE-17 原始 Run（PAD_RANGE / SHEAR_RANGE 对比）",
+          "covers": "同源 PAD_RANGE 上 D-B2=+0.1379 CI[0.0895,0.2027]，15/15 actor cluster 为正",
+          "remaining": "未做固定选择器只换标签的 2x2 消融，未登记三级标签来源"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "选择器学到了可迁移的接触预判能力",
+          "predicted_observation": "换成独立真值标签后增益保留七成以上"
+        },
+        {
+          "explanation": "增益来自选择器与标签共享同一 pad 信号",
+          "predicted_observation": "换成独立真值标签后增益塌缩到五个百分点以内"
+        }
+      ],
+      "falsifier": "固定选择器不动、只把标签换成独立真值时，若塌缩小于三成则同源解释被否定",
+      "truth_kind": "PROXY_FROM_INPUT",
+      "truth_source": "pad 触觉派生量 SHEAR_RANGE（与选择器同源）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时仅触觉当前读数与历史窗口",
+      "evaluation_unit": "SESSION",
+      "independent_units": 15,
+      "reported_n": 15,
+      "confounders": [
+        "actor 个体",
+        "按压速度"
+      ],
+      "evidence_path": "复用历史 Run 的逐样本打分与标签表，CPU 复算",
+      "confirmation_ref": "同一批 PAD_RANGE 标签上的重复评估",
+      "confirmation_shares_evaluation_data": true,
+      "resources": "CPU，复用历史 Run"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "HO-03-MULTIMODAL-VS-SIMPLE",
+      "question": "多模态编码器能否在变速工况下降低力矩估计误差",
+      "failure_premise": "复杂机制尚未在非退化的强简单基线上做同预算配对比较",
+      "contribution_form": "ALGORITHM",
+      "success_new_knowledge": "VT_MC 相对 VT_plain 的 MAE 与 R² 均改善",
+      "refutation_consequence": "若配对比较的置信区间覆盖 0，则该机制没有独立增益",
+      "named_nearest": [
+        {
+          "work": "CASE-13 原始 Run（VT_MC / VT_plain 配对）",
+          "covers": "E1 DEV_TRAIN 5 折 VT_MC - VT_plain = -0.00069（p=0.877），维度匹配空对照最大 +0.0109",
+          "remaining": "未预注册基线族，未逐个检查基线是否被退化条件打坏"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "多模态融合提供物理上不可替代的接触信息",
+          "predicted_observation": "同预算下融合比单模态在变速段 MAE 低三成以上"
+        },
+        {
+          "explanation": "增益来自更大容量与更多调参机会",
+          "predicted_observation": "等容量等预算的随机特征对照达到同等 MAE"
+        }
+      ],
+      "falsifier": "维度匹配随机特征对照在同预算下达到同等 MAE，则融合必要性被否定",
+      "truth_kind": "MEASURED_INSTRUMENT",
+      "truth_source": "试验机力矩参考测量",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时仅本体、视觉与力觉当前读数",
+      "evaluation_unit": "SESSION",
+      "independent_units": 12,
+      "reported_n": 12,
+      "confounders": [
+        "速度档位",
+        "夹具刚度"
+      ],
+      "evidence_path": "复用历史 Run，CPU 复算配对差",
+      "confirmation_ref": "另一次独立录制",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，复用历史 Run"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "HO-04-SKILL-FROM-PARENT-POSTERIOR",
+      "question": "在父动作后验已知时，低层技能识别在何类本体与何种力觉条件下可稳定成立",
+      "failure_premise": "把低层技能当作与父动作同层的分类问题，混淆两个不同的科学问题",
+      "contribution_form": "ALGORITHM",
+      "success_new_knowledge": "明确低层技能识别在何类本体与接触条件下成立，以及它与父动作预测失败之间的边界",
+      "refutation_consequence": "若带力觉与不带力觉的边界 F1 无差异，则力觉并未提供低层技能的可辨识信息",
+      "named_nearest": [
+        {
+          "work": "INT-SUCCESS-03 历史 Run（CRPS-P19）",
+          "covers": "主对象折 SF=0.6717、GRUctx=0.7135，segF1 +0.0418",
+          "remaining": "segF1 与全 Episode 边界 F1 未分列，SEALED 跨录制确认未做"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "力觉提供接触时序，使低层技能在接触切换处可辨识",
+          "predicted_observation": "去掉力觉后接触切换处的边界 F1 下降 0.03 以上"
+        },
+        {
+          "explanation": "增益只来自上下文记忆，与力觉无关",
+          "predicted_observation": "去掉力觉但保留上下文后边界 F1 变化小于 0.01"
+        }
+      ],
+      "falsifier": "去掉力觉、保留上下文并按同预算训练时，若边界 F1 下降 0.03 以上则记忆解释被否定",
+      "truth_kind": "HUMAN_LABEL",
+      "truth_source": "人工分段标注（独立于输入信号）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时仅本体与力觉的当前及历史窗口",
+      "evaluation_unit": "SUBJECT",
+      "independent_units": 16,
+      "reported_n": 16,
+      "confounders": [
+        "录制批次",
+        "操作员"
+      ],
+      "evidence_path": "复用历史 DEV 逐样本预测，CPU 复算边界 F1",
+      "confirmation_ref": "另一录制批次的确认集（尚未打开）",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，一次有界复算"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "HO-05-WEARABLE-MEASUREMENT",
+      "question": "可穿戴设备上不可靠窗口的比例在何类人群与何类活动上系统性升高",
+      "failure_premise": "测量结论被与算法部署收益混为一谈，导致有价值的测量结论随算法路线一起被判失败",
+      "contribution_form": "MEASUREMENT",
+      "success_new_knowledge": "给出不可靠窗口的人群与活动分布规律，并把它与算法部署收益分开陈述",
+      "refutation_consequence": "若确认队列的分布与 DEV 一致到无法区分，则该分布规律不具备可迁移性",
+      "named_nearest": [
+        {
+          "work": "INT-SUCCESS-04 历史 Run（GALAXY-HRGUARD-P23）",
+          "covers": "16 人 DEV 24,924 有效窗（726 wrong、2,723 missing），5 人确认 7,713 窗（147 wrong、1,066 missing）",
+          "remaining": "确认队列与 DEV 同源，缺真正独立的多中心确认"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "不可靠窗口集中在特定活动类型（高加速度、遮挡）",
+          "predicted_observation": "高加速度段的 missing 比例显著高于静止段"
+        },
+        {
+          "explanation": "不可靠窗口只与佩戴松紧相关，与活动类型无关",
+          "predicted_observation": "控制佩戴松紧后活动类型间 missing 比例无明显差异"
+        }
+      ],
+      "falsifier": "按佩戴松紧分层后，活动类型间 missing 比例差小于 2 个百分点，则活动解释被否定",
+      "truth_kind": "HUMAN_LABEL",
+      "truth_source": "参考窗人工核对（726 wrong / 2,723 missing 判定）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "仅使用设备原始读数与佩戴日志，不使用标注",
+      "evaluation_unit": "SUBJECT",
+      "independent_units": 16,
+      "reported_n": 16,
+      "confounders": [
+        "设备型号",
+        "佩戴位置",
+        "活动强度"
+      ],
+      "evidence_path": "复用历史 Run 的窗口级判定表，CPU 统计",
+      "confirmation_ref": "5 人同数据源确认队列（已声明同源，不作独立确认）",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，无新采集"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "HO-06-IMU-REMOUNT-GEOMETRIC",
+      "question": "同一设备重新佩戴造成的轴错位，能否用无标签几何校正在部署期修复并自证有效",
+      "failure_premise": "把重佩戴当作噪声而不是可识别的几何变换，且缺少修复是否有效的无标签验证",
+      "contribution_form": "ALGORITHM",
+      "success_new_knowledge": "给出重佩戴偏移的可识别条件与校正有效的判据，并说明何种情况下应当弃权",
+      "refutation_consequence": "若未偏移用户在校正后精度下降，则全局校正本身是一种新的失败机制",
+      "named_nearest": [
+        {
+          "work": "EXT-N06（IMU 佩戴偏移三步修复，预印本）",
+          "covers": "无标签统计量拟合轴变换族、半窗交叉验证选族、ATC 无标签精度估计验证",
+          "remaining": "偏移发生时的可识别条件与弃权阈值未做系统评估"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "精度下降是轴错位造成的几何问题，可由轴变换族校正",
+          "predicted_observation": "校正后未偏移用户精度恢复到重佩戴前两个百分点以内"
+        },
+        {
+          "explanation": "精度下降是归一化统计量漂移，与轴无关",
+          "predicted_observation": "只重估归一化统计量即可恢复，几何校正没有额外收益"
+        }
+      ],
+      "falsifier": "只重估归一化统计量、不做几何校正，若精度恢复到两个百分点以内则几何解释被否定",
+      "truth_kind": "HUMAN_LABEL",
+      "truth_source": "活动标签（人工标注，独立于 IMU 信号）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时仅 IMU 读数与已知设备轴约定",
+      "evaluation_unit": "SUBJECT",
+      "independent_units": 20,
+      "reported_n": 20,
+      "confounders": [
+        "设备型号",
+        "佩戴位置",
+        "活动强度"
+      ],
+      "evidence_path": "复用历史采集，CPU 复算；需重佩戴条件下的对照",
+      "confirmation_ref": "未发生偏移的对照用户组",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，需一次重佩戴对照采集"
+    }
+  ]
+}

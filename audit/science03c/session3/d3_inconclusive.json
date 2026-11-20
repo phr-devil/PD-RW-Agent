@@ -1,0 +1,63 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Is there a deployable increment beyond the posture prior in PoPu DEV?",
+  "claim_evidence_refs": [
+    "48/DEV/runs/RUN-004/metrics.json",
+    "48/DEV/runs/RUN-005/metrics.json"
+  ],
+  "hypotheses": [
+    "H_deployable",
+    "H_prior_only"
+  ],
+  "proposed_premise": {
+    "premise_id": "POPU_LOWER72_RECOVERY",
+    "scope": {
+      "dataset": "PoPu DEV 12",
+      "input": "lower 72"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P-ORACLE-PATH",
+      "observable": "deployable-side gain of the oracle-conditioned path",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "oracle upper bound and deployable arm, same folds",
+      "predictions": {
+        "H_deployable": "INCREASE",
+        "H_prior_only": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "INCONCLUSIVE",
+        "run_ref": "DEV/runs/RUN-003",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "conclusion": "INCONCLUSIVE_LEANING_ORACLE_ONLY"
+      }
+    },
+    {
+      "id": "P-ORACLE-PATH-NEW-UNIT",
+      "observable": "same contrast with per-sequence units",
+      "evaluation_unit": "SEQUENCE",
+      "comparison_reference": "oracle upper bound and deployable arm, same folds",
+      "predictions": {
+        "H_deployable": "INCREASE",
+        "H_prior_only": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "INCONCLUSIVE",
+        "run_ref": "DEV/runs/RUN-003",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "new_information": "independent unit now counted per contact sequence"
+      }
+    }
+  ]
+}

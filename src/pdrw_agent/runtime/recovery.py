@@ -10,12 +10,20 @@ from ..host.supervisor import recent_host_diagnostics
 
 def _raw_get_resume_context(settings: Settings, project_id: str) -> dict:
     project = get_project_context(settings, project_id)
-    if project["status"] == "IDENTITY_CONFLICT":
-        return {"status": "BLOCKED_PROJECT_IDENTITY", "project_id": project_id,
-                "project": project, "next": "VERIFY_ORIGINAL_PROJECT_IDENTITY",
+    # Identity unknown is as blocking as a declared conflict: neither may be
+    # silently resumed, but they require different read-only next actions.
+    if project["status"] in {"IDENTITY_CONFLICT", "IDENTITY_UNKNOWN"}:
+        conflict = project["status"] == "IDENTITY_CONFLICT"
+        return {"status": ("BLOCKED_PROJECT_IDENTITY" if conflict
+                           else "BLOCKED_IDENTITY_UNKNOWN"),
+                "project_id": project_id, "project": project,
+                "next": ("VERIFY_ORIGINAL_PROJECT_IDENTITY" if conflict
+                         else "RESTORE_ORIGINAL_PROJECT_ID_DECLARATION"),
                 "authorization_verified": False,
                 "restart_permitted": False,
-                "read_only_next_actions": ["VERIFY_ORIGINAL_PROJECT_IDENTITY"]}
+                "read_only_next_actions": (
+                    ["VERIFY_ORIGINAL_PROJECT_IDENTITY"] if conflict
+                    else ["AUDIT_PROJECT_STATE", "RESTORE_ORIGINAL_PROJECT_ID"])}
     if project["status"] == "INCOMPLETE_CONTEXT":
         return {"status": "BLOCKED_INCOMPLETE_CONTEXT", "project_id": project_id,
                 "project": project, "next": "RESTORE_MISSING_ORIGINAL_SOURCE_FILES",

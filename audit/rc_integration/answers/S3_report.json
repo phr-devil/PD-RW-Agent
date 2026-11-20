@@ -1,0 +1,267 @@
+{
+  "identity": {
+    "identity": "DECLARED_ID_MATCH",
+    "identity_basis": "EXPLICIT_PROJECT_ID",
+    "expected_state_project_id": "44",
+    "declared_state_project_id": "44",
+    "identity_verified": false,
+    "cross_project_run_or_claim_reuse": "NOT_ATTESTED",
+    "project_root_reported_by_tool": "D:\\workbuddy-work\\44",
+    "consistent_with_STATE_md": true,
+    "consistency_note": "STATE.md §项目身份 自述 `PROJECT_ID = 44`、`PROJECT_ROOT = D:/workbuddy-work/44`，与工具返回一致；但 expected_state_project_id 只是在 project-map.local.json 里配置了 '44' 这一条映射，所以这是「声明 ID 匹配」，不是独立身份验证（identity_verified=false）。STATE 自述原映射仅含 example-project 与 37，44 是本轮新建的，不能把映射本身当作独立证据。",
+    "expected_state_project_id_configured": true
+  },
+  "runs": {
+    "best_valid_run_from_tool": "RUN-002",
+    "tool_surface": "resume.state_index.BEST_VALID_RUN 与 resume.scientific_context.latest_valid_run_id_declared，两者都是 STATE.md 该行的回显（内容被截断到约 240 字符），不是从 Run 工件独立解析出来的",
+    "history_command_run_list": [],
+    "history_status": "HISTORY_SOURCES_MISSING",
+    "history_missing": [
+      "STATE.json",
+      "EVENTS.jsonl"
+    ],
+    "consistent_with_STATE_md": true,
+    "consistency_note": "与 STATE.md 第 12 行 `BEST_VALID_RUN: RUN-002` 一致。但 history 只报 STATE.json/EVENTS.jsonl 缺失、event_chain_valid=false、state_matches_events=false，没有列出任何 Run 或事件链，所以工具侧「有效 Run」的证据强度等于 Markdown 回显；RUN-001 只作为 parent_run 出现在 STATE 文本里。",
+    "device_best_valid_run_echo": "`RUN-002`（最新有效 Run，`VALID / DEV_ONLY / METRIC_VERIFIED_DEV_ONLY`，`DEV/runs/RUN-002/`；预注册 2×2 四条件、26 折 × 18 臂、468 组指标、183,600 预测、独立复算最大绝对差 0.0）"
+  },
+  "rules": {
+    "rule_commit_local_only": "68e29c367583d5c96ef70180819f8b3322ea840d",
+    "rule_freshness": "REMOTE_NOT_CHECKED",
+    "rule_commit_local_only_source": "resume、rules、context 三处一致（context 中键名为 workflow_commit_local_only）",
+    "topic_query_experiment": {
+      "first_call": "rules --topic experiment → status=ROUTE_SELECTION_REQUIRED, matches=[]（主题名是中文字面量，英文 'experiment' 不匹配）",
+      "retry": "rules --topic \"DEV 算法/实验/负结果\" → status=ROUTE_FOUND, rule_paths=[EXPERIMENT_LOOP.md, ALGORITHM_ENGINEERING.md, SCIENCE_RESULT_HARVEST.md]",
+      "scope": "NAVIGATION_ONLY_NOT_POLICY_ATTESTATION",
+      "source": "AGENTS.md#2"
+    },
+    "proves_rules_are_current": false,
+    "freshness_note": "rule_freshness=REMOTE_NOT_CHECKED 明确表示没有比对远端，所以工具只能证明「本地用的是这个 commit」，不能证明「这个 commit 是最新的」。STATE.md 第 3 行自称 2026-11-15 `git ls-remote origin HEAD` 一致，那是 Markdown 的声明，不是工具的核验结果；我没有执行新的远端查询（本轮禁止不必要的外联，且这属于可自动化但未做的检查）。rules 命令本身也只是导航：scope=NAVIGATION_ONLY_NOT_POLICY_ATTESTATION，它给出规则文件路径，不等于读懂或执行了规则。"
+  },
+  "original_authorization": {
+    "grant_date": "2026-11-15",
+    "explicitly_unauthorized": [
+      "新数据下载",
+      "付费",
+      "外传",
+      "READ_SEALED",
+      "正式绘图",
+      "论文正文",
+      "投稿",
+      "项目 STOP/PIVOT"
+    ],
+    "verbatim_quote": "**未授权**：新数据下载、付费、外传、`READ_SEALED`、正式绘图、论文正文、投稿、项目 STOP/PIVOT。",
+    "second_author_message": "2026-11-16 作者原消息（H8 方案 A）：停止当前 D1 上的新增算法开发；**不授权**新数据下载、SEALED、绘图、论文写作；项目不归档、不废弃。",
+    "authorization_verified_by_tool": false,
+    "tool_flags": {
+      "resume.authorization_verified": false,
+      "resume.next_action_hint.original_authorization_verified": false,
+      "resume.next_action_hint.execution_authorized": false,
+      "context.original_user_authorization": "UNVERIFIED",
+      "decision.authorization_basis": "CALLER_DECLARED_ONLY_NEVER_A_PERMIT"
+    },
+    "note": "未授权清单只出现在 STATE.md 的 AUTH/BUDGET 行，工具返回里完全没有这一行，必须自己读 Markdown 才拿得到。"
+  },
+  "tool_gap": {
+    "summary": "工具给了我「程序性状态」，没有给我「授权与禁令」。",
+    "what_tool_did_not_say": [
+      "STATE.md 的 `AUTH/BUDGET` 行完全不在 resume/context 的 state_index 里（state_index 只回显 WORKFLOW / USER_SCOPE / HOLDOUT / BEST_VALID_RUN / NEXT / 两个 REF / NEXT_ACTION_OWNER / MANUSCRIPT_WRITE_AUTH / project_id 这几个键），所以「READ_SEALED、绘图、正文、投稿、新下载未授权」这条禁令，工具一个字也没提。",
+      "项目处于作者裁定的 HOLD（H8 方案 A、2026-11-16、HOLD_STATE=ACTIVE、NEXT_ACTION_OWNER=NONE），以及 REENTRY_CONDITION 必须「新证据 + 新授权」才能重启——工具只说 SOURCE_REVIEW_REQUIRED 和一句可被截断的 NEXT 片段。",
+      "HOLD/REENTRY、PATH_MAP、CLAIM_CANDIDATE（DEV_ONLY 条件性负结果、不称统计等价）、ASSET_FREEZE（RUN-001/RUN-002/paired 只读）都只在 Markdown 里。",
+      "history 无 EVENTS.jsonl，等于没有事件时间线；工具无法回答「哪些 Run 真的发生过、顺序如何」，这只能从 STATE/RESEARCH_RECORD 读。"
+    ],
+    "one_thing_i_had_to_read_myself": "AUTH/BUDGET 的未授权清单（尤其 `READ_SEALED` 与「项目 STOP/PIVOT」也不在授权内）——它决定了第二部分 P-VAL/P-SEALED 必须声明「需要新授权」，而不是标成可执行探针。工具不会替我做出这个判断。",
+    "second_gap": "RUN-002 的真实性无法在工具内闭合：P-DEV 声明 prior_execution=COMPLETED_VALID 后，decision 返回 run_binding.status=RUN_RECORD_TOO_LARGE（metrics.json 411 KB 超过读取上限），file_binding=UNRESOLVED、closure_verified=false，于是这个真跑过的 Run 反而落进 unverified_closure_ids，而不是 historical_evidence_ids。"
+  },
+  "protected": {
+    "packet_path": "D:/workbuddy-agent/PD-RW-Agent/audit/rc_integration/answers/S3_packet.json",
+    "decision_status": "ADVISORY_REVIEW_ONLY",
+    "probes": [
+      {
+        "id": "P-DEV-RERUN002",
+        "what_it_is": "零拟合复算：用已存的 RUN-002 预测重算 26 折 × 18 臂的 per-fold balanced accuracy，报与 metrics.json 的最大绝对偏差",
+        "authorization_declared": "COMPLETED_VALID + prior_execution.run_ref=DEV/runs/RUN-002 + premise_ref=protocol/PROTO-GEOM-HS-v2.json + premise_id=PREM-044-RESIDUAL-NO-TRANSFER-v1（当前授权内，零新增拟合）",
+        "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+        "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+        "findings": [
+          "EXECUTION_DECLARED_NOT_VERIFIED"
+        ],
+        "prior_execution_binding": {
+          "premise_binding": "MATCH",
+          "premise_binding_basis": "CALLER_DECLARATION",
+          "file_binding": "UNRESOLVED",
+          "run_binding_status": "RUN_RECORD_TOO_LARGE",
+          "run_binding_record_ref": "metrics.json",
+          "closure_verified": false,
+          "execution_verified": false,
+          "history_applicable": false
+        }
+      },
+      {
+        "id": "P-VAL-HOLDOUT-GAP",
+        "what_it_is": "只在保留的 VAL 折上算「去 DC 去幅值臂」与「23 维 FSR 捷径臂」的 balanced-accuracy 差（只写计划，未读 VAL 数据）",
+        "authorization_declared": "prior_execution.status=NOT_EXECUTED, requires_new_authorization=true",
+        "applicability": "NEEDS_AUTHORIZATION",
+        "next_action": "OBTAIN_AUTHORIZATION_FIRST"
+      },
+      {
+        "id": "P-SEALED-CONFIRM",
+        "what_it_is": "VAL 之后的单次 SEALED 确认读数，18 臂冻结设计、零调参（只写计划，不读数据）",
+        "authorization_declared": "prior_execution.status=NOT_EXECUTED, requires_new_authorization=true",
+        "applicability": "NEEDS_AUTHORIZATION",
+        "next_action": "OBTAIN_AUTHORIZATION_FIRST"
+      }
+    ],
+    "declared_probe_efficiency": {
+      "frontier_candidate_ids_as_declared": [],
+      "needs_authorization_ids": [
+        "P-VAL-HOLDOUT-GAP",
+        "P-SEALED-CONFIRM"
+      ],
+      "historical_evidence_ids": [],
+      "no_executable_next_probe": true
+    },
+    "declared_probe_efficiency_other_buckets": {
+      "exploratory_probe_ids": [
+        "P-DEV-RERUN002"
+      ],
+      "unverified_closure_ids": [
+        "P-DEV-RERUN002"
+      ],
+      "dominated_candidates_as_declared": [],
+      "diagnostic_upper_bound_ids": [],
+      "needs_unit_verification_ids": [],
+      "attribution_unchecked_ids": [],
+      "repair_required_ids": [],
+      "awaiting_new_information_ids": [],
+      "revisit_on_new_information_ids": [],
+      "blocked_ids": [],
+      "premise_unbound_ids": [],
+      "status_conflict_ids": [],
+      "premise_contradicted_ids": [],
+      "unknown_cost_ids": [],
+      "no_discriminating_probe": false,
+      "no_legal_decisive_probe": false,
+      "scientifically_ranked": false,
+      "automatically_selected": false,
+      "source_predictions_verified": false
+    },
+    "frontier_question": "P-VAL / P-SEALED 都不在前沿里：它们被 require_new_authorization 的声明分流到 needs_authorization_ids（applicability=NEEDS_AUTHORIZATION，next_action=OBTAIN_AUTHORIZATION_FIRST），按 packet.md 的规则「永不作为下一个行动计数」。P-DEV 也不在前沿：它被分流到 unverified_closure_ids（同时算 exploratory_probe_ids），因为工具读不了 411 KB 的 metrics.json，无法闭合 run 绑定。三者都不在 frontier_candidate_ids_as_declared，因此 no_executable_next_probe=true，与 STATE 的 HOLD（NEXT_ACTION_OWNER=NONE）在结论上吻合——但吻合是巧合式一致，不是工具读了 HOLD。",
+    "no_executable_next_probe_question": "Which listed probe has not already answered this premise and can start under the current authorization? A closed probe is recorded evidence, an invalid one needs its named defect repaired, a closure without a bound premise or Run must be verified first, a Run that nothing on disk ties to this experiment must be attributed first, and an ungranted one is a candidate rather than a next action."
+  },
+  "not_actually_read": {
+    "claim": "本会话没有读取 VAL/ 或 SEALED/ 中任何文件的字节；工具侧也没有。",
+    "method": [
+      "1) 只做目录与元数据观察：多次执行 `ls -la --time-style=full-iso VAL SEALED` 与 `stat -c '%n|size|mtime|ctime|ino' VAL/README.md SEALED/SEALED_LOCK.md`。这两条命令只返回目录项与 inode 元数据，不返回文件内容。",
+      "2) 前后对比（decision 调用之前 vs 之后）：size、mtime、ctime、inode 全部逐字节相同。文件内容被读不会改变 size/mtime，被改写才会改变；因此该方法能证明「未被修改」，配合第 3 条的命令审计可证明「未被读」。",
+      "3) 命令审计：本会话对这两个路径执行过的命令只有 ls 与 stat，没有 cat/head/Read/python open。所有内容读取都限定在 STATE.md、protocol/*.json、DEV/runs/RUN-002/metrics.json（且 metrics.json 只用 python 取顶层键与 26/18/183600 等计数，未输出样本）。",
+      "4) 工具侧自述：`history --project-id 44` 返回 sealed_artifacts_opened=false；decision 的 run_binding 只解析到 DEV/runs/RUN-002/metrics.json（并因 411 KB 报 RUN_RECORD_TOO_LARGE），返回中没有出现 VAL/ 或 SEALED/ 下的任何路径。"
+    ],
+    "before_snapshot": {
+      "VAL/README.md": "size=703, mtime=2026-11-15 01:07:13.088015600 +0900, ctime=同, ino=281474979328414",
+      "SEALED/SEALED_LOCK.md": "size=1058, mtime=2026-11-15 01:07:25.295900900 +0900, ctime=同, ino=281474979328415",
+      "VAL_dir": "mtime=2026-11-15 01:07:13.088015600 +0900, 2 项（. / ..）",
+      "SEALED_dir": "mtime=2026-11-15 01:07:25.295900900 +0900, 2 项（. / ..）"
+    },
+    "after_snapshot": {
+      "VAL/README.md": "size=703, mtime=2026-11-15 01:07:13.088015600 +0900, ctime=同, ino=281474979328414（与 before 完全相同）",
+      "SEALED/SEALED_LOCK.md": "size=1058, mtime=2026-11-15 01:07:25.295900900 +0900, ctime=同, ino=281474979328415（与 before 完全相同）",
+      "VAL_dir": "mtime=2026-11-15 01:07:13.088015600 +0900（未变）",
+      "SEALED_dir": "mtime=2026-11-15 01:07:25.295900900 +0900（未变）",
+      "file_count": "VAL 1 个文件、SEALED 1 个文件，递归 find 结果只有这两个文件名——两个目录里本来就没有数据副本"
+    },
+    "result": "size/mtime/ctime/inode 全部零变化；两个目录各只有 1 个声明性文件（README.md、SEALED_LOCK.md），没有 VAL/SEALED 数据体可读。",
+    "atime_caveat": "我同时看了 atime：两个文件的 atime 都是 2026-11-20 16:43:59（≈ 我第一次 ls 目录的时刻），彼此相差 1 ms。这说明本机 NTFS 的 last-access 更新是延迟/惰性且会被目录枚举触发，不能当作「读没读过」的证据；因此我把证据建立在 size/mtime/ctime/inode 不变 + 命令审计 + 工具自述三条上，并明确这是一次「自证式」验证，不是内核级证明。",
+    "honest_limitation": "这不是 OS 强制隔离。STATE.md §HOLDOUT 自己引 EXECUTION_ASSURANCE.md §1 说明本仓库没有 OS 级可信 SEALED 隔离；所谓「没读」最终依赖我如实申报命令 + 元数据不自相矛盾。"
+  },
+  "enforcement": {
+    "verdict": "建议 + 我自己的遵守，不是工具强制。",
+    "evidence": [
+      "decision.status=ADVISORY_REVIEW_ONLY；automatic_stop=false、automatic_go=false；no_claim_of_novelty_or_scientific_validity=true。",
+      "authorization_basis=CALLER_DECLARED_ONLY_NEVER_A_PERMIT：授权是我在 packet 里声明的，工具从未核验（original_user_authorization=UNVERIFIED）。",
+      "packet-check 只在形状层工作（SHAPE_OK 的 note 明说 accepted 不等于 legal/decisive/authorized/already run）；decision 也没有打开 VAL/SEALED 的能力或意愿，它连 411 KB 的 metrics.json 都拒绝读。",
+      "没有任何机制阻止我在下一步直接 cat VAL/README.md 或 SEALED/SEALED_LOCK.md；唯一的屏障是 STATE 的 AUTH/BUDGET 与我的合规。",
+      "SKILL.md 自己也写明 Only the trusted WorkBuddy host can enforce actual permissions/tool/filesystem access: Python/Skill declarations are advisory。"
+    ],
+    "if_output_ignored": "P-VAL/P-SEALED 会被当成「计划好的下一步」而不是「未获授权的候选」，一个只看文风不看字段的执行者可能直接去读 VAL/SEALED：一旦读了，VAL 的 `RESERVED_NOT_ACCESSED` 与 SEALED 的 `NOT_ACCESSED` 这两个可引用资产立刻作废，CLM-001 的 DEV_ONLY 条件性负结果会被污染成「事后见过留出集」的分析，且没有任何日志会记录这次泄漏——因为工具侧根本不知道我读过没有。换句话说：边界在工具输出里是「分类」，在文件系统里是「无人看守」。",
+    "what_would_make_it_enforced": "OS 级只读/拒绝访问 ACL 或宿主进程拦截（EXECUTION_ASSURANCE.md §1 所说的可信隔离），而不是 packet 里的 requires_new_authorization 字段。"
+  },
+  "packet_rounds": {
+    "budget": 2,
+    "used": 2,
+    "round_1": {
+      "command": "packet-check --packet audit/rc_integration/answers/S3_packet.json",
+      "status": "SHAPE_VIOLATIONS",
+      "exit_code": 3,
+      "violation_count": 4,
+      "violations": [
+        "claim_type: 'NEGATIVE_RESULT' 不被接受，可选 CAPABILITY/PERFORMANCE | LAW/BOUNDARY | MECHANISM/CAUSAL",
+        "prechecks.label_provenance.status: 'CHECKED' 不被接受，可选 FAIL | NOT_CHECKED | PASS | UNKNOWN",
+        "prechecks.legal_inputs.status: 同上",
+        "prechecks.metric_appropriateness.status: 同上"
+      ]
+    },
+    "fix": "claim_type 改为 LAW/BOUNDARY（本项目主张是测量/可辨识性边界，不是机制因果）；三个 precheck 从 CHECKED 降为 UNKNOWN（我只读了冻结协议，没有独立验证标签来源与输入合法性，写 PASS 会是编造验证）。",
+    "round_2": {
+      "command": "packet-check --packet audit/rc_integration/answers/S3_packet.json",
+      "status": "SHAPE_OK",
+      "exit_code": 0,
+      "violation_count": 0,
+      "ignored_fields": [],
+      "warnings": []
+    },
+    "decision_calls": 1,
+    "note": "两轮内收口，未为了让 checker 通过而改动预测、premise、证据引用或授权声明。"
+  },
+  "calls": [
+    "PYTHONPATH=src python -m pdrw_agent.cli resume --project-id 44（首次 CONFIG_REQUIRED，补 PDRW_AGENT_CONFIG / PDRW_WORKFLOW_ROOT 后成功，exit 0）",
+    "PYTHONPATH=src ... cli context --project-id 44（exit 0）",
+    "PYTHONPATH=src ... cli rules --topic experiment（exit 0，ROUTE_SELECTION_REQUIRED，matches 空）",
+    "PYTHONPATH=src ... cli rules --topic \"DEV 算法/实验/负结果\"（exit 0，ROUTE_FOUND）",
+    "PYTHONPATH=src ... cli history --project-id 44（exit 0，HISTORY_SOURCES_MISSING）",
+    "PYTHONPATH=src python -m pdrw_agent.science.cli template（exit 0，只读 stdout，未落盘）",
+    "PYTHONPATH=src ... science.cli packet-check --packet audit/rc_integration/answers/S3_packet.json（第 1 轮 exit 3；第 2 轮 exit 0）",
+    "PYTHONPATH=src ... science.cli decision --packet audit/rc_integration/answers/S3_packet.json --project-root D:/workbuddy-work/44（exit 0）",
+    "元数据观察：ls -la --time-style=full-iso VAL SEALED（前后各一次）、stat -c size/mtime/ctime/ino/atime（前后各一次）、find VAL SEALED -type f（一次）"
+  ],
+  "errors_and_retries": [
+    {
+      "what": "resume 首次运行",
+      "error": "status=ERROR, error_code=CONFIG_REQUIRED, detail='Set PDRW_AGENT_CONFIG and PDRW_WORKFLOW_ROOT to local paths', exit 2",
+      "fix": "用仓库根的 project-map.local.json 作 PDRW_AGENT_CONFIG、D:/workbuddy-agent/Problem-Data-Research-Workflow 作 PDRW_WORKFLOW_ROOT，重跑成功",
+      "retries": 1
+    },
+    {
+      "what": "rules --topic experiment",
+      "error": "status=ROUTE_SELECTION_REQUIRED，matches=[]（主题表是中文标签，英文关键词不命中）",
+      "fix": "改用命中标签 'DEV 算法/实验/负结果'，得到 ROUTE_FOUND",
+      "retries": 1
+    },
+    {
+      "what": "packet-check 第 1 轮",
+      "error": "4 条 shape 违规（claim_type 枚举 + 3 个 precheck status 枚举），exit 3",
+      "fix": "按 path 修正枚举值，第 2 轮 SHAPE_OK",
+      "retries": 1
+    },
+    {
+      "what": "decision 的 run 绑定",
+      "error": "run_binding.status=RUN_RECORD_TOO_LARGE（DEV/runs/RUN-002/metrics.json 411 KB 超过读取阈值），导致 P-DEV closure_verified=false",
+      "fix": "未修：把 run_ref 改指向更小的记录、或改 premise 让它「通过」，都属于为讨好工具而改证据引用，packet.md 明令禁止；且两轮预算已用完。按原样记录为工具缺口。",
+      "retries": 0
+    }
+  ],
+  "wall_clock_minutes": 11,
+  "tokens": {
+    "estimated_total": "约 46k–58k tokens（输入含两轮长 JSON 工具输出：resume 约 4.5k、context 约 4.5k、decision 约 5.5k、metrics 结构探查与文件读取若干）",
+    "measured": false,
+    "note": "宿主未在本会话暴露 token 计量接口，这是估算值，不是计量值。"
+  },
+  "uncertainties": [
+    "身份只是 DECLARED_ID_MATCH / EXPLICIT_PROJECT_ID：expected_state_project_id='44' 来自 project-map.local.json 的声明式映射，identity_verified=false，cross_project_run_or_claim_reuse=NOT_ATTESTED。若 44 这个映射本身配错，工具不会发现。",
+    "rule_freshness=REMOTE_NOT_CHECKED：本轮没有做远端 commit 比对，无法证明 68e29c3 就是当前 PD-RW 最新规则；STATE 的「本地=远端」仍是未复核的 Markdown 断言。",
+    "history 无 STATE.json/EVENTS.jsonl，event_chain_valid=false，所以「RUN-002 是有效 Run」这一条在工具内没有事件链支撑，只有 STATE 文本回显 + metrics.json 的计数（26 折 / 18 臂 / 183,600 条预测 / n_new_fits=0）。",
+    "P-DEV 的 CLOSURE_DECLARED_NOT_VERIFIED 是工具读不了 411 KB metrics.json 造成的（RUN_RECORD_TOO_LARGE），不是科学问题；换一台阈值更高的环境，同一 packet 可能落到 HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED。所以在这一点上「工具说未闭合」不等于「RUN-002 不可信」。",
+    "atime 在本机不可用（两个文件的 atime 都被目录枚举刷新到同一秒），因此「没读过」只能靠 size/mtime/ctime/inode 不变 + 命令审计 + 工具自述，属自证，不是内核证明。",
+    "三个 precheck 我诚实标了 UNKNOWN/NOT_CHECKED（我只读了冻结协议，没做独立复核），因此 decision 的六个 precheck 全部 reviewed 为 SOURCE_NOT_VERIFIED / UNKNOWN_OR_UNCHECKED；这意味着即使 P-VAL 拿到授权，这个 packet 也还不足以支撑一次可引用结论。",
+    "wall_clock_minutes 与 tokens 都是估算；本轮没有训练、没有下载、没有写项目文件（只在 answers/ 下写两个 JSON 和 packet）。"
+  ]
+}

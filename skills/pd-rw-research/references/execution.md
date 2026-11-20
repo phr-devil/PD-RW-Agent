@@ -4,7 +4,7 @@ Load only when a resumed task actually needs multiple tool actions, DEV iteratio
 
 ## Trigger-aware calibrations (not four new stages)
 
-- **Restore** on new chat / compaction / project switch: recover exact project, rule version, record snapshot and primary evidence.
+- **Restore** on new chat / compaction / project switch: recover exact project, rule version, record snapshot and primary evidence. `resume` returns the project identity (`DECLARED_ID_MATCH` is a string two files agree on, not verification), the declared `BEST_VALID_RUN` and the local rule commit (`rule_freshness: REMOTE_NOT_CHECKED` — it proves which rules were used, never that they are current). It does **not** return `AUTH/BUDGET`: quote that line from `STATE.md` yourself, both halves — what is granted and what is explicitly not — because a truncated echo would drop the second half and read as a complete permission.
 - **Execution calibration** when WorkBuddy drifts, repeats work, or misses a rule: check only the affected fact and route, then continue.
 - **Gate calibration** immediately before an actual restricted effect: check original permission and tool boundary, not just a state tag.
 - **Science calibration** only when a key new Run, negative result or Claim shift could change the next experiment or contribution.
@@ -33,10 +33,119 @@ v0.5 adds private SQLite operational receipts, read-only recovery, PD-RW Run reg
 
 ## Optional scientific discriminability helper
 
-Only at a consequential research fork, assemble a small local DEV proposal with exact premise/scope, at least two competing hypotheses, qualitative probe predictions and original source refs. Use `python -m pdrw_agent.science.cli decision --packet FILE.json` to compare stated distinctions. A matched prior negative is an **advisory candidate**, not automatic STOP. Missing evidence is UNKNOWN; no new approval step or research authority.
+Only at a consequential research fork, assemble a small local DEV proposal with exact premise/scope, at least two competing hypotheses, qualitative probe predictions and original source refs. Write it with `template` and check it with `packet-check` **while you decide** — see [packet.md](packet.md); a packet reconstructed afterwards from prose has never once passed (03D, 04). Use `python -m pdrw_agent.science.cli decision --packet FILE.json` to compare stated distinctions. A matched prior negative is an **advisory candidate**, not automatic STOP. Missing evidence is UNKNOWN; no new approval step or research authority.
+
+`prechecks` is a **mapping keyed by check name** (`group_independence`, `legal_inputs`, `label_provenance`, `evaluation_integrity`, `metric_appropriateness`, `effect_size`), not a list of objects: unknown keys are rejected, and a list-shaped block fails the whole packet. Keep `predictions` a mapping of hypothesis ID to `INCREASE`/`DECREASE`/`NO_CHANGE`/`UNKNOWN`, `cost_band` one of `LOW`/`MEDIUM`/`HIGH`/`UNKNOWN`, and `evaluation_unit` a short unit name — prose belongs in `conclusion`, not in those fields.
+
+Read three fields before choosing a probe. `probe_findings` names a declared contradiction, not a verdict: `REFERENCE_NOT_LEGAL` when `comparison_reference` needs test-time truth (an oracle is a diagnostic, never a baseline), and `PROBE_UNIT_NOT_INDEPENDENT` when the probe's `evaluation_unit` repeats one subject while `group_independence` is declared PASS — in that case the precheck's `review` becomes `DECLARED_CONFLICT`. `no_decisive_probe: true` means no candidate separates any hypothesis pair, so running one cannot change the judgment; the cheapest non-dominated probe is then not offered. Answer the attached question, or design a probe that separates at least one pair. Theory and simulation paths are legal here: a probe over independent instances or replicates is not required to look like a subject-level experiment.
+
+`frontier_candidate_ids_as_declared` names only probes that separate at least one declared pair, whose reference is legal at prediction time, **and** that have not already answered this premise; a cheap probe that separates nothing never displaces a more expensive decisive one, and neither does a cheap probe you already ran. The other candidates stay visible with their use: `exploratory_probe_ids` (a pilot that cannot decide), `diagnostic_upper_bound_ids` (oracle-referenced: bounds what is achievable, not a lawful comparison), `needs_unit_verification_ids` (a `WINDOW`/`FRAME` unit asks how many **independent** units there are; window-level metrics are not banned, only unverified). `no_legal_decisive_probe: true` means every probe that separates something relies on an illegal reference — answer the attached question by naming a reference visible at prediction time. `no_executable_next_probe: true` is a different fact: the probes can decide and are legal, but none of them is a step you can take now. None of these lists stops anything: running an exploratory or diagnostic probe is still your call, within existing authorization.
+
+Declare what already happened with one optional field per probe, `prior_execution` (`status`, `run_ref`, `record_ref`, `premise_ref`, `premise_id`, `conclusion`, `new_information`, `requires_new_authorization`). It is echoed back with `applicability` and `next_action`, and the honest reading is: `COMPLETED_VALID` + a **bound** Run under **this** premise means `HISTORICAL_EVIDENCE_ONLY` — recorded evidence, not a next action; `COMPLETED_INVALID` means `TARGETED_REPAIR`, fix the named defect instead of repeating it; `INCONCLUSIVE` waits (`AWAIT_NEW_INFORMATION`) unless `new_information` is named, in which case it is a conditional `REVISIT_ON_NEW_INFORMATION`; `requires_new_authorization: true` is `NEEDS_AUTHORIZATION`, a candidate that nobody can start yet. A closure recorded under another `premise_id` does not close this premise. Nothing here writes a ledger, asks for approval, or upgrades a caller declaration to verified evidence.
+
+**A premise label you wrote twice is not evidence.** `prior_execution.premise_id` and `proposed_premise.premise_id` are both yours, so their equality proves nothing; from 0.9.12 the checker answers the premise question from the record instead. `premise_binding_basis` says which source did it: `RUN_RECORD` (the record states `premise_id`), `FROZEN_PLAN` (the plan the record names states it), `PREMISE_PLAN` (your `premise_ref` disagrees with the plan the Run executed), or `CALLER_DECLARATION` (nothing on disk speaks to it — `premise_verified: false`, and the echo says so). `premise_ref` is how you state **which frozen plan encodes the premise under study** (project-relative path, e.g. `protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json`); the record's `protocol_id`/`protocol_sha256` is then compared with that plan's bytes. A contradiction means the cited Run executed another experiment: the probe returns to `NOT_YET_RUN` with `CLOSURE_PREMISE_CONTRADICTED`, which is a new experiment, not a repeat and not a verdict about the science.
+
+**Three levels, not two: ran / attributed / settled.** `execution_verified` says the Run ran as declared. `attribution_verified` (+ `attribution_basis`) says something on disk ties that Run to *this* experiment: the record states the premise (`RUN_RECORD`), its frozen plan states it (`FROZEN_PLAN`), or the Run executed the plan you named (`CALLER_PREMISE_PLAN`). `closure_verified` says all of that holds and the premise is settled. A Run that ran but is tied to nothing on disk (`attribution_basis: NONE`) is `CLOSURE_ATTRIBUTION_UNCHECKED`: not evidence for this probe, not a next action, not a rerun — the next step is to read which plan it executed. That case is listed in `attribution_unchecked_ids` and is deliberately absent from `historical_evidence_ids`, because a caller's own label must not retire an experiment that may never have been run. **None of the three levels is a scientific conclusion**: whether the cited result is true, novel or generalizable is not decided here.
+
+`run_ref` must be a **project-relative path** (`DEV/runs/RUN-005`, or a path to the record file itself), not a bare Run ID: with `--project-root` the checker resolves it to a Run record, compares that record's own `status`/`verdict`/`anchor_pass` with what you declared, and reports the axes separately — `reference_present`, `file_binding`, `run_id_consistency`, `record_structure`, `status_consistency`, `premise_binding` (+`premise_binding_basis`, `premise_verified`), and only then `status_verified`. A bare `RUN-005` therefore reads as `CLOSURE_DECLARED_NOT_VERIFIED`, which is not a licence to rerun. `record_ref` picks a specific file inside the Run directory; `artifact_links_verified: false` means linked artifacts and their hashes were **not** opened. The mapping from there:
+
+| what the checker found | `applicability` | what it means for you |
+| --- | --- | --- |
+| no Run resolved | `CLOSURE_DECLARED_NOT_VERIFIED` + `EXECUTION_DECLARED_NOT_VERIFIED` | cite a resolvable path or check the Run; do not treat it as fresh |
+| record contradicts the declaration, or the file is another Run's | `STATUS_CONFLICT` + `EXECUTION_STATUS_CONFLICT` | the attempt is not a closure and not a negative; reconcile first |
+| the plan the record names cannot be read here | `CLOSURE_DECLARED_NOT_VERIFIED` + `CLOSURE_PLAN_UNRESOLVED` | the Run points at evidence you did not check; find that plan |
+| no `premise_id` on the closure | `CLOSURE_PREMISE_UNBOUND` + `CLOSURE_PREMISE_UNBOUND` | state the premise; an unbound closure cannot remove a live probe |
+| the cited Run executed another premise/plan | `NOT_YET_RUN` + `CLOSURE_PREMISE_CONTRADICTED` | this experiment is unanswered; design it, do not cite that Run |
+| bound, consistent, premise agrees (record or plan) | `HISTORICAL_EVIDENCE_ONLY` | cite it as evidence, do not rerun |
+| bound and consistent, and the Run executed the frozen plan you named, which states no premise | `HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED`, `attribution_basis: CALLER_PREMISE_PLAN` | citable evidence, still not a closure — confirm the plan's primary outcome is this experiment before quoting it |
+| bound and consistent, but nothing on disk ties the Run to this experiment | `CLOSURE_ATTRIBUTION_UNCHECKED` + `CLOSURE_ATTRIBUTION_UNCHECKED` | **not** evidence for this probe yet: read the plan the Run executed and say which experiment it answered. Do not cite it, do not rerun it |
+
+`status_verified` means the **closure** is verified, so it is never true while `premise_verified` is false; `execution_verified` is the other half (the Run ran as declared). Two different claims, two different fields — do not report the first as the second.
+
+`requires_new_authorization` is your statement, never a permit: the payload carries `authorization_basis: CALLER_DECLARED_ONLY`, and no field in it authorizes a download, a SEALED read or a payment. Declare it on a probe you have **not** run but cannot start (`status: NOT_EXECUTED` + `requires_new_authorization: true`): it then reads `NEEDS_AUTHORIZATION` and is not counted as a next action. A 03D-era proposal in this repo reached the reserved validation subjects precisely because nothing in the packet said the set was off-limits; a probe that spends data beyond the frozen DEV subset must declare it here, not in prose.
+
+## Case-library decision reuse (v0.5.4 local increment)
+
+At a **new Task**, a **significant anomaly**, a **planned large resource investment**, or the **end of an effective experiment**, call `search_research_memory` once with the mechanism filters and a declared `task_profile` (mechanisms, legal_inputs, labels, grouping, evaluation_unit, baseline, boundaries, counterexamples, decision). Read `decision_experiences` (≤5, both negative warnings and success transfers) and `case_review`; for an explicit second opinion use `review_case_transfer`.
+
+- Compare each case's `premises`, `applicability.conditions/boundaries` and `counterexamples` with the **actual** protocol. `USEFUL_ANALOGY` is a prompt to check, not a licence to transfer a conclusion. `APPLICABILITY_RISK` or `CONDITIONS_DIFFER` means do not reuse that result directly; `EVIDENCE_INSUFFICIENT` means mark it a candidate.
+- Check `source_verification.per_case.<id>.evidence_grade`; a `DECISION_GRADE` case is original/partial-text verified with a matching local card. `ABSTRACT_VERIFIED_ONLY`, `NON_DECISION_GRADE`, `+PREPRINT_NOT_PEER_REVIEWED`, `UNVERIFIED_CARD_MISSING_OR_ID_MISMATCH` and `INDEX_STALE_REBUILD_REQUIRED` stay `candidates_only`. `role_classes` separates original empirical work, independent replication/external validation, author/internal reports, opinion/review and unverified secondary claims.
+- Never emit GO/STOP from these tools; decisions stay with PD-RW and the author. Never write to CASE_LIBRARY, STATE, RESEARCH_RECORD, Run, EVENTS or SEALED. No second memory file or research-rule copy.
+- **Dedup:** keep `query_fingerprint`; do not repeat the same query+profile+index in one task. `cache_hit: true` is the same evidence, not new evidence. Re-query only when the declared conditions or the index fingerprint change.
+- At the end of an effective experiment, `extract_case_candidates` may produce `CANDIDATE_ONLY` items from original Run evidence plus the existing science audit. They are **not** verified scientific conclusions and are never auto-promoted; a later, separately authorized, independently verified review would be required to add a case card.
+
+## Case-application gates (v0.5.5 local increment)
+
+`case_gate_check(event, detail="compact")` is the **single** new MCP tool. It is an orchestrator only: it decides WHEN to retrieve, reuses the verified result, and verifies that a real retrieval happened. All retrieval/ranking/8-dimension review come from the existing `case_learning.case_search` -> `CASE_LIBRARY/scripts/search_cases.py`. No second retriever, no new science-state database.
+
+**Five triggers, priority G1 > G2 > G3 > T1 > T2**
+
+| Trigger | When | Declared event fields | Main output |
+| --- | --- | --- | --- |
+| G1 | H2–H3, before the core scientific question is fixed | `h_stage=H2/H3`, `milestone=QUESTION_SELECTION` | `selection_impact` |
+| G2 | H4 and H6–H7, before the evidence route and the core experimental protocol are frozen | `h_stage=H4/H6/H7`, `milestone=PROTOCOL_FREEZE` | `concrete_checks`, `protocol_design_review` |
+| G3 | H8 / H10, before a major conclusion / main Claim / staged closure (H9 excluded) | `h_stage=H8/H10`, `milestone=CLAIM_OR_CLOSURE` | `contribution_review`, candidate hint |
+| H9 recheck | formal confirmation protocol substantively changed | `h_stage=H9` + protocol-change signal, or `milestone=PROTOCOL_RECHECK` | re-opens **G2** outputs |
+| T1 | anomaly, unsupported core mechanism, severe evaluation problem, repeated ineffective attempts, consecutive valid negatives | `signals` with a T1 code; `outcome_class`, `evidence_refs` | `anomaly_triage`, failure/repair experiences |
+| T2 | significant resource increase or change of core algorithm, data scope, evaluation criterion or scientific question | `signals` with a T2 code | `decision_change_review` |
+
+`CODE_CHANGE`, `HYPERPARAMETER_TUNING`, `TEST_ONLY`, `PLOTTING`, `SAME_SCOPE_DEV`, `BUG_FIX`, `DOCUMENTATION`, `REFACTOR` are DEV noise: with `milestone=NONE` they return `NO_CASE_RETRIEVAL_REQUIRED` and **zero retrieval**. Unknown declared signals/stages are recorded as `UNKNOWN`, never silently invented.
+
+**Mandatory checkpoints are evidence-checked.** The result carries `retrieval_record` (`retrieval_tool=case_learning.case_search`, `index_sha256`, `retrieval_scope`, `retrieved_case_ids`, `applicability_judgments`, `source_verification_present`) and `verification.status`. A bare `CASE_CHECK: COMPLETED` string is rejected by `verify_gate_record`. No-match still passes with `gate_status=UNKNOWN`, an explicit retrieval scope and result, and `may_proceed=true`. An inaccessible library returns `CASE_LIBRARY_UNAVAILABLE` with the reason, no fake completion and no blocking of unrelated legal work.
+
+**Fingerprint reuse.** `gate_fingerprint` hashes Task, hypothesis, protocol, `h_stage`, `milestone`, `task_profile`, `query`, `filters`, evidence declaration and the CASE_LIBRARY `index.json` sha256. The digest covers the **whole** bounded event (each field ≤1200 chars by the validator); the `fingerprint_basis` returned for audit is clipped for reading only, so a declaration that differs only near its end still produces a new key. Unchanged conditions return the **same verified record** with `cache_hit=true` and zero new retrieval; changing any key premise/evidence/protocol or rebuilding the index produces a new fingerprint and a fresh retrieval. The cache is a bounded in-process `OrderedDict`, not a project STATE/EVENTS store. `detail="compact"` defaults to ≤5 one-line cases; `detail="full"` or the existing `search_research_memory` / `review_case_transfer` tools supply full evidence.
+
+**Enforcement level.** `enforcement_level.actual = ADVISORY_SKILL_AND_TOOL_LEVEL`, `hard_gate=false`, `host_state_transition_interception=false`. WorkBuddy on this host has no trusted state-transition hook: the Skill requests the check, the tool executes it when actually called, but it cannot block a transition. Never report it as a hard gate. `automatic_go_stop=false` always; PD-RW H6/H8 author choices and separate writing permission are unchanged. T1 triage separates engineering error / invalid experiment / insufficient evidence / valid scientific negative before any suggested action, and reports `category_effective` (`category` is only the caller's declaration, downgraded to `UNKNOWN` when the same call's Run declaration contradicts it). `evals/case_gate_eval.py` records actual calls, false/missed triggers and payload size; real decision quality and WorkBuddy tokens remain `NOT_MEASURED`.
+
+## v0.6.0 local increment: cases must change the next action
+
+**Card bridge.** `project_case_bridge(stage_card, stage)` maps an unchanged H3/H4 early plan (`pdrw-early-plan-v1`), an H6 plan (`pdrw-h6-plan-v1..v3`) or a plain declared card into the same gate. It echoes `plan_sha256`, `upstream_choices`, `hard_constraints_sha256` and the declared choice ref without validating or replacing them; `authorization.*` is always false. Only same-meaning fields are mapped; every other dimension is returned in `unknown_dimensions` and is NOT written into the retrieval profile, because a literal "UNKNOWN" would compare as declared text and could fabricate `NO_TEXT_OVERLAP` → `CONDITIONS_DIFFER`. Early H3/H4/H6 cards need no complete experiment profile before real Run evidence exists. `case_export.export_case_markdown(case_id)` is a read-only, deterministic renderer for a later local-experience → Markdown stage; it writes nothing and syncs nothing. See `docs/CASE_EXPORT_INTERFACE.md`.
+
+`next_actions` is the reason these gates exist. Pipeline: `RETRIEVE → GRADE_EVIDENCE → COMPARE_PREMISES → EXTRACT_RISK_OR_SUCCESS_CONDITIONS → PROPOSE_NEXT_ACTION → EXECUTION_EVIDENCE_RECHECK`. At most **1–3** proposals per decision: a concrete check, a discriminating paired experiment, a success condition to preserve, and only when a G3/T2 applicability risk exists an `AUTHOR_STRATEGY_OPTION` submitted to the author. Each action carries `linked_case_id`, `case_source` (evidence paths + tier), `current_task_premises`, `applicability_basis`, `why_this_case_applies`, `minimal_validation` and `status=PROPOSED_NOT_EXECUTED`. G2's `concrete_checks` are linked to their `next_action_id` so they are no longer produced and ignored.
+
+**Evidence tiers (orthogonal to evidence role):** `DECISION_GRADE` may drive advice; `EXPLORATORY_LEAD` (preprint / internal report / abstract-only / review-required) is a clearly labelled clue with `independent_confirmation=NOT_ESTABLISHED`, never an independent scientific conclusion; `CANDIDATE_ONLY` (secondary / not accessed / speculation / missing card / stale index) is retained but cannot drive advice. Success experiences also report key conditions, matching/differing declared conditions, transferable mechanism and a minimal validation experiment, so a successful route is not silently filtered out by an evidence-grade threshold.
+
+**Execution evidence:** only after actual execution may the caller declare `execution_evidence_refs`; `verify_execution_evidence` then rechecks them read-only against existing `EVENTS.jsonl` runs and private operation receipts. A generated recommendation is never marked executed, and a matched reference is still only a tool-level record check, not scientific validation. No second state database is created.
+
+**Correctness and cache:** `gate_fingerprint` now includes `decision`, `known_project_stage`, execution/evidence declarations and `index_stale` in addition to Task / hypothesis / protocol / stage / `task_profile` / query / filters / index sha256. Stage × milestone × known project state is cross-validated; on a contradiction or a stale index the tool returns an UNKNOWN advisory (`checkpoint_verified=false`), never `RETRIEVAL_VERIFIED`, and never blocks unrelated legal work. `payload_chars` measures the actual returned payload (including `detail=full`, excluding the private cached copy). The default advisory is compact; general `search_research_memory` lookups use `case_scope=auto` and skip a full case-library retrieval, with `case_scope=force` available on demand.
+
+## The action plan: three tiers, never one running list
+
+A plan mixes two different kinds of statement, and 04 produced both failures by
+writing them as one numbered list: a reserved-VAL grid appeared as *step 1* with
+"needs new authorization" mentioned at step 3, and a holdout evaluation appeared
+as *step 3* of a shortest evidence path. Neither is a schema error. Both are a
+missing output shape.
+
+Deliver the plan in three labelled tiers:
+
+1. **NOW — legal under the current original authorization.** Say which authority
+   the step spends: the frozen DEV subset, data an existing Run already
+   produced, a read-only document. If you cannot name that authority, the step
+   is not tier 1.
+2. **NEEDS_NEW_AUTHORIZATION — a specific grant, named.** Reserved VAL/Holdout/
+   SEALED reads, a second dataset or a download, a paid or external execution, a
+   material primary-Claim or strategy change. State *which* permission is
+   missing and who grants it. "We would need permission" inside a step's prose
+   is not the same statement, and it is the one 04 wrote twice.
+3. **FUTURE_CONDITIONAL — only meaningful if tier 2 arrives or a result moves.**
+   Write the condition, not a promise.
+
+Three rules follow, and only these:
+
+- **A tier-2 item does not weaken tiers 1 and 3.** The legal analysis is still
+  the answer to "what can be done now"; a plan that ends in a gate is not a plan
+  that was rejected.
+- **`prior_execution.requires_new_authorization` is the machine form** of tier 2
+  for a *probe* (it reads `NEEDS_AUTHORIZATION` and leaves the frontier). A plan
+  step that is not a probe and spends protected data has no field: write it in
+  tier 2, in words, and do not fold it into a step that looks runnable.
+- **No packet field is a permit.** `requires_new_authorization`, `approved`, a
+  plan hash and a green `packet-check` are declarations; the original grant is
+  the only authority, and the trusted host is what checks it.
 
 ## Minimal handoff
 
-`RESULT | EVIDENCE_PATHS | TESTS_ACTUALLY_RUN | LIMITS/UNKNOWN | NEXT_LEGAL_ACTION_OR_USER_CHOICE`
+`RESULT | EVIDENCE_PATHS | TESTS_ACTUALLY_RUN | LIMITS/UNKNOWN | PLAN(NOW / NEEDS_NEW_AUTHORIZATION / FUTURE_CONDITIONAL)`
 
 This is an output guide, not a requirement to create a new handoff file or duplicate the PD-RW project's existing reports.

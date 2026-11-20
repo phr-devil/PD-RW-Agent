@@ -1,0 +1,113 @@
+{
+  "claim_type": "CAPABILITY/PERFORMANCE",
+  "question": "在 PoPu DEV 数据上，可靠性机制相对基座是否带来可部署的增量？",
+  "hypotheses": [
+    "H1_MAGNITUDE_SUFFICIENT",
+    "H2_STRUCTURE_TRANSFER",
+    "H3_SUBJECT_SPECIFIC_ERROR",
+    "H4_ORACLE_GAP_UNREACHABLE",
+    "H5_LABEL_DEFINITION_ARTIFACT",
+    "H6_SCOPE_12SUBJ_MODEL_FAMILY"
+  ],
+  "proposed_premise": {
+    "premise_id": "PREM-REL-GATE-DEPLOYABLE-INCREMENT",
+    "scope": {
+      "claim": "只用可部署下层观测（基座预测 + 下层 72 通道的确定性汇总）构造的可靠性分数，在选择性压力强度误差上优于幅值基线",
+      "base": "RUN-004 冻结的直接 HGB（M1 配置）强度恢复，目标 = Tactilus top-1% 代理强度",
+      "population": "PoPu DEV，受试者独立划分；已测 12 人固定子集，未测全 60 人",
+      "reporting_unit": "subject（受试者级配对，非帧）",
+      "excluded": "真实姿态 / 受试者身份 / 上层派生值 / 测试受试者统计不得入特征；Oracle 排序只作诊断上界，不作方法"
+    }
+  },
+  "prechecks": {
+    "CHK-LEAK": {
+      "check": "可靠性特征清单只含基座预测与下层 72 通道汇总；测试受试者不进入自身可靠性拟合；误差标签从不作为特征",
+      "pass_criterion": "verification.json 的 labels_never_used_as_features / test_subject_never_in_own_reliability_fit / features 三项与冻结协议一致"
+    },
+    "CHK-ANCHOR": {
+      "check": "基座强度 MAE 与 RUN-004 M1 的一致性：先验证 seed 确定性（同折两次拟合 1e-12 内一致），再要求 |seeded − RUN-004| ≤ 2× 未设 seed 的单折抖动",
+      "pass_criterion": "两次 seeded 拟合逐字相同，且 raw/dropall 的 |diff| 均 ≤ 0.1712（2×0.0856）"
+    },
+    "CHK-POWER": {
+      "check": "12 人设计的可检出效应量：以受试者级 bootstrap CI 半宽为最小可辨差（raw ΔAUC 约 0.073）",
+      "pass_criterion": "任何 POS 主张必须超过该半宽；反之，CI 半宽大于所关心的效应量时，不得把空结果读成「无效应」的证据"
+    }
+  },
+  "probes": [
+    {
+      "id": "PRB-REL-GATE-12SUBJ",
+      "observable": "受试者级 AUC(R1−R0)，标签 = 绝对强度误差 ≥ 训练集 inner-OOF 误差 75 分位；以及 0.70 / 0.50 覆盖率的选择性强度 MAE；raw 与 dropallGT100 两量程；附 Oracle 排序诊断上界",
+      "evaluation_unit": "subject（固定 12 人 DEV 子集，12 折留一受试者，训练集 = 其余 59 人）",
+      "comparison_reference": "R0_magnitude_only（分数 = 基座预测强度）与 R2 随机分数；B0 = RUN-004 冻结的直接 HGB，不重新调参",
+      "predictions": {
+        "H1_MAGNITUDE_SUFFICIENT": "R1−R0 的 AUC ≤ 0 且选择性 MAE ≥ 0；R0 自身 AUC 明显高于 0.5 但远低于 1",
+        "H2_STRUCTURE_TRANSFER": "R1−R0 的 AUC > 0 且 CI 下限 > 0，且至少一量程选择性 MAE < 0 且 CI 不含 0",
+        "H3_SUBJECT_SPECIFIC_ERROR": "逐受试者 AUC(R1) 分布跨 0.5 大幅摆动，且 R1−R0 在多数受试者为负"
+      },
+      "cost_band": "CPU 约 2–3 min；0 付费；0 新下载",
+      "prior_execution": {
+        "status": "EXECUTED",
+        "run_ref": "DEV/runs/RUN-005",
+        "premise_id": "PREM-REL-GATE-DEPLOYABLE-INCREMENT",
+        "conclusion": "NEG_NOT_PREDICTABLE_BEYOND_MAGNITUDE（DEV_ONLY / EXPLORATORY_CONFIRMATION_NOT_INDEPENDENT）。R1−R0 AUC = −0.0881 CI[−0.164,−0.018]（raw）/ −0.1017 CI[−0.178,−0.034]（dropall），即结构特征反而低于幅值基线；0.70 覆盖率选择性 MAE R1−R0 = +0.604 CI[0.095,1.220] / +0.591 CI[0.190,1.050]（R1 更差）；R0 自身 AUC 0.5785/0.5927，R2 随机 0.4986/0.4994；Oracle 上界 5.436/4.979 对 R0 8.633/7.896。同目录 attempt-1-invalid-anchor 为锚点失败的失效尝试（status INVALID_HARNESS_TRAINING_SET_RESTRICTED），不计为结果。",
+        "new_information": "把目标从强度换成误差后，首个可部署可靠性分数（预测 + 12 个下层汇总）在受试者级 AUC 与选择性 MAE 上都劣于只用预测强度，且劣于随机；同时 12 名受试者的逐人 AUC(R1) 在 0.275–0.585 之间摆动（R0 为 0.397–0.782），说明误差结构跨受试者不可迁移。Oracle 缺口（70% 覆盖率 MAE 8.63→5.44）表明失败并非本质上不可辨识，但当前可部署输入抓不到。该 Run 只覆盖 12 人、单一模型族、单一失败标签定义，因此回答的是该限定下的「无增量」，不回答全 60 人、其他标签定义或配准后几何特征的版本。"
+      }
+    },
+    {
+      "id": "PRB-REL-GATE-60SUBJ",
+      "observable": "同一冻结口径下的受试者级 AUC(R1−R0) 与 0.70 / 0.50 覆盖率选择性 MAE，全 60 折 DEV；报逐受试者方向计数与受试者级 bootstrap CI",
+      "evaluation_unit": "subject（60 折留一受试者，训练集 = 其余 59 人）",
+      "comparison_reference": "同折 R0 幅值基线与 R2 随机；B0 同配置但 random_state=0；先报 60 折 B0 强度 MAE 作为新锚点",
+      "predictions": {
+        "H3_SUBJECT_SPECIFIC_ERROR": "ΔAUC ≤ 0 或 CI 跨 0（至少一量程），选择性 MAE 不改善 → 误差结构受试者特异，扩样本不救回可迁移性",
+        "H6_SCOPE_12SUBJ_MODEL_FAMILY": "两量程 ΔAUC > 0 且 CI 下限 > 0，且至少一量程选择性 MAE < 0 且 CI 不含 0 → 12 人子集效力不足，负结论须收回",
+        "H1_MAGNITUDE_SUFFICIENT": "|ΔAUC| < CHK-POWER 半宽、选择性 MAE CI 跨 0，R0 AUC 维持 0.55–0.60 → 幅值基线即可部署上限"
+      },
+      "cost_band": "CPU 15–30 min；0 付费；需作者新授权（扩至全 60 人，当前未授权）"
+    },
+    {
+      "id": "PRB-REL-LABEL-DEF",
+      "observable": "三种失败标签下的 ΔAUC(R1−R0) 与 0.70 覆盖率选择性 MAE：①绝对误差 75 分位（现行）②相对误差（误差/预测强度）③单侧低估（预测 < 真值且差 ≥ 1 个受试者内 SD）",
+      "evaluation_unit": "subject（与 PRB-REL-GATE-60SUBJ 共用折、特征与基座预测，只替换失败标签定义，不重训基座）",
+      "comparison_reference": "同折 R0 与 R2；同一 B0 预测向量，仅标签定义不同",
+      "predictions": {
+        "H5_LABEL_DEFINITION_ARTIFACT": "至少一种部署相关标签下 ΔAUC > 0 且 CI 不含 0，而现行 75 分位标签下 Δ ≈ 0 → 负结论部分来自标签选择",
+        "H1_MAGNITUDE_SUFFICIENT": "三种标签下 ΔAUC 均 ≤ 0 或 CI 跨 0，且 R1 相对 R0 的选择性 MAE 均不改善 → 负结论对标签定义稳健"
+      },
+      "cost_band": "CPU 10–20 min（复用同一折与预测，只重算标签与排序）；0 付费；随 PRB-REL-GATE-60SUBJ 一同授权"
+    },
+    {
+      "id": "PRB-REL-ORACLE-GAP-ATTR",
+      "observable": "Oracle 缺口（0.70 覆盖率 MAE 8.633→5.436 raw / 7.896→4.979 dropall）中可由测量伪影解释的比例：对上层目标做 ±1 帧时间平滑与随机抖动重算后，Oracle 选择性 MAE 与 R0/R1 差距的收缩幅度",
+      "evaluation_unit": "subject（只做评价器侧重算，不重训任何模型，可先用 12 人再决定是否扩 60 人）",
+      "comparison_reference": "现行 Oracle 5.436/4.979 与 R0 8.633/7.896（RUN-005 记录值）",
+      "predictions": {
+        "H4_ORACLE_GAP_UNREACHABLE": "平滑/抖动使 Oracle 缺口收缩 ≥ 50% → 缺口主要由时间同步与单位未标定造成，属测量层问题，可靠性机制在此数据上不应继续加变体",
+        "H3_SUBJECT_SPECIFIC_ERROR": "缺口收缩 < 30% 且 R1 仍不优于 R0 → 缺口是真实的模型外信息，值得继续找可部署代理而非放弃机制"
+      },
+      "cost_band": "CPU < 10 min；0 付费；仅用既有数据与派生缓存"
+    },
+    {
+      "id": "PRB-REL-GEOMETRY",
+      "observable": "以配准后有物理位置的邻域 / 拓扑特征（替代无物理含义的索引质心）构造可靠性分数时的 ΔAUC(R1_geo−R0) 与选择性 MAE",
+      "evaluation_unit": "subject（LOSO；规模由可用配准证据决定，无配准证据时不得先以 12 人子集试跑）",
+      "comparison_reference": "同折 R0 幅值基线；R1 的旧（未配准）特征版作为对照，用于区分「特征错」与「结构不可迁移」",
+      "predictions": {
+        "H2_STRUCTURE_TRANSFER": "ΔAUC > 0 且 CI 不含 0 → 先前结构特征失败源于几何未配准，而非误差结构不可迁移",
+        "H4_ORACLE_GAP_UNREACHABLE": "Δ ≈ 0 且 Oracle 上界不变 → 缺口来自未观测信息，不是特征表达问题"
+      },
+      "cost_band": "需 GAP-001 配准证据 + 新授权；CPU 1–2 天；0 付费"
+    },
+    {
+      "id": "PRB-REL-EXTERNAL-LIB",
+      "observable": "在第二个床垫下稀疏压力阵列数据集上重跑冻结的 R0/R1/R2 口径，报 ΔAUC 与 0.70 覆盖率选择性 MAE",
+      "evaluation_unit": "subject（每个库独立 LOSO，不与 PoPu 池化）",
+      "comparison_reference": "同库 R0 与 R2；PoPu RUN-005 数值仅作对照，不作基线",
+      "predictions": {
+        "H1_MAGNITUDE_SUFFICIENT": "外库同样 ΔAUC ≤ 0、R0 AUC 落在 0.55–0.60 → 幅值基线已是可部署上限，负结论升级为机制级",
+        "H6_SCOPE_12SUBJ_MODEL_FAMILY": "外库 ΔAUC > 0 且 CI 不含 0 → 负结论限于 PoPu 与本协议，不具外推性"
+      },
+      "cost_band": "需新数据下载与授权；CPU 0.5–1 天；0 付费"
+    }
+  ]
+}

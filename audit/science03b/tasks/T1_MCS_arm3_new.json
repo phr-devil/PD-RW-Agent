@@ -1,0 +1,220 @@
+{
+  "status": "ADVISORY_REVIEW_ONLY",
+  "question": "In MCS-HEMO-26 DEV, is the blood-pressure association of the ear signal identifiable as physiology, or is it same-source reference plus hardware offset?",
+  "claim_type": "MECHANISM/CAUSAL",
+  "claim_evidence_refs": [
+    "MCS-HEMO-26/research/dev_audit/oa_verification_stats.json",
+    "MCS-HEMO-26/research/dev_audit/ob_reference_recheck.json"
+  ],
+  "premise_candidates": [],
+  "positive_premise_candidates": [],
+  "prechecks": {
+    "label_provenance": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "group_independence": {
+      "declared_status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/SPLIT_PROTOCOL.md"
+      ],
+      "review": "DECLARED_CONFLICT",
+      "independently_verified": false,
+      "conflict_with_probe_units": [
+        "MCS-P2-DOC-CHECK"
+      ]
+    },
+    "legal_inputs": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "evaluation_integrity": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "metric_appropriateness": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "effect_size": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    }
+  },
+  "probe_comparisons": [
+    {
+      "id": "MCS-P1-CROSS-SESSION-ICC",
+      "observable": "cross-session ICC of SBP and of the ear band ratio",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same recording, second session",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_same_source_reference",
+          "H_state_physiology"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [
+        "H_hardware_offset"
+      ],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "findings": [],
+      "applicability": "HISTORICAL_EVIDENCE_ONLY",
+      "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK",
+      "prior_execution": {
+        "declared_status": "COMPLETED_VALID",
+        "run_ref": "O8/O12/O22",
+        "status_verified": true,
+        "premise_match": true,
+        "history_applicable": true,
+        "requires_new_authorization": false,
+        "new_information_declared": false,
+        "applicability": "HISTORICAL_EVIDENCE_ONLY",
+        "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN"
+      }
+    },
+    {
+      "id": "MCS-P2-DOC-CHECK",
+      "observable": "presence of periodic arm-cuff readings in the official record",
+      "evaluation_unit": "RECORD",
+      "comparison_reference": "official documentation, no new measurement",
+      "distinguishable_hypothesis_pairs_as_declared": [],
+      "pair_count": 0,
+      "missing_hypothesis_predictions": [
+        "H_state_physiology",
+        "H_hardware_offset"
+      ],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "findings": [
+        "PROBE_UNIT_NOT_INDEPENDENT"
+      ],
+      "applicability": "NOT_YET_RUN",
+      "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK",
+      "prior_execution": {
+        "declared_status": "NOT_EXECUTED",
+        "run_ref": null,
+        "status_verified": false,
+        "premise_match": null,
+        "history_applicable": false,
+        "requires_new_authorization": false,
+        "new_information_declared": false,
+        "applicability": "NOT_YET_RUN",
+        "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING"
+      }
+    },
+    {
+      "id": "MCS-P3-NEW-INSTRUMENTED-DATA",
+      "observable": "group delay and cuff values from a synchronised pulse and log",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "independent calibration of the same device",
+      "distinguishable_hypothesis_pairs_as_declared": [],
+      "pair_count": 0,
+      "missing_hypothesis_predictions": [
+        "H_state_physiology"
+      ],
+      "declared_cost_band": "HIGH",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "findings": [],
+      "applicability": "NEEDS_AUTHORIZATION",
+      "next_action": "OBTAIN_AUTHORIZATION_FIRST",
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK",
+      "prior_execution": {
+        "declared_status": "NOT_EXECUTED",
+        "run_ref": null,
+        "status_verified": false,
+        "premise_match": true,
+        "history_applicable": false,
+        "requires_new_authorization": true,
+        "new_information_declared": false,
+        "applicability": "NEEDS_AUTHORIZATION",
+        "next_action": "OBTAIN_AUTHORIZATION_FIRST"
+      }
+    }
+  ],
+  "declared_probe_efficiency": {
+    "frontier_candidate_ids_as_declared": [],
+    "dominated_candidates_as_declared": [],
+    "exploratory_probe_ids": [
+      "MCS-P2-DOC-CHECK",
+      "MCS-P3-NEW-INSTRUMENTED-DATA"
+    ],
+    "diagnostic_upper_bound_ids": [],
+    "needs_unit_verification_ids": [
+      "MCS-P2-DOC-CHECK"
+    ],
+    "historical_evidence_ids": [
+      "MCS-P1-CROSS-SESSION-ICC"
+    ],
+    "repair_required_ids": [],
+    "awaiting_new_information_ids": [],
+    "revisit_on_new_information_ids": [],
+    "needs_authorization_ids": [
+      "MCS-P3-NEW-INSTRUMENTED-DATA"
+    ],
+    "blocked_ids": [],
+    "unverified_closure_ids": [],
+    "no_discriminating_probe": false,
+    "no_legal_decisive_probe": false,
+    "no_executable_next_probe": true,
+    "unknown_cost_ids": [],
+    "scientifically_ranked": false,
+    "automatically_selected": false,
+    "source_predictions_verified": false,
+    "note": "Declared pairs, cost bands and declared execution state only: compare original evidence, scientific importance, independent groups and legal scope before acting. No candidate is rejected by this hint."
+  },
+  "probe_findings": [
+    {
+      "probe_id": "MCS-P2-DOC-CHECK",
+      "codes": [
+        "PROBE_UNIT_NOT_INDEPENDENT"
+      ],
+      "rules": [
+        "HIGH_VALUE_RESEARCH_DESIGN §B INDEPENDENT_N / CASE-11"
+      ],
+      "precedent": [
+        "CASE-11",
+        "EXT-X3"
+      ],
+      "questions": [
+        "How many independent units (not windows) does this probe compare?"
+      ],
+      "usage": [
+        "VERIFY_INDEPENDENT_UNITS_FIRST"
+      ],
+      "blocks_decisive_frontier": false,
+      "independently_verified": false
+    }
+  ],
+  "no_decisive_probe": false,
+  "no_decisive_probe_question": null,
+  "no_legal_decisive_probe": false,
+  "no_legal_decisive_probe_question": null,
+  "no_executable_next_probe": true,
+  "no_executable_next_probe_question": "Which listed probe has not already answered this premise and can start under the current authorization? A closed probe is recorded evidence, an invalid one needs its named defect repaired, and an ungranted one is a candidate rather than a next action.",
+  "no_claim_of_novelty_or_scientific_validity": true,
+  "original_user_authorization": "UNVERIFIED",
+  "automatic_stop": false,
+  "automatic_go": false,
+  "guidance": "Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; verify original Run and named literature before choosing a Task or Probe.",
+  "source_binding": {
+    "status": "NOT_CHECKED",
+    "scientific_claims_verified": false
+  }
+}

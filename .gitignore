@@ -17,3 +17,6 @@ project-map.local.json
 *.sqlite-shm
 .agent-runtime/
 pd-rw-fixture/
+
+# Python build metadata (generated)
+*.egg-info/

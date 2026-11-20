@@ -1,0 +1,89 @@
+{
+ "task": "T1",
+ "kind": "formal",
+ "project": "48",
+ "frozen_at": "before the H8 HOLD decision",
+ "question": "which mechanism explains 'not predictable beyond magnitude', and what is the cheapest probe that separates them",
+ "source_root": "D:\\workbuddy-work\\48",
+ "visible": [
+  {
+   "path": "STATE.md",
+   "bytes": 17088,
+   "sha256": "4156829d4cd4b4424c8fac66936c690c7328b697f3af7069938032877ff6d5ac"
+  },
+  {
+   "path": "RESEARCH_RECORD.md",
+   "bytes": 27690,
+   "sha256": "048b2e68aabf7c3af631fa9fd5bc13e2f4b65f73b879b8baa86c33971926d49e"
+  },
+  {
+   "path": "protocol/PROTO-POPU-DEPLOY-v3-DEV003.json",
+   "bytes": 9162,
+   "sha256": "4d9810fec23395cf127ce86fb3ffeed0178b15627693ea6eb7f11d56f3b9f7b6"
+  },
+  {
+   "path": "protocol/PROTO-POPU-INF-INC-v1.json",
+   "bytes": 6588,
+   "sha256": "372978630cde13d0d08a030cce04933bf224a803766af12b8a157ff57f1fa9ae"
+  },
+  {
+   "path": "protocol/PROTO-POPU-INF-INC-v2-DEV002.json",
+   "bytes": 9788,
+   "sha256": "d76bfb80ecf51eef2dfe38fa4c991b8974e44b0cb71a686bb4609e4c15399163"
+  },
+  {
+   "path": "protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json",
+   "bytes": 7101,
+   "sha256": "96a7558660d22a39d60aa952920bdefdff7b6efd3f055c6a7c2a4781feb7d173"
+  },
+  {
+   "path": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+   "bytes": 6325,
+   "sha256": "b9b31799e4a9992293fdac8e430625fbbcc4f9b4505731d157726c537582fb0a"
+  },
+  {
+   "path": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.amendment-001.json",
+   "bytes": 1964,
+   "sha256": "5b11734b767bde923e1aea89e057e1d5bad1b622d55d26e2823efd7bdf79b2fd"
+  },
+  {
+   "path": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.amendment-002.json",
+   "bytes": 2218,
+   "sha256": "d6425575b82e84a193d2380f0c538565c175946a291c06858245f2bf7d99bb33"
+  },
+  {
+   "path": "DEV/runs/RUN-001/metrics.json",
+   "bytes": 239231,
+   "sha256": "088983e2ce01c7a12fee7ed758e5f6c572d24a62eae788c9bc48f55999d65d80"
+  },
+  {
+   "path": "DEV/runs/RUN-002/metrics.json",
+   "bytes": 58258,
+   "sha256": "f4a89ee522c3d4a5de9f6b821fb97639902d74fba979a8f999b38a7b9e8a8cd1"
+  },
+  {
+   "path": "DEV/runs/RUN-003/metrics.json",
+   "bytes": 228138,
+   "sha256": "5441a1a0a6a06f6771c653a0f63f558b5793abeca4edd45b04cedbe12ef92e5c"
+  },
+  {
+   "path": "DEV/runs/RUN-004/metrics.json",
+   "bytes": 45601,
+   "sha256": "a558c47a6d17831985e15d873452bd0abff4096b01ab6f3924af69f225c477f8"
+  },
+  {
+   "path": "DEV/runs/RUN-005/metrics.json",
+   "bytes": 30716,
+   "sha256": "90362addfb2133bcfbaea2fe47280de8136e8e741f0d5ab6cc3a670b108c2c43"
+  }
+ ],
+ "excluded": [
+  "data/PoPu/*.zip",
+  "VAL/",
+  "any future STATE revision"
+ ],
+ "total_bytes": 689868,
+ "bundle_sha256": "e4446e733b91d19772e359f7f8da8325507cbc1dacedb717aef42d19decbd079",
+ "note": "Inputs are copies, taken once. Re-verify with `python audit/agent_comparison/build_tasks.py --verify`; a change in the source project must not change what an arm saw.",
+ "dimension": "scientific judgement"
+}

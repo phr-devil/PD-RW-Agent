@@ -1,0 +1,140 @@
+{
+  "positive_result": {
+    "contribution": "在 REASSEMBLE 的层级技能分割上，把预测出来的父动作后验显式融合进低层单帧分类器（GRUctx|lag3），比无上下文的强简单基线 SF|lag3 高 +0.0418 Segmental F1（0.7135 vs 0.6717，CRPS_L2_EVAL.json 17 物体 LODO 均值），比同架构同预算、仅不给显式融合的 DualHead|lag3 高 +0.0623（0.7091 vs 0.6468，ALGO_ROUND），说明收益来自“对齐的父动作上下文”而非容量或动作标签监督。",
+    "strongest_baseline_by_number": "SF|lag3（单帧 LR，无上下文）：segF1 0.6717，高于 GRUskill 0.6514、DualHead 0.6468 与 shuffle 0.4098；报告称为“公平基线”的 DualHead 其实比 SF 低 0.0249。另需注意：GateCtx|lag3 数值 0.7093 略高于 Champion 0.7091（AGG summary），严格按数字“最强的对照”是 GateCtx，报告以“≈ 且更简方案”放弃它而非以数字胜出。",
+    "boundary": "只到 DEV：111 开发 Episode / 5 个录制日 / 17 个物体，评估为逐物体 LODO，物体在折间共享，因此不支持“未见物体”；官方划分日期重叠，也不支持“未见会话”。封存 37 未读、无全 Dev checkpoint（CONFIRMATION_FREEZE §4）。指标层面：Segmental F1@IoU0.5，UNKNOWN 帧（8.48%）不参与分类评价；全 Episode 边界 F1@0.5 增益不成立（SF 0.5948 vs GRUctx 0.5889），即收益是标签级不是时序边界级；Nudge 类 F1 全为 0（无支撑），Twist 略降（0.4867→0.4861），本轮 ALGO_ROUND 中 17 个物体里 2 个（D-SUB、medium gear）为负。",
+    "missing_evidence": [
+      "G1 封存跨录制确认：37 封存 Episode 从未读取，无单一全 Dev 模型，跨录制增益未验证（CONFIRMATION_FREEZE §5/§7）",
+      "独立单位只有 5 个录制日：报告给的 episode bootstrap CI [0.036,0.054] 与日期聚类 CI [0.026,0.073] 都是 111 Episode 内重采样，真独立 N=5，异质性无法从 JSON 复核",
+      "GateCtx 与 GRUctx 的差异（+0.0002）没有显著性检验，只有“胜出比例”描述；而且该比例的单位在报告里写错（见 recomputed）",
+      "逐段（segment-level）的配对胜负记录没有落盘：JSON 只有汇总结论矩阵与 Episode 级 segF1，无法复算真正的段级胜率",
+      "第二数据集 / 未见物体确认缺失，Claim 不能外推到“新物体、新任务”"
+    ],
+    "recomputed": {
+      "物体级 GRUctx>SF 17/17": {
+        "reported": "17/17（FINAL_ALGO_ROUND_REPORT.md §4）",
+        "computed": "本轮 ALGO_ROUND 只有 15/17：D-SUB −0.0211（0.7027→0.6815）、medium gear −0.0116（0.6411→0.6295）。17/17 只在 CRPS_L2_EVAL.json 成立（D-SUB +0.0030、medium gear +0.0108）。报告把两个不同 JSON 的覆盖度混在了一起"
+      },
+      "Episode 级 96/111（86.5%）": {
+        "reported": "96/111 = 86.5%，Δ=+0.0447（FINAL_ALGO_ROUND_REPORT.md §4）",
+        "computed": "按 111 个唯一 Episode、跨折取均值比较：ALGO_ROUND 92/111 = 82.9%；CRPS_L2_EVAL 97/111 = 87.4%。都不是 96/111。AGG 的 episode_coverage=0.4727 是 1464 个 object×episode 对（n_episodes=1464），既不是 111 也不是 96"
+      },
+      "日期/录制级 5/5 全正": {
+        "reported": "日期级 5/5 全正（FINAL_ALGO_ROUND_REPORT.md §4）",
+        "computed": "复算成立 5/5（唯一 Episode 按日期聚合，均值差）：2025-01-09 +0.0648、01-10 +0.0389、01-11 +0.0308、01-13 +0.0176、01-14 +0.0357；EVAL 上同向（+0.0739/+0.0419/+0.0347/+0.0229/+0.0439）。最强录制日最弱增益（01-13 仅 +0.018）"
+      },
+      "段级胜率": {
+        "reported": "报告未直接给段级胜率，只给逐类 F1 与 Transition 混淆（§4 机制）",
+        "computed": "无法算真正的逐段胜负（JSON 无段级记录）。可算的最接近口径：pooled 逐类 segF1 9 类中 7 升（Align 0.8584→0.8702、Approach 0.9266→0.9431、Grasp 0.9116→0.9246、Lift 0.5099→0.6879、Pull 0.8768→0.8808、Push 0.4202→0.5850、Release 0.6137→0.6247）、1 平（Nudge 0→0）、1 降（Twist 0.4867→0.4861）；17 物体×9 类=153 个格子里有 45 格两边都是 0，有效 108 格中 82 格 GRUctx>SF（75.9%），26 格不升"
+      },
+      "GateCtx 仅在 1.6% 的 111 开发 Episode 上胜过 GRUctx": {
+        "reported": "1.6% of 111 episodes（FINAL_ALGO_ROUND_REPORT.md §2B）",
+        "computed": "AGG 的 1.571% 分母是 1464 个 object×episode 对（23/1464），不是 111；按 111 个唯一 Episode 跨折取均值比较是 20/111 = 18.0%。报告把“对”当成了“Episode”"
+      },
+      "边界 F1@0.5 持平 0.5948 vs 0.5894": {
+        "reported": "0.5948 vs 0.5894（FINAL_ALGO_ROUND_REPORT.md §4）",
+        "computed": "0.5948 vs 0.5889（ALGO_ROUND_AGG.json summary.bf5_mean，17 物体均值），差 −0.0059 而非 −0.0054；结论仍是“不升”"
+      },
+      "Push→Grasp 57.6%→33.9%、Lift→Approach 52.9%→20.8%": {
+        "reported": "Lift→Approach 52.9%→20.8%，Push→Grasp 57.6%→33.9%（FINAL_ALGO_ROUND_REPORT.md §4）",
+        "computed": "Lift→Approach 0.5288→0.2049 成立；Push→Grasp 0.5755→0.3224（不是 33.9%；33.58% 是 DualHead 的值）"
+      }
+    },
+    "evidence_refs": [
+      "D:/workbuddy-work/19/CRPS_L2_EVAL.json:results.*.SF|lag3.seg_f1 / GRUctx|lag3.seg_f1 / Shufctx|lag3.seg_f1 / SFA_Oracle|lag3.seg_f1",
+      "D:/workbuddy-work/19/CRPS_L2_EVAL.json:results.*.episode_paired[].{segF1_SF,segF1_GRUctx,episode}",
+      "D:/workbuddy-work/19/CRPS_L2_ALGO_ROUND.json:results.*.{SF|lag3,GRUskill|lag3,DualHead|lag3,GRUctx|lag3,GateCtx|lag3}.seg_f1",
+      "D:/workbuddy-work/19/CRPS_L2_ALGO_ROUND_AGG.json:summary / gain_vs_SF / episode_coverage / per_class_pooled / mechanism / per_date_segF1 / n_episodes",
+      "D:/workbuddy-work/19/FINAL_ALGO_ROUND_REPORT.md:§1 表 / §2A / §4",
+      "D:/workbuddy-work/19/CONFIRMATION_FREEZE.md:§3.1 / §4 / §5 / §6",
+      "D:/workbuddy-work/19/STATE.md:§2.2-2.3（OFFLINE_PROXY、LODO、物体全共享）"
+    ]
+  },
+  "packet_rounds": [
+    {
+      "round": 1,
+      "command": "PYTHONPATH=src python -m pdrw_agent.science.cli packet-check --packet <tmp>/c1_packet.json",
+      "exit": 0,
+      "violations": []
+    },
+    {
+      "round": 1,
+      "command": "PYTHONPATH=src python -m pdrw_agent.science.cli packet-check --packet audit/rc_preflight/answers/C1_packet.json",
+      "exit": 0,
+      "violations": []
+    }
+  ],
+  "packet_path": "D:/workbuddy-agent/PD-RW-Agent/audit/rc_preflight/answers/C1_packet.json",
+  "decision": {
+    "frontier_candidate_ids_as_declared": [
+      "P1_CLUSTERED_REANALYSIS"
+    ],
+    "historical_evidence_ids": [],
+    "needs_authorization_ids": [
+      "P2_SEALED_CROSS_RECORDING"
+    ],
+    "no_executable_next_probe": false,
+    "probe_applicability": {
+      "P1_CLUSTERED_REANALYSIS": "NOT_YET_RUN",
+      "P2_SEALED_CROSS_RECORDING": "NEEDS_AUTHORIZATION"
+    }
+  },
+  "consistency_note": "方向一致：我想要的“先做现在能做的（P1）、封存确认留待授权（P2）”正好对应 frontier=[P1]、needs_authorization=[P2]、no_executable_next_probe=false；historical_evidence_ids 为空也对，因为 ALGO_ROUND/EVAL 是已有的分析产物，没有被声明成某个探针的 Run 记录（我没有为它们编造 run_ref/premise_ref）。两处不完全一致：(1) 两个探针都被标 PROBE_UNIT_NOT_INDEPENDENT，原因是我把 evaluation_unit declared 成 EPISODE 而 group_independence 声明 PASS——工具指出 111 个 Episode 不是独立单位（同 5 个录制日内重复），这与我自己的判断一致，真独立 N=5 个录制日，因此 P1 的区间必须按录制聚类，但工具把 P1 仍留在 frontier（blocks_decisive_frontier=false），没有改变“先做 P1”的结论；(2) 全部 prechecks 都是 SOURCE_NOT_VERIFIED（label_provenance / legal_inputs / evaluation_integrity / metric_appropriateness / effect_size），工具带 --project-root 也未独立核对项目文件内容，source_binding.status=NOT_CHECKED，所以PASS 只是我的声明，不是工具的验证。",
+  "plan": {
+    "now": [
+      "P1 重算：用已冻结的 DEV 产物（CRPS_L2_EVAL.json / CRPS_L2_ALGO_ROUND.json 的 per-object 与 per-episode segF1、混淆矩阵）算 GRUctx−SF 与 GRUctx−DualHead 的配对差，按 5 个录制日聚类给区间，并列出 17 物体逐折符号——花的是“既有 DEV Run 产物只读”的授权，不训练、不读封存",
+      "把报告/稿件里的覆盖度改成复算值：ALGO_ROUND 物体级 15/17（不是 17/17）、Episode 级 92/111（EVAL 97/111，不是 96/111）、GateCtx 1.6% 是 object×episode 对（111 Episode 上是 18.0%）、Push→Grasp 32.2% 不是 33.9%——花的是已有记录/写作范围内的事实订正授权，无新数据",
+      "补 GateCtx−GRUctx 的配对符号检验（同一 111 Episode 的 per-episode F1，已落盘），决定“≈”是否可写——花的是同一份冻结 DEV 产物的只读授权"
+    ],
+    "needs_new_authorization": [
+      "P2 / G1 封存跨录制确认：读 37 封存 Episode、生成 sealed grid、训练单一全 Dev 模型、一次推理并报 SF vs GRUctx——缺“封存读取 + 训练 + 推理”授权，只有项目作者/PI 能授予，且按 CONFIRMATION_FREEZE §5 预注册失效范围一次性执行",
+      "若要把 Claim 扩到未见物体或第二个数据集：需要新的数据获取/下载与使用授权（作者），当前 DEV 池不支持该主张"
+    ],
+    "future_conditional": [
+      "若 G1 通过（封存 Δ>0 且 shuffle 仍塌陷）→ 才进入投稿授权与 venue 适配（作者决策），并把 PAPER_READINESS 从 DRAFTABLE 升为 SUBMISSION_CANDIDATE",
+      "若封存 Δ≤0 或按录制/物体强异质 → 按预注册如实报负/异质结果，把 Claim 收窄为 DEV 内机制发现，是否补第二数据集由作者决定",
+      "若 P1 显示 GRUctx−DualHead 的聚类区间含 0（增益主要由容量解释）→ 需 H8 战略选择：改 Claim 为“层级上下文有用但非对齐必需”，或停止该条线"
+    ]
+  },
+  "calls": [
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli template",
+      "exit": 0,
+      "note": "生成骨架（status=TEMPLATE，单探针 P1、2 个占位假设），未直接使用其中占位值"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli packet-check --packet <tmp>/c1_packet.json",
+      "exit": 0,
+      "note": "第 1 轮：SHAPE_OK，violation_count=0，warnings 为空，无修复轮"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli packet-check --packet audit/rc_preflight/answers/C1_packet.json",
+      "exit": 0,
+      "note": "最终位置复查：SHAPE_OK，0 violations"
+    },
+    {
+      "cmd": "PYTHONPATH=src python -m pdrw_agent.science.cli decision --packet audit/rc_preflight/answers/C1_packet.json --project-root D:\\workbuddy-work\\19",
+      "exit": 0,
+      "note": "status=ADVISORY_REVIEW_ONLY；run_binding_checked=true；两探针 findings=[PROBE_UNIT_NOT_INDEPENDENT]；source_binding=NOT_CHECKED"
+    },
+    {
+      "cmd": "python -c \"json.load(CRPS_L2_EVAL.json / CRPS_L2_ALGO_ROUND.json / AGG) + 重算\"",
+      "exit": 0,
+      "note": "只读复算对象级/录制级/Episode 级/类级胜率与均值，未写项目 19 任何文件"
+    }
+  ],
+  "errors_and_retries": [
+    "packet-check 第一轮即 SHAPE_OK，未发生修复轮（预算 2 轮，用了 0 轮）",
+    "没有出现 CLI 非零退出；没有重试循环",
+    "decision 对 6 个 prechecks 全部返回 SOURCE_NOT_VERIFIED、source_binding=NOT_CHECKED：这是工具不读项目文件内容的设计，不是我的调用失败"
+  ],
+  "wall_clock_minutes": 14,
+  "uncertainties": [
+    "报告 96/111 的原始聚合方式无法确认：我用“111 唯一 Episode 跨折取均值”得到 92/111（ALGO_ROUND）与 97/111（EVAL），第三种口径（只用每个 Episode 自己目标物体那一折）在现有 JSON 里无法唯一重建，因为同一 Episode 会在多个物体折里出现",
+    "17/17 与 96/111 究竟指 EVAL 还是 ALGO_ROUND，报告没有标注；两个 JSON 给出的答案不同，只能并列报告",
+    "真正的段级胜率不可复算：没有逐段匹配记录，只能用逐类 F1 与 108 个 (物体,类) 格子近似",
+    "报告里的 bootstrap CI（[0.036,0.054]、日期聚类 [0.026,0.073]）在三个可读 JSON 里都找不到对应字段，无法复核；且独立单位实际是 5 个录制日",
+    "P2 的“一次推理”成本与可行性依赖尚不存在的全 Dev checkpoint（CONFIRMATION_FREEZE §4 明确不存在），MEDIUM 成本带是我的估计而非实测",
+    "decision 的 prechecks 全部只是我的声明（SOURCE_NOT_VERIFIED），本报告不复述为工具已验证"
+  ]
+}
