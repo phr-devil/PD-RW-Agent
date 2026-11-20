@@ -1,0 +1,34 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Does the reliability mechanism add deployable information over the posture prior on the frozen DEV subset?",
+  "hypotheses": ["H_MECH", "H_PRIOR"],
+  "proposed_premise": {
+    "premise_id": "PREM-POPU-RELIABILITY-DEV005",
+    "scope": {"dataset": "PoPu DEV 12", "input": "lower 72", "outcome": "subject MAE"}
+  },
+  "prechecks": {"group_independence": {"status": "NOT_CHECKED"}},
+  "probes": [
+    {
+      "id": "RELIABILITY-RERUN",
+      "observable": "subject-level MAE under the frozen folds",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same folds, posture-conditioned prior arm",
+      "predictions": {"H_MECH": "DECREASE", "H_PRIOR": "NO_CHANGE"},
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-005",
+        "premise_ref": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+        "premise_id": "PREM-POPU-RELIABILITY-DEV005"
+      }
+    },
+    {
+      "id": "SCALE-GRID",
+      "observable": "subject-level MAE at target scale k in {18,173,1728}",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same folds, prior arm at the same k",
+      "predictions": {"H_MECH": "DECREASE", "H_PRIOR": "NO_CHANGE"},
+      "cost_band": "MEDIUM"
+    }
+  ]
+}

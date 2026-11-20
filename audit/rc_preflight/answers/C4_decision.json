@@ -1,0 +1,195 @@
+{
+  "status": "ADVISORY_REVIEW_ONLY",
+  "question": "Does the reliability mechanism add deployable information over the posture prior on the frozen DEV subset?",
+  "claim_type": "MECHANISM/CAUSAL",
+  "claim_evidence_refs": [],
+  "premise_candidates": [],
+  "positive_premise_candidates": [],
+  "prechecks": {
+    "label_provenance": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "group_independence": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "legal_inputs": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "evaluation_integrity": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "metric_appropriateness": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "effect_size": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    }
+  },
+  "probe_comparisons": [
+    {
+      "id": "RELIABILITY-RERUN",
+      "observable": "subject-level MAE under the frozen folds",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same folds, posture-conditioned prior arm",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_MECH",
+          "H_PRIOR"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "MEDIUM",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "findings": [],
+      "applicability": "HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED",
+      "next_action": "CITE_AS_EVIDENCE_ONLY_AND_CONFIRM_THE_PLAN_IS_THIS_EXPERIMENT",
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK",
+      "prior_execution": {
+        "declared_status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-005",
+        "reference_present": true,
+        "file_binding": "BOUND",
+        "status_consistency": "CONSISTENT",
+        "premise_binding": "MATCH",
+        "premise_binding_basis": "CALLER_DECLARATION",
+        "premise_evidence": "FROZEN_PLAN_WITHOUT_PREMISE",
+        "premise_verified": false,
+        "premise_contradicted": false,
+        "attribution_basis": "CALLER_PREMISE_PLAN",
+        "attribution_verified": true,
+        "plan_unresolved": false,
+        "execution_verified": true,
+        "status_verified": false,
+        "closure_verified": false,
+        "binding_checked": true,
+        "premise_match": true,
+        "history_applicable": true,
+        "requires_new_authorization": false,
+        "authorization_basis": "CALLER_DECLARED_ONLY",
+        "new_information_declared": false,
+        "applicability": "HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED",
+        "next_action": "CITE_AS_EVIDENCE_ONLY_AND_CONFIRM_THE_PLAN_IS_THIS_EXPERIMENT",
+        "run_binding": {
+          "status": "RUN_RECORD_BOUND",
+          "reason": null,
+          "run_dir": "DEV/runs/RUN-005",
+          "record_ref": "DEV/runs/RUN-005/metrics.json",
+          "record_sha256": "90362addfb2133bcfbaea2fe47280de8136e8e741f0d5ab6cc3a670b108c2c43",
+          "run_id_declared": "RUN-005",
+          "run_id_expected": "RUN-005",
+          "run_id_consistency": "MATCH",
+          "record_structure": "RUN_RECORD",
+          "premise_id_recorded": null,
+          "plan": {
+            "plan_status": "BOUND",
+            "plan_ref": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+            "plan_id": "PROTO-POPU-RELIABILITY-v5-DEV005",
+            "hash_match": true,
+            "premise_id": null
+          },
+          "premise_plan": {
+            "plan_status": "BOUND",
+            "plan_ref": "protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json",
+            "plan_id": "PROTO-POPU-RELIABILITY-v5-DEV005",
+            "premise_id": null
+          },
+          "premise_plan_match": true,
+          "artifact_links_verified": false,
+          "run_status_declared": "COMPLETED",
+          "verdict_declared": "NEG_NOT_PREDICTABLE_BEYOND_MAGNITUDE",
+          "anchor_pass_declared": true
+        }
+      }
+    },
+    {
+      "id": "SCALE-GRID",
+      "observable": "subject-level MAE at target scale k in {18,173,1728}",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same folds, prior arm at the same k",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_MECH",
+          "H_PRIOR"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "MEDIUM",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "findings": [],
+      "applicability": "NOT_YET_RUN",
+      "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    }
+  ],
+  "declared_probe_efficiency": {
+    "frontier_candidate_ids_as_declared": [
+      "SCALE-GRID"
+    ],
+    "dominated_candidates_as_declared": [],
+    "exploratory_probe_ids": [],
+    "diagnostic_upper_bound_ids": [],
+    "needs_unit_verification_ids": [],
+    "historical_evidence_ids": [
+      "RELIABILITY-RERUN"
+    ],
+    "attribution_unchecked_ids": [],
+    "repair_required_ids": [],
+    "awaiting_new_information_ids": [],
+    "revisit_on_new_information_ids": [],
+    "needs_authorization_ids": [],
+    "blocked_ids": [],
+    "unverified_closure_ids": [],
+    "premise_unbound_ids": [],
+    "status_conflict_ids": [],
+    "premise_contradicted_ids": [],
+    "no_discriminating_probe": false,
+    "no_legal_decisive_probe": false,
+    "no_executable_next_probe": false,
+    "unknown_cost_ids": [],
+    "scientifically_ranked": false,
+    "automatically_selected": false,
+    "source_predictions_verified": false,
+    "note": "Declared pairs, cost bands and declared execution state only: compare original evidence, scientific importance, independent groups and legal scope before acting. No candidate is rejected by this hint."
+  },
+  "probe_findings": [],
+  "no_decisive_probe": false,
+  "no_decisive_probe_question": null,
+  "no_legal_decisive_probe": false,
+  "no_legal_decisive_probe_question": null,
+  "no_executable_next_probe": false,
+  "no_executable_next_probe_question": null,
+  "run_binding_checked": true,
+  "run_binding_scope": "DECLARED_REFERENCE_RESOLVED_TO_PROJECT_BYTES_AND_RUN_STATUS",
+  "authorization_basis": "CALLER_DECLARED_ONLY_NEVER_A_PERMIT",
+  "no_claim_of_novelty_or_scientific_validity": true,
+  "original_user_authorization": "UNVERIFIED",
+  "automatic_stop": false,
+  "automatic_go": false,
+  "guidance": "Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; verify original Run and named literature before choosing a Task or Probe.",
+  "source_binding": {
+    "status": "NOT_CHECKED",
+    "scientific_claims_verified": false
+  }
+}
