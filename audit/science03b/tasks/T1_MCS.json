@@ -1,0 +1,83 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "In MCS-HEMO-26 DEV, is the blood-pressure association of the ear signal identifiable as physiology, or is it same-source reference plus hardware offset?",
+  "claim_evidence_refs": [
+    "MCS-HEMO-26/research/dev_audit/oa_verification_stats.json",
+    "MCS-HEMO-26/research/dev_audit/ob_reference_recheck.json"
+  ],
+  "hypotheses": [
+    "H_same_source_reference",
+    "H_state_physiology",
+    "H_hardware_offset"
+  ],
+  "proposed_premise": {
+    "premise_id": "MCS_EAR_BP",
+    "scope": {
+      "dataset": "Auricle v1.0.0 DEV",
+      "signal": "ear/PPG/PCG"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/SPLIT_PROTOCOL.md"
+      ]
+    },
+    "label_provenance": {
+      "status": "UNKNOWN"
+    }
+  },
+  "probes": [
+    {
+      "id": "MCS-P1-CROSS-SESSION-ICC",
+      "observable": "cross-session ICC of SBP and of the ear band ratio",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same recording, second session",
+      "predictions": {
+        "H_same_source_reference": "NO_CHANGE",
+        "H_state_physiology": "INCREASE",
+        "H_hardware_offset": "UNKNOWN"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "O8/O12/O22",
+        "premise_id": "MCS_EAR_BP",
+        "conclusion": "ICC not estimable at n=3/4; CIs cross 0"
+      }
+    },
+    {
+      "id": "MCS-P2-DOC-CHECK",
+      "observable": "presence of periodic arm-cuff readings in the official record",
+      "evaluation_unit": "RECORD",
+      "comparison_reference": "official documentation, no new measurement",
+      "predictions": {
+        "H_same_source_reference": "INCREASE",
+        "H_state_physiology": "UNKNOWN",
+        "H_hardware_offset": "UNKNOWN"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "NOT_EXECUTED"
+      }
+    },
+    {
+      "id": "MCS-P3-NEW-INSTRUMENTED-DATA",
+      "observable": "group delay and cuff values from a synchronised pulse and log",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "independent calibration of the same device",
+      "predictions": {
+        "H_same_source_reference": "DECREASE",
+        "H_state_physiology": "UNKNOWN",
+        "H_hardware_offset": "DECREASE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "premise_id": "MCS_EAR_BP",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}
