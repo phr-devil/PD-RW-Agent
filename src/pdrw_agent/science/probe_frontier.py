@@ -114,6 +114,12 @@ def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
         # may be used to eliminate a live probe.
         "premise_unbound_ids": with_role("CLOSURE_PREMISE_UNBOUND"),
         "status_conflict_ids": with_role("STATUS_CONFLICT"),
+        # The cited Run exists but executed another premise or plan: the probe
+        # is a legitimate new experiment, not a repeat of recorded evidence.
+        "premise_contradicted_ids": [
+            ident for ident, codes in findings.items()
+            if "CLOSURE_PREMISE_CONTRADICTED" in codes
+        ],
         "no_discriminating_probe": bool(known) and not discriminating,
         "no_legal_decisive_probe": bool(known) and not legal_decisive,
         "no_executable_next_probe": bool(known) and bool(legal_decisive) and not runnable,
