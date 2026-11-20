@@ -182,20 +182,33 @@ the shortest path to support it.
 
 ### B.2 What did not
 
-**One serious error, in the case-library arm.** It proposed a 3×3 target-scale ×
-calibration grid on *"the 48 subjects outside the 12-person subset"*. The frozen
-`STATE.md:11` says `VAL = RESERVED_NOT_ACCESSED`, and `STATE.md:14` says
-"不扩全 60 人 … 全 60 人需新授权". Spending the reserved validation set on an
-exploratory grid is exactly what the project's own record forbids, and the answer
-declared "needs new authorization" only for its *third* step, not the first.
+**Two of four reached outside the authorized data, and only one said so.**
 
-That is not a schema failure and not something a checker should decide. The
+- *Serious, in the case-library arm (B2).* It proposed a 3×3 target-scale ×
+  calibration grid on *"the 48 subjects outside the 12-person subset"* as its
+  **first** step. The frozen `STATE.md:11` says `VAL = RESERVED_NOT_ACCESSED`,
+  and `STATE.md:14` says "不扩全 60 人 … 全 60 人需新授权". "Needs new
+  authorization" appears in its answer only on step 3.
+- *Moderate, in the pivot arm (B4).* Its proposed experiment stays on frozen
+  data, but step 3 of its shortest evidence path evaluates "the 20 holdout
+  materials once". Project 17 was closed with `Holdout 未再访问`, so that is a
+  new authorization too; the answer discloses the *independence* limitation
+  (holdout labels were used in Phase-3, so it is semi-independent) but not the
+  authorization one.
+- *Correct, in the cross-domain arm (B3).* It reached the same boundary and wrote
+  it down: a second dataset is "需新下载与许可核验授权，当前明确未授权", and its
+  experiment reuses only frozen folds.
+- B1 stayed inside the frozen DEV subset throughout.
+
+This is not a schema failure and not something a checker should decide. The
 packet already has the mechanism — a probe that cannot start declares
 `prior_execution: {status: NOT_EXECUTED, requires_new_authorization: true}` and
 reads `NEEDS_AUTHORIZATION`, outside the frontier — but nothing prompted it, so
 `references/packet.md` and `execution.md` now name that pattern and say
 explicitly that a probe spending data beyond the frozen DEV subset must declare
-it there, not in prose.
+it there, not in prose. That covers B2's experiment and B4's third step alike;
+whether a written rule is enough for a step that is not itself a probe is the
+open question this evidence cannot answer (n=2, one model family).
 
 Two smaller ones: DP1's proposal bundles five readouts (cheap, one pass, but not
 minimal in design); DP2 says it will reuse saved per-sample predictions while its
@@ -279,8 +292,10 @@ PYTHONPATH=src python audit/science03d/payload_measure.py
 4. **`REAL_LLM_END_TO_END`, token cost, MCP integration, paid compute:
    `NOT_MEASURED`.** Linked artifacts and their hashes are still not opened
    (`artifact_links_verified: false`); `run_integrity` remains unwired.
-5. **One boundary error in one arm** (B2, reserved validation set). Handled by a
-   rule, not by a mechanism; an unread rule is not a control.
+5. **Two arms reached reserved data without declaring the need** (B2's
+   experiment, B4's third step), one declared it correctly (B3). Handled by a
+   rule, not by a mechanism; an unread rule is not a control, and a path step
+   that is not a probe has nowhere to declare anything at all.
 
 ## F. v1.0 RC?
 

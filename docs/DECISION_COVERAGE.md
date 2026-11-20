@@ -562,7 +562,7 @@ verdict was rewritten.
 | DP1 | 48 | key/window unit + noise floor, re-analysis of the same DEV frames, subject-level unit | no repeat (4/4 across points), inside authorization, `PARTIAL` contribution |
 | DP1 + cases | 48 | 3×3 target-scale × calibration grid at k, on the **reserved** 48 subjects | serious: crossed `VAL = RESERVED_NOT_ACCESSED` without declaring it; 6 case cards used, traceably |
 | DP2 | 44 | zero-fit DC support audit, 16 specimens, flags the missing predictions file as UNKNOWN | sound; minor internal inconsistency about reuse |
-| DP3 | 17 | 2×2×2 stratified ICC re-estimation on frozen data, material-level bootstrap | sound; found a real `B0b` definition conflict between `BASELINE_PLAN.md:37` and `STATE.md:85` |
+| DP3 | 17 | 2×2×2 stratified ICC re-estimation on frozen data; path step 3 reuses the 20 holdout materials | experiment inside bounds; found a real `B0b` conflict (`BASELINE_PLAN.md:37` vs `STATE.md:85`); the holdout step declares its independence limit, not the authorization need |
 
 ### Unverified in this round
 
@@ -572,4 +572,4 @@ verdict was rewritten.
    states a `premise_id`), so `closure_verified` is unreachable in practice.
 3. `REAL_LLM_END_TO_END`, token cost, MCP integration, paid compute: `NOT_MEASURED`.
 4. All six sessions are the same model family as the patch author: single non-blind arm.
-5. The one authorization error is handled by a written rule, not a mechanism.
+5. Two arms reached reserved data without declaring the need (B2's experiment, B4's path step 3); B3 declared it. Handled by a written rule, not a mechanism.
