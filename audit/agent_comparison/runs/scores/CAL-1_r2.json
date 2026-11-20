@@ -1,0 +1,19 @@
+{
+  "answer_1": {
+    "D1": 3,
+    "D2": null,
+    "D3": 3,
+    "D4": 3,
+    "major_errors": [],
+    "reasons": "Recomputed independently: SF 0.671750, GRUctx 0.713501 (EVAL), 17/17 strict object wins, 97/111 and 92/111 after per-episode mean over 1464 rows, 700/354/410 row signs, 8/17 + 20/111 GateCtx, 23/1464=1.57%, bnd_F1_full_0.5 0.59484/0.58945, Wilcoxon W=508 p=2.0e-14 - all exact. Audit's 96 traced correctly to date_signs 26/34 vs data 27/34 on 2025-01-13. does_not_license names unit (unseen object), corpus (sealed 37) and mechanism (label-level gain, flat boundary). Reserved data untouched."
+  },
+  "answer_2": {
+    "D1": 2,
+    "D2": null,
+    "D3": 3,
+    "D4": 3,
+    "major_errors": [],
+    "reasons": "SF 0.671750, 17/17 (EVAL), 15/17 (ALGO, D-SUB -0.0211 / medium gear -0.0116), 97/111 and 92/111, 1464 rows/111 ids, 26 vs 27 on 2025-01-13, 0.59484/0.58945 all verified exact. But headline GRUctx|lag3 = 0.70909 is the ALGO_ROUND value, 0.0044 off the key's 0.7135 (EVAL); the mismatch is disclosed and the EVAL 0.713501 is stated in method, but the keyed field fails tolerance. Report's own table quotes 0.7091, so this is a file-choice slip, not fabrication."
+  },
+  "key_dispute": "Two ambiguities. (1) object_macro_segF1 has one 'file' field and the prompt never says which file the macro must come from; the key fixes EVAL (GRUctx 0.7135, 17/17) while the report's main table quotes ALGO_ROUND (0.7091, 15/17). answer_2 declares file=CRPS_L2_ALGO_ROUND.json and its 0.70909 is the exact per-object mean there, with EVAL's 0.713501 also reported in method, so a fair reading (field underspecified, value exact and attributed) would give D1=3; I scored 2 per the key and did not adjust silently. (2) The key's does_not_license cites TRAINING_PROTOCOL_AUDIT.md:43 (85.3% shared test frames), a file absent from the frozen inputs - no answer can recompute it; the in-bundle equivalent is STATS_AUDIT fold_nonindependence (75.8 of 86.1 episodes, 14.5 train overlap), which both answers used and which should be accepted as naming the same boundary."
+}

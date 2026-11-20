@@ -1,16 +1,16 @@
 ﻿task,arm,run_id,model,model_version,started_at,ended_at,wall_clock_minutes,tool_calls,model_turns,human_interventions,tokens,input_tokens,output_tokens,paid_compute_usd,downloads,training_runs,budget_exceeded,answer_path,d1,d2,d3,d4,major_errors,incidents,notes
-CAL-1,A,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-CAL-1,B1,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-CAL-1,B2,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-CAL-2,A,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-CAL-2,B1,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-CAL-2,B2,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T1,A,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T1,B1,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T1,B2,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T2,A,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T2,B1,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T2,B2,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T3,A,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T3,B1,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
-T3,B2,,,,,,,,,,,,0,0,0,,,0,0,0,0,0,0,,,,,
+CAL-1,A,CAL1-A-01,host default,NOT_MEASURED,2026-11-20T18:40:33+09:00,2026-11-20T18:42:55+09:00,2.3,15,UNKNOWN,0,UNKNOWN,,,0,0,0,false,audit/agent_comparison/runs/CAL-1/A/answer.json,2,,3,3,0,0,"baseline: shell+python only. Recomputed everything; filed the macro from ALGO_ROUND (0.70909) where the key wants EVAL (0.7135)."
+CAL-1,B,CAL1-B-01,host default,NOT_MEASURED,2026-11-20T18:40:33+09:00,2026-11-20T18:42:47+09:00,2.2,20,UNKNOWN,0,UNKNOWN,,,0,0,0,false,audit/agent_comparison/runs/CAL-1/B/answer.json,3,,3,3,0,0,"Skill+CLI. CLI offered no metric recompute; science-audit returned CONFIG_REQUIRED once, not retried."
+CAL-1,B1,,,,,,,,,,,,0,0,0,,,,,,,,,"not run this round: the A-B contrast is the release claim; B1 is a later sub-axis"
+CAL-2,A,CAL2-A-01,host default,NOT_MEASURED,2026-11-20T18:43:05+09:00,2026-11-20T18:44:58+09:00,1.9,16,UNKNOWN,0,UNKNOWN,,,0,0,0,false,audit/agent_comparison/runs/CAL-2/A/answer.json,2,,3,2,0,0,"bindable=true, but the status is its own recount, not a binding check; cannot_do omitted read VAL/."
+CAL-2,B,CAL2-B-01,host default,NOT_MEASURED,2026-11-20T18:43:05+09:00,2026-11-20T18:44:56+09:00,1.9,22,UNKNOWN,0,UNKNOWN,,,0,0,0,false,audit/agent_comparison/runs/CAL-2/B/answer.json,2,,3,3,0,0,"wrote project-map.json + a labelled STUB workflow root; verify-run returned RUN_HISTORY_NOT_ATTESTABLE, which it reported as bindable=false."
+CAL-2,B1,,,,,,,,,,,,0,0,0,,,,,,,,,"not run this round"
+T1,A,,,,,,,,,,,,0,0,0,,,,,,,,,"not run: task is exposed (see audit doc)"
+T1,B1,,,,,,,,,,,,0,0,0,,,,,,,,,"not run"
+T1,B2,,,,,,,,,,,,0,0,0,,,,,,,,,"not run"
+T2,A,,,,,,,,,,,,0,0,0,,,,,,,,,"not run: key numbers already public"
+T2,B1,,,,,,,,,,,,0,0,0,,,,,,,,,"not run"
+T2,B2,,,,,,,,,,,,0,0,0,,,,,,,,,"not run"
+T3,A,,,,,,,,,,,,0,0,0,,,,,,,,,"not run: key numbers already public"
+T3,B1,,,,,,,,,,,,0,0,0,,,,,,,,,"not run"
+T3,B2,,,,,,,,,,,,0,0,0,,,,,,,,,"not run"

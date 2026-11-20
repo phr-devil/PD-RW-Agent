@@ -1,0 +1,40 @@
+# calls.log — one line per invocation, grouped by step. All paths read-only; nothing outside the workspace and the two component paths.
+
+## step 0 — read the task and the component
+Read D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/B/PROMPT.md
+Read C:/Users/user/.workbuddy/skills/pd-rw-research/SKILL.md
+
+## step 1 — inventory
+Bash: ls -la D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/B && ls -la D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/B/inputs
+Read inputs/FINAL_ALGO_ROUND_REPORT.md
+Read inputs/CRPS_L2_STATS_AUDIT.json
+
+## step 2 — structure discovery
+python: recursive top-3-level dump of inputs/CRPS_L2_EVAL.json and inputs/CRPS_L2_ALGO_ROUND.json (keys, types, lengths)
+python: print EVAL top-level keys, objects list, proto, scheme keys of results[BNC], first episode_paired row
+python: dump ALGO_ROUND structure (proto, objects, hparams, per-object scheme keys, episode_paired lengths)
+python: print ALGO_ROUND results[BNC]['episode_paired'] field names + 3 sample rows
+python: print SFA_Oracle note, LODO_SF|lag3(seen), volume_match[BNC], lodo_baseline_segF1/lodo_gru_segF1, ALGO proto/hparams
+
+## step 3 — recomputation
+python: per-object seg_f1 for SF|lag3 and GRUctx|lag3, macro means, strict object-win count, episode dedup sign counts, naive row-positive count
+python: macro seg_f1 for every scheme in both files; episode counts under mean/median/sum aggregation; pooled row means; per-episode mean-of-means
+python: per-date positive/total episode counts vs STATS_AUDIT date_signs; list 8 near-zero episode deltas
+python: volume_match macro mean, SFA/LODOseen macro, ALGO object wins for (GRUctx,SF),(DualHead,SF),(GRUskill,SF),(GateCtx,GRUctx), GateCtx episode and row win counts
+python: episode mean/median dSegF1, per-date means, scipy.stats.wilcoxon on 111 episode deltas, macro bnd_F1_full_0_5 for both files
+
+## step 4 — component capability probe (no retries)
+Bash: PYTHONPATH=D:/workbuddy-agent/eval-runtime/pkg python -m pdrw_agent.cli --help
+Bash: PYTHONPATH=D:/workbuddy-agent/eval-runtime/pkg python -m pdrw_agent.science.cli --help
+Bash: PYTHONPATH=D:/workbuddy-agent/eval-runtime/pkg python -m pdrw_agent.cli science-audit --help ; PYTHONPATH=... python -m pdrw_agent.cli verify-run --help
+Bash: PYTHONPATH=D:/workbuddy-agent/eval-runtime/pkg python -m pdrw_agent.cli science-audit --project-id 19 --run-id final_algo_round
+  -> {"status":"ERROR","error_code":"CONFIG_REQUIRED","detail":"Set PDRW_AGENT_CONFIG and PDRW_WORKFLOW_ROOT to local paths","authorization_verified":false}
+  -> MCP_NOT_USED: no registered project mapping, no permitted MCP server in this isolated workspace; not retried.
+
+## step 5 — deliverables
+Write answer.json
+Write notes.md
+Write calls.log (this file)
+
+## counts
+Bash invocations: 15 (14 recompute/probe calls + 1 final validation of deliverables), containing 16 python/CLI processes; well under the 60 cap. No network, no downloads, no case-library tools, no writes outside the workspace.

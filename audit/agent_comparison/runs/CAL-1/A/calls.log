@@ -1,0 +1,18 @@
+cal-1 recompute — commands actually run (in order)
+
+step 1: Read D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/A/PROMPT.md
+step 2: Bash: ls -la "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/A" "D:/.../A/inputs"
+step 3: Read inputs/FINAL_ALGO_ROUND_REPORT.md
+step 4: Read inputs/CRPS_L2_STATS_AUDIT.json
+step 5: python - <<'PY' (walk top-level structure of CRPS_L2_EVAL.json and CRPS_L2_ALGO_ROUND.json, depth<=3) PY
+step 6: python - <<'PY' (print top-level keys, objects list, first-object scheme keys of both files) PY
+step 7: python - <<'PY' (per-scheme object-macro seg_f1 for both files; print episode_paired[0] schema; print lodo_baseline_segF1/lodo_gru_segF1, hparams, volume_match sample) PY
+step 8: python - <<'PY' (per-object GRUctx vs SF wins/ties/losses; unique-episode dedup of episode_paired: rows, unique ids, folds per episode, any/mean/all-positive, mixed-sign, naive row positive) PY
+step 9: python - <<'PY' (test 5 episode rules: mean/median/majority-of-folds/first/max, per date, both files; smallest |per-episode mean delta|) PY
+step 10: python - <<'PY' (same verification script with a fullwidth-paren typo -> SyntaxError, no output) PY
+step 11: python - <<'PY' (per-episode-mean dSegF1 distribution, row-level mean, per-date signs+means, boundary F1 means, test-size/pairwise-overlap, full scheme table both files) PY
+step 12: python - <<'PY' (GateCtx vs GRUctx per-episode counts; aborted with ZeroDivisionError on named per_class key) PY
+step 13: python - <<'PY' (row-level and object-level GateCtx>GRUctx counts, per_class_f1 key sample, GRUctx differs-in-17-objects check, SF identity, episode-id identity) PY
+step 14: python - <<'PY' (recompute every answer.json field from the two JSONs and json.dump to answer.json) PY
+step 15: python -c "import json;d=json.load(open('answer.json',encoding='utf-8'));print(len(d),list(d));print(json.dumps(d['strongest_deployable_baseline'],ensure_ascii=False));print(json.dumps(d['episode_claim'],ensure_ascii=False));print(json.dumps(d['object_macro_segF1'],ensure_ascii=False))" && wc -l notes.md calls.log
+step 16: python -c "import json;d=json.load(open('answer.json',encoding='utf-8'));print(list(d), len(d['calls']))"

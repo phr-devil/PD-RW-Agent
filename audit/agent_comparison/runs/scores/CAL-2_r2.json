@@ -1,0 +1,19 @@
+{
+  "answer_1": {
+    "D1": 2,
+    "D2": null,
+    "D3": 3,
+    "D4": 2,
+    "major_errors": [],
+    "reasons": "身份、规则摘要、授权三项与 STATE.md 及协议一致；record_bytes 411202、468 组、Σn=183,600、sha256 da1122… 我复算全部一致。bindable=true 与 key 同向，但依据只是“计数与冻结协议相符”，且自认“不是机器 run contract 绑定”，没有任何绑定检查支撑。rules.proves 把“本地 HEAD = 远端 HEAD”当成摘要所证，越出内容指纹（key 明记 REMOTE_NOT_CHECKED）。cannot_do 列了 READ_SEALED 却漏了 read VAL/，属必需项缺失。"
+  },
+  "answer_2": {
+    "D1": 2,
+    "D2": null,
+    "D3": 3,
+    "D4": 3,
+    "major_errors": [],
+    "reasons": "四条件均值 0.9846/0.9342、0.7621/0.7233、0.9992/0.9183、0.7937/0.7179 逐折复算完全一致，468 组/26 折/18 臂/183,600/411202 B 与协议 project_id=44 均核实。bindable=false 与 key 相反，但依据是可复现的 verify-run → RUN_HISTORY_NOT_ATTESTABLE（bundle 确实只有 metrics.json，无法闭合哈希链），不是 fabrication，按 key 该字段仍算错。授权 8 项逐字一致，cannot_do 含 VAL/SEALED，未读保留资源。唯一缺口：未点明 STATE.md 的 NEXT=NONE（HOLD），把零拟合复核说成当然合法。"
+  },
+  "key_dispute": "两处。(1) run.bindable：key 取 true，依据是本分支把 run_record 读取上限从 128 KiB 提到 4 MiB 后 binder 返回 RUN_RECORD_BOUND（见 eval-runtime/pkg/pdrw_agent/science/feedback_link.py:308-315），但这条能力事实不在冻结输入内——bundle 只有 metrics.json，无 run_manifest/verification/predictions，RESEARCH_RECORD §0 还写着 MACHINE_LEDGER_NOT_INITIALIZED；同一 bundle 上 run_integrity.verify_run_evidence 会诚实返回 RUN_HISTORY_NOT_ATTESTABLE / HISTORY_SOURCES_MISSING。公平读法：bindable=true 只能理解为“引用可解析到本项目字节、record_structure=METRICS_ONLY”，不等于可 attest；把 false 建在“无可绑定的哈希链/事件链”上是可辩护的第二种读法，不应按伪造或“因文件太大”处理。(2) next_legal_action：STATE.md NEXT 明写“唯一下一合法行动＝NONE（HOLD）”，与 key 的零拟合复审直接冲突；但 RESEARCH_RECORD §0 写“仍可执行的合法工作＝本地非付费 DEV 全流程与证据审计”，H8 只停“新增算法开发”，故该零拟合只读复审确在 2026-11-15 授权内。公平读法：该复审合法；回答若改答 NONE/HOLD 也不该判错，但最好点明 HOLD 状态（answer_1 点了，answer_2 没点）。"
+}
