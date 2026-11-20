@@ -46,6 +46,13 @@ MAX_EVIDENCE_REFS = 12
 MAX_PRE_DECISION_CASES = 8
 MAX_QUERY = 400
 PROTECTED_PARTS = {"sealed", "holdout", "confirmation"}
+# PD-RW's reserved set is VAL / HOLDOUT / SEALED, but only two of the three were
+# refused here: on real project 44 `VAL/README.md` was read and parsed as a Run
+# candidate while `SEALED/` was rejected. VAL is matched only as the top segment
+# because a project may legitimately keep a `data/val/` split inside DEV, and
+# refusing that would be a false positive with a loud error. A reserved root is
+# reserved at the root.
+RESERVED_ROOT_PARTS = {"val"}
 # Run records use a coarser vocabulary than the feedback contract. PARTIAL and
 # CRASH are execution defects, never scientific negatives, so they map to the
 # non-inferential INVALID state.
@@ -111,9 +118,11 @@ def _resolve(root: Path, ref, *, base: Path | None = None, directory: bool = Fal
     target = ((base or root) / raw).resolve()
     if target != root and root not in target.parents:
         raise AgentError("FEEDBACK_LINK_PATH_REJECTED", "Reference escapes the project root")
-    if any(part.casefold() in PROTECTED_PARTS for part in target.relative_to(root).parts):
+    relative = target.relative_to(root)
+    if any(part.casefold() in PROTECTED_PARTS for part in relative.parts) or (
+            relative.parts and relative.parts[0].casefold() in RESERVED_ROOT_PARTS):
         raise AgentError("FEEDBACK_LINK_PATH_REJECTED",
-                         "No SEALED/holdout/confirmation path may be read for feedback")
+                         "No SEALED/holdout/confirmation/VAL path may be read for feedback")
     if directory and not target.is_dir():
         raise AgentError("FEEDBACK_LINK_REF_MISSING", f"Referenced directory is absent: {ref}")
     if not directory and not target.is_file():
@@ -297,7 +306,13 @@ def _run(root: Path, block: dict) -> dict:
 
 
 RUN_RECORD_NAMES = ("metrics.json", "run.json", "RUN.json")
-MAX_RUN_RECORD_BYTES = 128 * 1024
+# A Run record is a summary of one execution, but a real one carries per-subject
+# or per-fold detail: project 44's RUN-002 `metrics.json` is 411 202 bytes and
+# holds nothing but fold-level metrics. At 128 KiB the binder answered
+# RUN_RECORD_TOO_LARGE for it, so a Run that really ran could not be attributed
+# and fell through to `unverified_closure_ids` -- the bounded read was smaller
+# than the artefacts it exists to read. 4 MiB still refuses a prediction dump.
+MAX_RUN_RECORD_BYTES = 4 * 1024 * 1024
 # The record may name a premise directly, or name the frozen plan it executed.
 # The plan is the operational definition of a premise, so either one is usable
 # evidence; a free-form premise label in a packet is not.

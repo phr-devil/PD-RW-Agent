@@ -352,5 +352,76 @@ class NoNewToolSurfaceTests(unittest.TestCase):
         self.assertFalse(any("feedback" in name for name in names))
 
 
+class RunRecordBoundTests(unittest.TestCase):
+    """The bounded read must be larger than the records it exists to read.
+
+    Measured on project 44: `DEV/runs/RUN-002/metrics.json` is 411 202 bytes of
+    fold-level metrics. At the old 128 KiB cap the binder answered
+    RUN_RECORD_TOO_LARGE, so a Run that really ran could not be attributed and
+    fell into `unverified_closure_ids`.
+    """
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.run = self.root / "DEV" / "runs" / "RUN-BIG"
+        self.run.mkdir(parents=True)
+
+    def _write(self, run_id, size):
+        record = {"run_id": run_id, "status": "COMPLETED", "anchor_pass": True,
+                  "folds": [{"fold": i, "mae": 0.1 + i / 1000} for i in range(size // 40)]}
+        path = self.run.parent / run_id / "metrics.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(record), encoding="utf-8")
+        return path
+
+    def test_a_fold_level_record_larger_than_the_old_cap_is_still_bound(self):
+        path = self._write("RUN-BIG", 400_000)
+        self.assertGreater(path.stat().st_size, 128 * 1024)
+        result = feedback_link.bind_run_reference(self.root, "DEV/runs/RUN-BIG")
+        self.assertEqual("RUN_RECORD_BOUND", result["status"])
+        self.assertEqual("RUN-BIG", result["run_id_declared"])
+
+    def test_an_oversized_dump_is_still_refused(self):
+        path = self._write("RUN-BIG", 5_000_000)
+        self.assertGreater(path.stat().st_size, feedback_link.MAX_RUN_RECORD_BYTES)
+        result = feedback_link.bind_run_reference(self.root, "DEV/runs/RUN-BIG")
+        self.assertEqual("RUN_RECORD_TOO_LARGE", result["status"])
+
+
+class ReservedRootTests(unittest.TestCase):
+    """PD-RW reserves VAL / HOLDOUT / SEALED. Two of the three were refused.
+
+    On project 44 `VAL/README.md` was read and offered to the JSON parser while
+    `SEALED/` was rejected. Reading a reserved split for attribution is the one
+    operation that cannot be undone, so it is refused by path, not by advice.
+    """
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        for rel in ("VAL/README.md", "SEALED/lock.md", "data/val/README.md",
+                    "DEV/runs/RUN-1/metrics.json"):
+            path = self.root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"run_id": "RUN-1", "status": "COMPLETED"}),
+                            encoding="utf-8")
+
+    def test_a_reserved_root_is_refused_whatever_it_contains(self):
+        for ref in ("VAL/README.md", "SEALED/lock.md"):
+            result = feedback_link.bind_run_reference(self.root, ref)
+            self.assertEqual("RUN_REF_REJECTED", result["status"])
+            self.assertEqual("FEEDBACK_LINK_PATH_REJECTED", result["reason"])
+            self.assertIsNone(result.get("record_ref"))
+
+    def test_a_val_named_split_inside_dev_is_not_a_reserved_root(self):
+        # A directory called `val` under a working tree is not the reserved set;
+        # only the root segment is. Refusing it would be a false positive.
+        result = feedback_link.bind_run_reference(self.root, "data/val/README.md")
+        self.assertEqual("RUN_RECORD_BOUND", result["status"])
+
+
 if __name__ == "__main__":
     unittest.main()

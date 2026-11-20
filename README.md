@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.13 (the contract is the interface).**
+> **Current release — 1.0.0-rc.1 (package `1.0.0rc1`; feature-frozen).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
 > projection from an evidence-linked Run to the next action, and one read-only
@@ -9,22 +9,42 @@
 > it actually checked, `candidate-review` reports which declared relation is
 > unstated or self-contradictory, and `decision` reports when a probe's
 > reference is not a legal baseline, when its unit contradicts a declared
-> independent group check, when no candidate probe separates any hypothesis, and
+> independent group check, when no candidate probe separates any hypothesis,
 > whether the probe you are about to run has already answered this premise, and
-> whether the Run it cites actually exists here, says the same thing, and was
-> run under the same premise — the last question answered from the record or its
-> frozen plan, never from two labels the caller wrote.
+> whether the Run it cites actually ran this experiment — three separate
+> questions (the Run ran / something on disk places it here / the premise is
+> settled), each answered from the record or its frozen plan, never from two
+> labels the caller wrote.
 > Theory and simulation paths are representable (`ANALYTIC_DERIVATION`,
 > `INSTANCE`/`REPLICATE`), so a form check cannot eliminate a legal direction.
-> No scientific rule, H-node, permission gate or tool count changed: MCP stays
-> 11/21/24, no tool was added, and the case library / Runs / frozen protocols are
-> untouched.
+> The handoff plan is three tiers — `NOW` / `NEEDS_NEW_AUTHORIZATION` /
+> `FUTURE_CONDITIONAL` — because "this step spends a grant nobody has given yet"
+> had no place to be written in a flat list.
+> No scientific rule, H-node or permission gate changed, and MCP stays 11/21/24.
+> **This is a release candidate, not a release:** what was verified by a real
+> WorkBuddy session, what only by tests, and what is still `NOT_MEASURED` are
+> listed separately in [RC 1.0](docs/RC_V1.0.md) — read that table before
+> trusting any claim here.
 > [Architecture](docs/ARCHITECTURE.md) · [Runtime](docs/RUNTIME_AND_MCP.md) ·
 > [Preservation map](docs/DECISION_COVERAGE.md) ·
 > [Feedback contract](docs/EXPERIMENT_FEEDBACK_LINK.md).
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v1.0.0-rc.1 feature freeze, three integration repairs:** no new axis, no new
+> tool. (1) `MAX_RUN_RECORD_BYTES` was 128 KiB while project 44's
+> `RUN-002/metrics.json` is 411 202 bytes, so the binder refused a Run that
+> really ran and filed it as an unverified closure — the cap is now 4 MiB and
+> the record binds. (2) `SEALED`/`HOLDOUT`/`CONFIRMATION` were refused but `VAL`
+> was not: `VAL/README.md` was read and parsed as a Run candidate. A reserved
+> root is now reserved at the root segment, so `data/val/` inside DEV still
+> reads. (3) `README.md` and `RUNTIME_AND_MCP.md` still called 0.9.14 "0.9.13"
+> and described `premise_assumed_ids` as live; the header is now pinned to
+> `__version__` by a test. Acceptance was three independent sessions on projects
+> 19/48/44 (73 min, 0 paid, 0 downloads, 0 training); what they verified, what
+> only tests did, and what is `NOT_MEASURED` are separated in
+> [RC 1.0](docs/RC_V1.0.md).
 
 > **v0.9.14 a Run that ran is not yet evidence about *your* experiment:** 0.9.13 split `status_verified`
 > into `execution_verified` and `premise_verified`, and then answered the case in between with

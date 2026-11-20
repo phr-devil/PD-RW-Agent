@@ -4,7 +4,7 @@ Load only when a resumed task actually needs multiple tool actions, DEV iteratio
 
 ## Trigger-aware calibrations (not four new stages)
 
-- **Restore** on new chat / compaction / project switch: recover exact project, rule version, record snapshot and primary evidence.
+- **Restore** on new chat / compaction / project switch: recover exact project, rule version, record snapshot and primary evidence. `resume` returns the project identity (`DECLARED_ID_MATCH` is a string two files agree on, not verification), the declared `BEST_VALID_RUN` and the local rule commit (`rule_freshness: REMOTE_NOT_CHECKED` — it proves which rules were used, never that they are current). It does **not** return `AUTH/BUDGET`: quote that line from `STATE.md` yourself, both halves — what is granted and what is explicitly not — because a truncated echo would drop the second half and read as a complete permission.
 - **Execution calibration** when WorkBuddy drifts, repeats work, or misses a rule: check only the affected fact and route, then continue.
 - **Gate calibration** immediately before an actual restricted effect: check original permission and tool boundary, not just a state tag.
 - **Science calibration** only when a key new Run, negative result or Claim shift could change the next experiment or contribution.

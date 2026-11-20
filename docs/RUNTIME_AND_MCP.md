@@ -1,11 +1,11 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.14.** Read this section only; everything below the
+**Current release: 1.0.0rc1 (the v1.0 release candidate).** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.14` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `1.0.0rc1` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
 | Optional science CLI | `python -m pdrw_agent.science.cli {template,packet-check,decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
@@ -114,7 +114,9 @@ direction. Also: `status_verified` = the closure is verified, so it can no longe
 be true while `premise_verified` is false; `execution_verified` reports the other
 half; a closure whose premise is only the caller's label is
 `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` (not a next action, not a settled premise)
-and appears in `premise_assumed_ids`. Measured cost (compact JSON): clean
+and appears in `premise_assumed_ids`. **Superseded in 0.9.14** — that label still
+counted as evidence; both the name and the list are gone, see the 0.9.14
+paragraph below. Measured cost (compact JSON): clean
 two-probe 3 756 → 3 781 (+0.7%), three defective 11 074 → 11 149 (+0.7%),
 three-probe packet with real history 8 641 → 8 822 (+2.1%) declared and
 9 483 → 9 664 (+1.9%) bound. MCP unchanged: 24 tools, profiles 11/21/24.
@@ -176,6 +178,31 @@ the renamed ID list. MCP unchanged: 24 tools, profiles 11/21/24.
 Nothing here authorizes anything: Python and MCP **cannot** approve a download,
 a SEALED read, a manuscript, a figure, a payment or a submission, and no
 profile grants real execution. Only the WorkBuddy host holds those capabilities.
+
+1.0.0rc1 adds no axis and no tool; it is the same 24 tools with three integration
+repairs found by running real sessions against real projects, and a version
+identity that is now checked instead of asserted:
+
+- **A bounded read smaller than the artefacts it reads.** `MAX_RUN_RECORD_BYTES`
+  was 128 KiB, and project 44's `DEV/runs/RUN-002/metrics.json` is 411 202 bytes
+  of fold-level metrics. The binder answered `RUN_RECORD_TOO_LARGE`, so a Run
+  that really ran could not be attributed and fell through to
+  `unverified_closure_ids`. The cap is now 4 MiB — still refuses a prediction
+  dump — and `DEV/runs/RUN-002` binds (`RUN_RECORD_BOUND`).
+- **A reserved root that was not reserved.** `SEALED`, `HOLDOUT` and
+  `CONFIRMATION` were refused at any depth, but not `VAL`: on project 44
+  `VAL/README.md` was read and handed to the JSON parser as a Run candidate.
+  A reserved root is now reserved at the root segment only, so a legitimate
+  `data/val/` split inside DEV is still readable; `VAL/` answers
+  `FEEDBACK_LINK_PATH_REJECTED`.
+- **A release note that named the wrong release.** `README.md` and this file
+  still said "0.9.13" while the package was 0.9.14, and the 0.9.13 paragraph
+  still described `premise_assumed_ids` as live. Both are corrected, and
+  `test_arch_convergence` now fails if the header drifts from `__version__`.
+
+What each tier of the RC was verified *by* — a real session, a test, or nothing
+— is the point of [`docs/RC_V1.0.md`](RC_V1.0.md); the frozen identifiers are in
+`audit/RC-INTEGRATION-v1.0.0-rc.1-2026-11-20.md`.
 
 ## Historical index (audit trail — anchors preserved)
 
