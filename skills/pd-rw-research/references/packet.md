@@ -64,7 +64,13 @@ i.e. exactly the fields above.
 ```
 
 `run_ref` is a **project-relative path**; `premise_ref` names the frozen plan
-that encodes the premise under study. A probe you have not run but cannot start
+that encodes the premise under study. Name it: most frozen plans here state no
+`premise_id` of their own, and without it a real Run reads
+`CLOSURE_ATTRIBUTION_UNCHECKED` — not evidence for this probe, because nothing
+on disk says which experiment the Run answered. With it, the record's
+`protocol_id`/`protocol_sha256` is compared against those plan bytes and the
+probe becomes citable evidence (`HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED`),
+still not a verified closure. A probe you have not run but cannot start
 is declared, not omitted:
 
 ```json

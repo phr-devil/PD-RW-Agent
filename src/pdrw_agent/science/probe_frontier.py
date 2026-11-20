@@ -34,11 +34,14 @@ _UNIT_VERIFICATION = "PROBE_UNIT_NOT_INDEPENDENT"
 # named, non-executable role.
 _RUNNABLE = "NOT_YET_RUN"
 
-# Recorded evidence under a verified premise, and recorded evidence whose premise
-# link is only declared: both answer "do not run this again", and only the first
-# answers "the premise is settled".
+# Recorded evidence under a verified premise, and recorded evidence the cited
+# Run can be tied to on disk without the premise itself being recorded: both
+# answer "do not run this again", and only the first answers "the premise is
+# settled". A Run that nothing ties to this experiment is *not* in this set --
+# that case is listed separately, because a caller's label must not retire a
+# probe that may never have been run.
 _HISTORICAL_ROLES = frozenset({"HISTORICAL_EVIDENCE_ONLY",
-                               "HISTORICAL_EVIDENCE_PREMISE_ASSUMED"})
+                               "HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED"})
 
 
 def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
@@ -113,7 +116,13 @@ def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
             ident for ident in known
             if applicability[ident] in _HISTORICAL_ROLES
         ],
-        "premise_assumed_ids": with_role("HISTORICAL_EVIDENCE_PREMISE_ASSUMED"),
+        # A valid Run exists and nothing on disk says which experiment it
+        # answered. Not evidence for this probe, not a next action either: the
+        # next step is to read the plan the Run executed. Kept apart from
+        # `premise_unbound_ids` (the caller named no premise at all) because the
+        # repair differs -- here there IS a label, and the record is what is
+        # missing.
+        "attribution_unchecked_ids": with_role("CLOSURE_ATTRIBUTION_UNCHECKED"),
         "repair_required_ids": with_role("TARGETED_REPAIR"),
         "awaiting_new_information_ids": with_role("AWAIT_NEW_INFORMATION"),
         "revisit_on_new_information_ids": with_role("REVISIT_ON_NEW_INFORMATION"),

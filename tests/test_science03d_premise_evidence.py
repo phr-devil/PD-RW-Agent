@@ -307,15 +307,21 @@ class DeclaredOnlyTests(unittest.TestCase):
         prior = entry_of(result, "BARE")["prior_execution"]
         self.assertEqual("CALLER_DECLARATION", prior["premise_binding_basis"])
         self.assertEqual("NONE", prior["premise_evidence"])
+        self.assertEqual("NONE", prior["attribution_basis"])
         self.assertFalse(prior["premise_verified"])
-        # A bound, consistent Run is recorded evidence even when only the caller
-        # names the premise. 0.9.13 stops calling that a verified closure: the
-        # action is unchanged (do not rerun), the label says what is missing.
-        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ASSUMED",
+        self.assertFalse(prior["attribution_verified"])
+        # A bound, consistent Run whose experiment nothing on disk names is not
+        # evidence for this probe: 0.9.13 said it was, which let a caller's own
+        # label retire a probe that may never have been run. 0.9.14 asks which
+        # plan the Run executed instead of citing it or rerunning it.
+        self.assertEqual("CLOSURE_ATTRIBUTION_UNCHECKED",
                          entry_of(result, "BARE")["applicability"])
+        self.assertEqual("CHECK_WHICH_PLAN_THE_RUN_EXECUTED",
+                         entry_of(result, "BARE")["next_action"])
         self.assertTrue(prior["execution_verified"])
         self.assertFalse(prior["status_verified"])
-        self.assertIn("BARE", eff(result)["historical_evidence_ids"])
+        self.assertNotIn("BARE", eff(result)["historical_evidence_ids"])
+        self.assertIn("BARE", eff(result)["attribution_unchecked_ids"])
         self.assertEqual([], eff(result)["premise_contradicted_ids"])
 
 

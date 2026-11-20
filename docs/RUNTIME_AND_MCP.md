@@ -1,14 +1,14 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.13.** Read this section only; everything below the
+**Current release: 0.9.14.** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.13` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `0.9.14` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
-| Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
+| Optional science CLI | `python -m pdrw_agent.science.cli {template,packet-check,decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
 | Real DEV/GPU execution | Not enabled |
 | Original-user authentication / OS isolation | Not implemented |
 | Gate fingerprint | digests the **complete** bounded event; the returned basis is clipped for reading only (`CASE_GATES_VERSION` 1.3) |
@@ -143,6 +143,35 @@ another Run's record, or plan bytes that differ from the declared hash, are
 their hashes are still not opened here. Measured cost (compact JSON): clean
 two-probe 3 726 → 3 756 (+0.8%), three defective 10 984 → 11 074 (+0.8%), the
 three-probe packet with real history 8 180 → 8 641 (+5.6%).
+
+0.9.14 splits the third question out of the premise answer, and gives the plan a
+place to say what it needs permission for. `execution_verified` said only that a
+Run ran; `premise_verified` said the record or its frozen plan states this
+premise; between them sat a case the tool got wrong — a valid, bound, consistent
+Run that nothing on disk ties to *this* experiment. 0.9.13 filed that as
+`HISTORICAL_EVIDENCE_PREMISE_ASSUMED` and put it in `historical_evidence_ids`,
+so a caller's own label could retire a probe that may never have been run.
+Measured: a k-scale probe citing `DEV/runs/RUN-005` (whose frozen plan fixes one
+scale and states no premise) left the frontier and entered recorded evidence with
+no finding. Now `attribution_basis` names what ties the Run to the experiment —
+`RUN_RECORD`, `FROZEN_PLAN`, `CALLER_PREMISE_PLAN` (the Run executed the plan the
+caller named, checked against the record's `protocol_id`/`protocol_sha256`), or
+`NONE`. `NONE` reads `CLOSURE_ATTRIBUTION_UNCHECKED` with
+`next_action: CHECK_WHICH_PLAN_THE_RUN_EXECUTED`: not evidence, not a next action,
+not a rerun, and listed in `attribution_unchecked_ids`. Naming the plan reads
+`HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED`: citable evidence with
+`premise_verified: false`, still not a closure. 0.9.13's
+`HISTORICAL_EVIDENCE_PREMISE_ASSUMED` and `premise_assumed_ids` are renamed
+accordingly; five 03B/03C/03D/04 assertions were rewritten to assert the split
+rather than the old label. The Skill's handoff is now three tiers
+(NOW / NEEDS_NEW_AUTHORIZATION / FUTURE_CONDITIONAL) because 04 produced the
+failure twice with one flat list: a reserved-VAL grid as "step 1" with the
+permission note at step 3, and a holdout evaluation as "step 3" of a shortest
+path. Measured cost (compact JSON): clean two-probe 3 781 → 3 787 (+0.2%),
+three defective 11 149 → 11 167 (+0.2%), three-probe packet with real history
+8 822 → 9 075 (+2.9%) declared and 9 664 → 9 917 (+2.6%) bound — the last two
+carry two more per-probe axes (`attribution_basis`, `attribution_verified`) and
+the renamed ID list. MCP unchanged: 24 tools, profiles 11/21/24.
 
 Nothing here authorizes anything: Python and MCP **cannot** approve a download,
 a SEALED read, a manuscript, a figure, a payment or a submission, and no

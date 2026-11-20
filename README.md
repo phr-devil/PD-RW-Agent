@@ -26,6 +26,26 @@
 
 ## Release notes (newest first; the release above is the current one)
 
+> **v0.9.14 a Run that ran is not yet evidence about *your* experiment:** 0.9.13 split `status_verified`
+> into `execution_verified` and `premise_verified`, and then answered the case in between with
+> `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` — recorded evidence, not a settled premise. That was still
+> too generous. A **valid, bound, status-consistent** Run that nothing on disk ties to the probe
+> retired the probe from the frontier and entered `historical_evidence_ids` on the strength of a
+> label the caller wrote twice. Reproduced on real bytes: a k-scale grid citing `DEV/runs/RUN-005`,
+> whose frozen v5 plan fixes one target scale and states no premise, came back as recorded evidence
+> with no finding, though the grid was never run. Now `attribution_basis` says what ties the Run to
+> the experiment — `RUN_RECORD`, `FROZEN_PLAN`, `CALLER_PREMISE_PLAN` (the Run executed the plan you
+> named, checked against the record's `protocol_id`/`protocol_sha256`), or `NONE`. `NONE` reads
+> `CLOSURE_ATTRIBUTION_UNCHECKED`: **not** evidence, **not** a next action, **not** a rerun — the next
+> step is `CHECK_WHICH_PLAN_THE_RUN_EXECUTED`. Naming the plan reads
+> `HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED`: citable, `premise_verified: false`, still not a closure.
+> Three levels — the Run ran / something on disk places it here / the premise is settled — and none
+> of them is a scientific conclusion. The Skill's handoff is now three tiers
+> (`NOW` / `NEEDS_NEW_AUTHORIZATION` / `FUTURE_CONDITIONAL`) because 04 produced the same defect
+> twice with one flat list: a reserved-VAL grid as *step 1* with the permission note at step 3, and a
+> holdout evaluation as *step 3* of a shortest path. No history was edited, no protocol re-hashed, no
+> new approver, ledger or checker axis; MCP stays 11/21/24.
+
 > **v0.9.13 the contract is the interface:** four independent sessions in 03D each wrote a decision
 > packet and every one was rejected — not on science, on shape. The rejections could not be
 > repaired from: only the first defect was reported, and the message named the wrong thing
@@ -44,7 +64,8 @@
 > Separately, `status_verified` now means the *closure* is verified and can no longer be true
 > while `premise_verified` is false; `execution_verified` is the other half, and a closure whose
 > premise is only the caller's label becomes `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` — still not a
-> next action, no longer presented as settled. No new approver, ledger, validator or checker axis;
+> next action, no longer presented as settled (0.9.14 renamed it: that label was still too
+> generous, see above). No new approver, ledger, validator or checker axis;
 > MCP stays 11/21/24.
 
 > **v0.9.12 a premise label is not a bound premise:** `prior_execution.premise_id`
