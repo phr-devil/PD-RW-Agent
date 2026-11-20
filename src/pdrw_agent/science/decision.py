@@ -29,22 +29,35 @@ MAX_PROBES = 6
 _ILLEGAL_REFERENCE = re.compile(
     r"(oracle|测试(集)?真值|test[- ]time (truth|labels)|future (information|labels)|"
     r"dev_val 标签|未来信息)", re.I)
+# Naming an oracle as a diagnostic next to a deployable arm is not using it as
+# the comparison. Without this, "oracle upper bound and deployable arm" was
+# flagged illegal and a lawful decisive probe disappeared from the frontier.
+_DIAGNOSTIC_ARM = re.compile(
+    r"((oracle|diagnostic)\s+(upper\s+bound|ceiling)|诊断上界)", re.I)
 _REPEATED_UNIT = frozenset({"WINDOW", "FRAME", "RECORD", "SEGMENT", "TOKEN", "ROW", "EPISODE"})
 _PROBE_RULE = {
     "REFERENCE_NOT_LEGAL": "ALGORITHM_ENGINEERING §1 BASELINE / CASE-02",
     "PROBE_UNIT_NOT_INDEPENDENT": "HIGH_VALUE_RESEARCH_DESIGN §B INDEPENDENT_N / CASE-11",
     "EXECUTION_DECLARED_NOT_VERIFIED": "SCIENCE_RESULT_HARVEST §RUN_EVIDENCE / CASE-20",
+    "EXECUTION_STATUS_CONFLICT": "SCIENCE_RESULT_HARVEST §RUN_EVIDENCE / CASE-20",
+    "CLOSURE_PREMISE_UNBOUND": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
 }
 _PROBE_PRECEDENT = {
     "REFERENCE_NOT_LEGAL": ["CASE-02", "CASE-12"],
     "PROBE_UNIT_NOT_INDEPENDENT": ["CASE-11", "EXT-X3"],
     "EXECUTION_DECLARED_NOT_VERIFIED": ["CASE-20", "CASE-21"],
+    "EXECUTION_STATUS_CONFLICT": ["CASE-20", "CASE-21"],
+    "CLOSURE_PREMISE_UNBOUND": ["CASE-20", "CASE-21"],
 }
 _PROBE_QUESTION = {
     "REFERENCE_NOT_LEGAL": "Which reference is legal at prediction time, and does it exist already?",
     "PROBE_UNIT_NOT_INDEPENDENT": "How many independent units (not windows) does this probe compare?",
     "EXECUTION_DECLARED_NOT_VERIFIED": (
         "Which Run or record proves this probe already ran under this premise?"),
+    "EXECUTION_STATUS_CONFLICT": (
+        "The cited Run and the declaration disagree about whether it ran; which is right?"),
+    "CLOSURE_PREMISE_UNBOUND": (
+        "Under which premise was this experiment run? Without one it closes nothing."),
 }
 # What the probe may still be used for. A test-time-truth reference is a
 # legitimate diagnostic upper bound and an illegitimate decisive comparison;
@@ -54,6 +67,8 @@ _PROBE_USAGE = {
     "REFERENCE_NOT_LEGAL": "DIAGNOSTIC_UPPER_BOUND_ONLY",
     "PROBE_UNIT_NOT_INDEPENDENT": "VERIFY_INDEPENDENT_UNITS_FIRST",
     "EXECUTION_DECLARED_NOT_VERIFIED": "DO_NOT_TREAT_AS_CLOSED_OR_AS_NEW",
+    "EXECUTION_STATUS_CONFLICT": "DO_NOT_TREAT_AS_CLOSED_OR_AS_NEW",
+    "CLOSURE_PREMISE_UNBOUND": "BIND_PREMISE_BEFORE_RELYING_ON_IT",
 }
 _DISQUALIFYING_FROM_FRONTIER = frozenset({"REFERENCE_NOT_LEGAL"})
 
@@ -77,27 +92,104 @@ _NEXT_ACTION = {
     "REVISIT_ON_NEW_INFORMATION": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
     "AWAIT_NEW_INFORMATION": "HOLD_UNTIL_NEW_INFORMATION_EXISTS",
     "BLOCKER_UNRESOLVED": "RESOLVE_BLOCKER_FIRST",
+    "CLOSURE_PREMISE_UNBOUND": "BIND_PREMISE_ID_BEFORE_TREATING_AS_CLOSED",
+    "STATUS_CONFLICT": "RESOLVE_RUN_STATUS_CONFLICT_FIRST",
 }
 
+# A Run record uses its own vocabulary ("COMPLETED", "VALID", "PARTIAL"...). The
+# comparison below is deliberately coarse: it can only say that the declared
+# state and the record agree, disagree, or cannot be compared.
+_VALID_RUN_TERMS = frozenset({"VALID", "COMPLETED", "SUCCESS", "SUCCEEDED", "DONE", "PASSED"})
+_INVALID_RUN_TERMS = frozenset({"INVALID", "PARTIAL", "CRASH", "CRASHED", "FAILED", "FAILURE",
+                                "ERROR", "NOT_RUN", "ABORTED", "RESTRICTED"})
+_INCONCLUSIVE_RUN_TERMS = frozenset({"INCONCLUSIVE", "UNDECIDED"})
 
-def _prior_execution(value, premise_id: str) -> dict:
+
+def _term_is(term: str, terms: frozenset) -> bool:
+    return term in terms or any(term.startswith(t + "_") for t in terms)
+
+
+def _status_consistency(declared_status: str, binding: dict | None) -> str:
+    """Compare a declared execution state with the Run's own record.
+
+    CONSISTENT means the two agree. CONFLICT means the record contradicts the
+    declaration -- an "invalid" attempt declared as a valid closure, or the
+    reverse. UNKNOWN covers everything else, including "no record was read".
+    """
+    if not binding or binding.get("status") != "RUN_RECORD_BOUND":
+        return "UNKNOWN"
+    term = str(binding.get("run_status_declared") or "").strip().upper()
+    verdict = str(binding.get("verdict_declared") or "").strip().upper()
+    anchor_failed = binding.get("anchor_pass_declared") is False
+    invalid = _term_is(term, _INVALID_RUN_TERMS) or verdict.startswith("INVALID")
+    if declared_status == "COMPLETED_VALID":
+        if invalid or anchor_failed:
+            return "CONFLICT"
+        return "CONSISTENT" if _term_is(term, _VALID_RUN_TERMS) else "UNKNOWN"
+    if declared_status == "COMPLETED_INVALID":
+        if invalid:
+            return "CONSISTENT"
+        return "CONFLICT" if _term_is(term, _VALID_RUN_TERMS) else "UNKNOWN"
+    if declared_status == "INCONCLUSIVE":
+        if _term_is(term, _INCONCLUSIVE_RUN_TERMS) or "INCONCLUSIVE" in verdict:
+            return "CONSISTENT"
+        return "CONFLICT" if invalid else "UNKNOWN"
+    return "UNKNOWN"
+
+
+def _binding_echo(binding: dict | None) -> dict | None:
+    """A bounded echo of the binding receipt; never the whole record."""
+    if binding is None:
+        return None
+    return {
+        "status": binding.get("status"),
+        "reason": binding.get("reason"),
+        "run_dir": binding.get("run_dir"),
+        "record_ref": binding.get("record_ref"),
+        "record_sha256": binding.get("record_sha256"),
+        "run_status_declared": binding.get("run_status_declared"),
+        "verdict_declared": binding.get("verdict_declared"),
+        "anchor_pass_declared": binding.get("anchor_pass_declared"),
+    }
+
+
+def _prior_execution(value, premise_id: str, binder=None) -> dict:
     """Read the declared execution state of one probe without trusting it.
 
     Absent means "not run", which is the only reading that keeps old packets
-    valid. Everything else is echoed back with an explicit `status_verified`
-    flag: a Run reference makes the claim checkable, never checked.
+    valid. When a project root is available the cited reference is resolved to
+    Run bytes (`binder`) and five questions are answered separately:
+
+    * is a reference declared at all (`reference_present`);
+    * did it resolve to a Run record inside this project (`file_binding`);
+    * does that record's own status agree with the declaration
+      (`status_consistency`);
+    * was the experiment run under *this* premise (`premise_binding`);
+    * therefore, is the closure trustworthy (`status_verified`).
+
+    Only the last one is an inference, and it needs all four. A missing
+    premise, an unresolvable Run, a Run from another project and a contradicting
+    status each keep the closure unknown -- they are never promoted to verified,
+    and they never delete the probe either.
     """
     if value is None:
         return {
             "declared_status": "NOT_EXECUTED",
             "run_ref": None,
+            "reference_present": False,
+            "file_binding": "NOT_CHECKED",
+            "status_consistency": "UNKNOWN",
+            "premise_binding": "NOT_APPLICABLE",
             "status_verified": False,
+            "binding_checked": False,
             "premise_match": None,
             "history_applicable": False,
             "requires_new_authorization": False,
+            "authorization_basis": "CALLER_DECLARED_ONLY",
             "new_information_declared": False,
             "applicability": "NOT_YET_RUN",
             "next_action": _NEXT_ACTION["NOT_YET_RUN"],
+            "run_binding": None,
         }
     if not isinstance(value, dict) or set(value) - _PRIOR_EXECUTION_FIELDS:
         raise AgentError("SCIENCE_PACKET_INVALID",
@@ -122,15 +214,41 @@ def _prior_execution(value, premise_id: str) -> dict:
         raise AgentError("SCIENCE_PACKET_INVALID",
                          "requires_new_authorization must be boolean")
 
-    verified = status != "NOT_EXECUTED" and bool(texts["run_ref"])
-    # A closure recorded under another premise says nothing about this one.
-    premise_match = None if prior_premise is None else prior_premise == premise_id
+    reference_present = bool(texts["run_ref"])
+    binding = None
+    if reference_present and binder is not None:
+        try:
+            binding = binder(texts["run_ref"])
+        except AgentError as exc:
+            binding = {"status": "BINDING_ERROR", "reason": exc.code,
+                       "run_ref": texts["run_ref"]}
+    file_binding = "NOT_CHECKED"
+    if binding is not None:
+        file_binding = ("BOUND" if binding.get("status") == "RUN_RECORD_BOUND"
+                        else "UNRESOLVED")
+    consistency = _status_consistency(status, binding)
+    # A closure recorded under another premise says nothing about this one, and
+    # a closure that never states its premise says nothing either.
+    premise_binding = ("NOT_APPLICABLE" if status == "NOT_EXECUTED"
+                       else "UNBOUND" if prior_premise is None
+                       else "MATCH" if prior_premise == premise_id
+                       else "MISMATCH")
+    trustworthy = (status == "COMPLETED_VALID" and reference_present
+                   and file_binding == "BOUND" and consistency == "CONSISTENT"
+                   and premise_binding == "MATCH")
+
     if status == "NOT_EXECUTED":
         applicability = "NEEDS_AUTHORIZATION" if needs_auth else "NOT_YET_RUN"
-    elif premise_match is False:
+    elif premise_binding == "MISMATCH":
         applicability = "NOT_YET_RUN"
+    elif premise_binding == "UNBOUND":
+        # Running it again would be waste; calling it closed would let an
+        # unbound claim remove a live candidate. Neither is allowed.
+        applicability = "CLOSURE_PREMISE_UNBOUND"
+    elif consistency == "CONFLICT":
+        applicability = "STATUS_CONFLICT"
     elif status == "COMPLETED_VALID":
-        applicability = "HISTORICAL_EVIDENCE_ONLY" if verified else "CLOSURE_DECLARED_NOT_VERIFIED"
+        applicability = "HISTORICAL_EVIDENCE_ONLY" if trustworthy else "CLOSURE_DECLARED_NOT_VERIFIED"
     elif status == "COMPLETED_INVALID":
         applicability = "TARGETED_REPAIR"
     elif status == "INCONCLUSIVE":
@@ -141,13 +259,24 @@ def _prior_execution(value, premise_id: str) -> dict:
     return {
         "declared_status": status,
         "run_ref": texts["run_ref"],
-        "status_verified": verified,
-        "premise_match": premise_match,
-        "history_applicable": premise_match is not False and status != "NOT_EXECUTED",
+        "reference_present": reference_present,
+        "file_binding": file_binding,
+        "status_consistency": consistency,
+        "premise_binding": premise_binding,
+        # Kept for compatibility; now True only for a bound, consistent closure
+        # under this same premise.
+        "status_verified": trustworthy,
+        "binding_checked": binding is not None,
+        "premise_match": None if premise_binding in {"UNBOUND", "NOT_APPLICABLE"}
+                        else premise_binding == "MATCH",
+        "history_applicable": premise_binding == "MATCH" and status != "NOT_EXECUTED",
         "requires_new_authorization": needs_auth,
+        # A declared boolean is a caller statement, never an execution permit.
+        "authorization_basis": "CALLER_DECLARED_ONLY",
         "new_information_declared": bool(texts["new_information"]),
         "applicability": applicability,
         "next_action": _NEXT_ACTION[applicability],
+        "run_binding": _binding_echo(binding),
     }
 
 
@@ -175,12 +304,23 @@ def _scope(value) -> dict[str, str]:
     return value
 
 
-def assess_proposal(packet: dict) -> dict:
+def assess_proposal(packet: dict, *, project_root=None, run_binder=None) -> dict:
     """Report discriminability, unresolved evidence and premise similarity.
+
+    `project_root` (optional) makes declared execution claims checkable: a cited
+    Run reference is resolved to a record inside that project by the existing
+    read-only binder. Without it every closure stays `file_binding:
+    NOT_CHECKED`, which is the same answer as "not verified" -- never "true".
 
     This does not rank candidates by scientific merit, infer numerical
     probabilities, or authorize any action. No permanent memory is written.
     """
+    binder = run_binder
+    if binder is None and project_root is not None:
+        from .feedback_link import bind_run_reference  # local: keeps import graph flat
+
+        def binder(ref):
+            return bind_run_reference(project_root, ref)
     if not isinstance(packet, dict):
         raise AgentError("SCIENCE_PACKET_INVALID", "Expected a JSON object")
     raw_type = packet.get("claim_type")
@@ -320,17 +460,22 @@ def assess_proposal(packet: dict) -> dict:
         # repeats one subject while group independence is declared PASS, is not
         # a clean comparison even if it separates every hypothesis pair.
         findings = []
-        if _ILLEGAL_REFERENCE.search(comparison_reference):
+        if _ILLEGAL_REFERENCE.search(_DIAGNOSTIC_ARM.sub(" ", comparison_reference)):
             findings.append("REFERENCE_NOT_LEGAL")
         if evaluation_unit.strip().upper() in _REPEATED_UNIT:
             if prechecks["group_independence"]["declared_status"] == "PASS":
                 repeated_unit_probes.append(pid)
                 findings.append("PROBE_UNIT_NOT_INDEPENDENT")
-        # A claimed closure that cannot be traced to a Run is a record to
-        # check, not a finished experiment and not a free rerun (CASE-20).
-        prior = _prior_execution(probe.get("prior_execution"), premise_id)
+        # A claimed closure that cannot be traced to a Run under this premise is
+        # a record to check, not a finished experiment and not a free rerun
+        # (CASE-20). A contradicting record is a different question again.
+        prior = _prior_execution(probe.get("prior_execution"), premise_id, binder)
         if prior["applicability"] == "CLOSURE_DECLARED_NOT_VERIFIED":
             findings.append("EXECUTION_DECLARED_NOT_VERIFIED")
+        elif prior["applicability"] == "CLOSURE_PREMISE_UNBOUND":
+            findings.append("CLOSURE_PREMISE_UNBOUND")
+        elif prior["applicability"] == "STATUS_CONFLICT":
+            findings.append("EXECUTION_STATUS_CONFLICT")
         if findings:
             probe_findings.append({
                 "probe_id": pid,
@@ -405,9 +550,19 @@ def assess_proposal(packet: dict) -> dict:
         "no_executable_next_probe_question": (
             "Which listed probe has not already answered this premise and can start "
             "under the current authorization? A closed probe is recorded evidence, an "
-            "invalid one needs its named defect repaired, and an ungranted one is a "
+            "invalid one needs its named defect repaired, a closure without a bound "
+            "premise or Run must be verified first, and an ungranted one is a "
             "candidate rather than a next action."
             if no_executable else None),
+        # What was actually checked this call. Without a project root every
+        # closure stays a declaration, and the output says so instead of
+        # presenting a non-empty string as verified evidence.
+        "run_binding_checked": binder is not None,
+        "run_binding_scope": ("DECLARED_REFERENCE_RESOLVED_TO_PROJECT_BYTES_AND_RUN_STATUS"
+                              if binder is not None else "NO_PROJECT_ROOT_SUPPLIED"),
+        # Execution permission is never granted here: an authorization field in
+        # the packet is a caller statement, and this tool cannot verify it.
+        "authorization_basis": "CALLER_DECLARED_ONLY_NEVER_A_PERMIT",
         "no_claim_of_novelty_or_scientific_validity": True,
         "original_user_authorization": "UNVERIFIED",
         "automatic_stop": False,

@@ -296,6 +296,94 @@ def _run(root: Path, block: dict) -> dict:
     }
 
 
+RUN_RECORD_NAMES = ("metrics.json", "run.json", "RUN.json")
+MAX_RUN_RECORD_BYTES = 128 * 1024
+
+
+def bind_run_reference(project_root, run_ref, run_record_ref=None) -> dict:
+    """Resolve one declared Run reference to bytes inside *this* project.
+
+    Answers exactly one question: does the reference point at a readable Run
+    record here, and what does that record say about itself? It does not judge
+    scientific validity, does not read SEALED/holdout paths (``_resolve``
+    refuses them), and does not grant permission. A missing directory, a path
+    that escapes the project, and a directory with no run record stay three
+    different answers -- collapsing them into "verified" was the defect.
+
+    The declared ``status`` of a *claim* is compared with the Run's own
+    ``status``/``verdict``/``anchor_pass`` upstream, never here.
+    """
+    if project_root is None:
+        raise AgentError("FEEDBACK_LINK_INVALID", "A project root is required")
+    root = Path(project_root)
+    if not root.is_dir():
+        raise AgentError("FEEDBACK_LINK_INVALID", "Project root is not a directory")
+    ref = _bounded(run_ref, "run_ref", 300)
+    base = {"run_ref": ref, "run_record_ref": run_record_ref,
+            "scope": "DECLARED_REFERENCE_TO_PROJECT_BYTES_ONLY"}
+    try:
+        run_dir = _resolve(root, ref, directory=True)
+        target_is_dir = True
+    except AgentError as exc:
+        if exc.code == "FEEDBACK_LINK_REF_MISSING":
+            target_is_dir = False
+        else:
+            return {**base, "status": "RUN_REF_REJECTED", "reason": exc.code}
+    if target_is_dir:
+        if run_record_ref is not None:
+            try:
+                record_path = _resolve_artifact(
+                    root, run_dir, _bounded(run_record_ref, "run_record_ref", 300))
+            except AgentError as exc:
+                if exc.code == "FEEDBACK_LINK_REF_MISSING":
+                    return {**base, "status": "RUN_RECORD_ABSENT", "reason": exc.code}
+                return {**base, "status": "RUN_REF_REJECTED", "reason": exc.code}
+        else:
+            record_path = next(
+                (run_dir / name for name in RUN_RECORD_NAMES
+                 if (run_dir / name).is_file()), None)
+            if record_path is None:
+                return {**base, "status": "RUN_RECORD_ABSENT",
+                        "reason": "NO_RUN_RECORD_IN_REFERENCED_DIRECTORY"}
+        try:
+            runner = str(run_dir.relative_to(root.resolve())).replace("\\", "/")
+        except ValueError:
+            runner = None
+    else:
+        try:
+            record_path = _resolve(root, ref)
+        except AgentError as exc:
+            return {**base, "status": "RUN_REF_MISSING", "reason": exc.code}
+        runner = None
+    if record_path.stat().st_size > MAX_RUN_RECORD_BYTES:
+        return {**base, "status": "RUN_RECORD_TOO_LARGE",
+                "run_dir": runner, "record_ref": str(record_path.name)}
+    try:
+        record = _read_json(record_path, limit=MAX_RUN_RECORD_BYTES)
+    except AgentError as exc:
+        return {**base, "status": "RUN_RECORD_UNREADABLE", "reason": exc.code,
+                "run_dir": runner, "record_ref": str(record_path.name)}
+    anchor = record.get("anchor_pass")
+    return {
+        **base,
+        "status": "RUN_RECORD_BOUND",
+        "run_dir": runner,
+        "record_ref": str(record_path.relative_to(root.resolve())).replace("\\", "/"),
+        "record_sha256": _sha256(record_path),
+        "run_id_declared": _text(record.get("run_id")),
+        "run_status_declared": _text(record.get("status")),
+        "verdict_declared": _text(record.get("verdict")),
+        "anchor_pass_declared": anchor if isinstance(anchor, bool) else None,
+        "note": ("The record was read from this project. Its own status is compared "
+                 "with the declared one upstream; bytes matching is not a scientific "
+                 "conclusion and not a permission."),
+    }
+
+
+def _text(value, limit: int = 120) -> str | None:
+    return value.strip()[:limit] if isinstance(value, str) and value.strip() else None
+
+
 def _case_usage(root: Path, block, *, decision_at, run_started,
                 frozen_case_ids: list[str]) -> dict:
     """Split a case list into pre-decision use and post-Run relevance.

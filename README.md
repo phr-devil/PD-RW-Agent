@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.10 (an experiment that already ran is not a next action).**
+> **Current release — 0.9.11 (a cited Run is checked, not trusted).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
 > projection from an evidence-linked Run to the next action, and one read-only
@@ -10,7 +10,9 @@
 > unstated or self-contradictory, and `decision` reports when a probe's
 > reference is not a legal baseline, when its unit contradicts a declared
 > independent group check, when no candidate probe separates any hypothesis, and
-> whether the probe you are about to run has already answered this premise.
+> whether the probe you are about to run has already answered this premise, and
+> whether the Run it cites actually exists here, says the same thing, and was
+> run under the same premise.
 > Theory and simulation paths are representable (`ANALYTIC_DERIVATION`,
 > `INSTANCE`/`REPLICATE`), so a form check cannot eliminate a legal direction.
 > No scientific rule, H-node, permission gate or tool count changed: MCP stays
@@ -22,6 +24,18 @@
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v0.9.11 a cited Run is checked, not trusted:** `status_verified` used to be
+> `bool(run_ref)`, so a missing Run, another project's Run and a Run whose own
+> record said INVALID all read as verified closure evidence, and a closure with
+> no `premise_id` still counted as history. With `--project-root`, the existing
+> `feedback_link` resolver binds the reference to a Run record inside that
+> project and reports five axes separately — reference present, file bound,
+> status consistent, same premise, therefore trustworthy. `STATUS_CONFLICT` and
+> `CLOSURE_PREMISE_UNBOUND` are new, and neither closes a premise nor removes a
+> live candidate. A `REFERENCE_NOT_LEGAL` false positive found on a real replay
+> ("oracle upper bound and deployable arm") is fixed by stripping a named
+> diagnostic arm before matching.
 
 > **v0.9.10 a closed or ungranted probe is not a next action:** a cheap probe that
 > had already answered the same premise still won the frontier, and an INVALID

@@ -1,0 +1,137 @@
+{
+  "status": "ADVISORY_REVIEW_ONLY",
+  "question": "Is there a deployable increment beyond the posture prior in PoPu DEV?",
+  "claim_type": "MECHANISM/CAUSAL",
+  "claim_evidence_refs": [
+    "48/DEV/runs/RUN-004/metrics.json",
+    "48/DEV/runs/RUN-005/metrics.json"
+  ],
+  "premise_candidates": [],
+  "positive_premise_candidates": [],
+  "prechecks": {
+    "label_provenance": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "group_independence": {
+      "declared_status": "PASS",
+      "evidence_refs": [
+        "48/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json"
+      ],
+      "review": "SOURCE_NOT_VERIFIED",
+      "independently_verified": false
+    },
+    "legal_inputs": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "evaluation_integrity": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "metric_appropriateness": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "effect_size": {
+      "declared_status": "NOT_CHECKED",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    }
+  },
+  "probe_comparisons": [
+    {
+      "id": "P-GEOMETRY-REGISTRATION",
+      "observable": "MAE after geometric registration",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same protocol without registration",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_deployable",
+          "H_prior_only"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "HIGH",
+      "prediction_evidence_refs": [],
+      "prediction_source_verified": false,
+      "findings": [],
+      "applicability": "NEEDS_AUTHORIZATION",
+      "next_action": "OBTAIN_AUTHORIZATION_FIRST",
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK",
+      "prior_execution": {
+        "declared_status": "NOT_EXECUTED",
+        "run_ref": null,
+        "reference_present": false,
+        "file_binding": "NOT_CHECKED",
+        "status_consistency": "UNKNOWN",
+        "premise_binding": "NOT_APPLICABLE",
+        "status_verified": false,
+        "binding_checked": false,
+        "premise_match": null,
+        "history_applicable": false,
+        "requires_new_authorization": true,
+        "authorization_basis": "CALLER_DECLARED_ONLY",
+        "new_information_declared": false,
+        "applicability": "NEEDS_AUTHORIZATION",
+        "next_action": "OBTAIN_AUTHORIZATION_FIRST",
+        "run_binding": null
+      }
+    }
+  ],
+  "declared_probe_efficiency": {
+    "frontier_candidate_ids_as_declared": [],
+    "dominated_candidates_as_declared": [],
+    "exploratory_probe_ids": [],
+    "diagnostic_upper_bound_ids": [],
+    "needs_unit_verification_ids": [],
+    "historical_evidence_ids": [],
+    "repair_required_ids": [],
+    "awaiting_new_information_ids": [],
+    "revisit_on_new_information_ids": [],
+    "needs_authorization_ids": [
+      "P-GEOMETRY-REGISTRATION"
+    ],
+    "blocked_ids": [],
+    "unverified_closure_ids": [],
+    "premise_unbound_ids": [],
+    "status_conflict_ids": [],
+    "no_discriminating_probe": false,
+    "no_legal_decisive_probe": false,
+    "no_executable_next_probe": true,
+    "unknown_cost_ids": [],
+    "scientifically_ranked": false,
+    "automatically_selected": false,
+    "source_predictions_verified": false,
+    "note": "Declared pairs, cost bands and declared execution state only: compare original evidence, scientific importance, independent groups and legal scope before acting. No candidate is rejected by this hint."
+  },
+  "probe_findings": [],
+  "no_decisive_probe": false,
+  "no_decisive_probe_question": null,
+  "no_legal_decisive_probe": false,
+  "no_legal_decisive_probe_question": null,
+  "no_executable_next_probe": true,
+  "no_executable_next_probe_question": "Which listed probe has not already answered this premise and can start under the current authorization? A closed probe is recorded evidence, an invalid one needs its named defect repaired, a closure without a bound premise or Run must be verified first, and an ungranted one is a candidate rather than a next action.",
+  "run_binding_checked": true,
+  "run_binding_scope": "DECLARED_REFERENCE_RESOLVED_TO_PROJECT_BYTES_AND_RUN_STATUS",
+  "authorization_basis": "CALLER_DECLARED_ONLY_NEVER_A_PERMIT",
+  "no_claim_of_novelty_or_scientific_validity": true,
+  "original_user_authorization": "UNVERIFIED",
+  "automatic_stop": false,
+  "automatic_go": false,
+  "guidance": "Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; verify original Run and named literature before choosing a Task or Probe.",
+  "source_binding": {
+    "status": "NOT_CHECKED",
+    "scientific_claims_verified": false
+  }
+}

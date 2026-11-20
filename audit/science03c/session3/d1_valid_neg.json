@@ -1,0 +1,61 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Is there a deployable increment beyond the posture prior in PoPu DEV?",
+  "claim_evidence_refs": [
+    "48/DEV/runs/RUN-004/metrics.json",
+    "48/DEV/runs/RUN-005/metrics.json"
+  ],
+  "hypotheses": [
+    "H_deployable",
+    "H_prior_only"
+  ],
+  "proposed_premise": {
+    "premise_id": "POPU_LOWER72_RECOVERY",
+    "scope": {
+      "dataset": "PoPu DEV 12",
+      "input": "lower 72"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P-RELIABILITY-RERUN",
+      "observable": "subject AUC of predicted error",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "predicted magnitude only, same folds",
+      "predictions": {
+        "H_deployable": "INCREASE",
+        "H_prior_only": "NO_CHANGE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-005",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "conclusion": "NEG_NOT_PREDICTABLE_BEYOND_MAGNITUDE"
+      }
+    },
+    {
+      "id": "P-SECOND-LIBRARY",
+      "observable": "cross-library ranking",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same protocol, second library",
+      "predictions": {
+        "H_deployable": "INCREASE",
+        "H_prior_only": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "requires_new_authorization": true
+      }
+    }
+  ]
+}
