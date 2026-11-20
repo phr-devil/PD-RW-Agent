@@ -4,6 +4,7 @@ Inputs are researcher/Agent proposals; this module does NOT attest their truth.
 Scientific rules and actual Run evidence remain with PD-RW.
 """
 from __future__ import annotations
+import re
 from itertools import combinations
 from ..schemas import AgentError
 from .probe_frontier import summarize_declared_probe_frontier
@@ -20,6 +21,35 @@ CLAIM_ALIASES = {
     "LAW": "LAW/BOUNDARY",
 }
 MAX_PROBES = 6
+
+# A probe's reference condition is its baseline. Two ways that stops being a
+# legal comparison: the reference needs information unavailable at prediction
+# time (CASE-02/CASE-12 oracle), or the evaluation unit repeats one subject
+# while group independence is declared PASS (CASE-11/EXT-X3).
+_ILLEGAL_REFERENCE = re.compile(
+    r"(oracle|测试(集)?真值|test[- ]time (truth|labels)|future (information|labels)|"
+    r"dev_val 标签|未来信息)", re.I)
+_REPEATED_UNIT = frozenset({"WINDOW", "FRAME", "RECORD", "SEGMENT", "TOKEN", "ROW", "EPISODE"})
+_PROBE_RULE = {
+    "REFERENCE_NOT_LEGAL": "ALGORITHM_ENGINEERING §1 BASELINE / CASE-02",
+    "PROBE_UNIT_NOT_INDEPENDENT": "HIGH_VALUE_RESEARCH_DESIGN §B INDEPENDENT_N / CASE-11",
+}
+_PROBE_PRECEDENT = {
+    "REFERENCE_NOT_LEGAL": ["CASE-02", "CASE-12"],
+    "PROBE_UNIT_NOT_INDEPENDENT": ["CASE-11", "EXT-X3"],
+}
+_PROBE_QUESTION = {
+    "REFERENCE_NOT_LEGAL": "Which reference is legal at prediction time, and does it exist already?",
+    "PROBE_UNIT_NOT_INDEPENDENT": "How many independent units (not windows) does this probe compare?",
+}
+# What the probe may still be used for. A test-time-truth reference is a
+# legitimate diagnostic upper bound and an illegitimate decisive comparison;
+# an unresolved unit question asks for a count, not for a ban on the metric.
+_PROBE_USAGE = {
+    "REFERENCE_NOT_LEGAL": "DIAGNOSTIC_UPPER_BOUND_ONLY",
+    "PROBE_UNIT_NOT_INDEPENDENT": "VERIFY_INDEPENDENT_UNITS_FIRST",
+}
+_DISQUALIFYING_FROM_FRONTIER = frozenset({"REFERENCE_NOT_LEGAL"})
 
 
 def _id(value, label: str) -> str:
@@ -157,6 +187,8 @@ def assess_proposal(packet: dict) -> dict:
     if not isinstance(probes, list) or not 1 <= len(probes) <= MAX_PROBES:
         raise AgentError("SCIENCE_PACKET_INVALID", "Use 1..6 candidate probes")
     summaries = []
+    probe_findings = []
+    repeated_unit_probes = []
     seen = set()
     for probe in probes:
         if not isinstance(probe, dict):
@@ -184,6 +216,29 @@ def assess_proposal(packet: dict) -> dict:
             pa, pb = predictions.get(a, "UNKNOWN"), predictions.get(b, "UNKNOWN")
             if pa != "UNKNOWN" and pb != "UNKNOWN" and pa != pb:
                 separated.append([a, b])
+        # Declaration-level contradictions only: no file is read and nothing is
+        # promoted. A probe whose reference needs test-time truth, or whose unit
+        # repeats one subject while group independence is declared PASS, is not
+        # a clean comparison even if it separates every hypothesis pair.
+        findings = []
+        if _ILLEGAL_REFERENCE.search(comparison_reference):
+            findings.append("REFERENCE_NOT_LEGAL")
+        if evaluation_unit.strip().upper() in _REPEATED_UNIT:
+            if prechecks["group_independence"]["declared_status"] == "PASS":
+                repeated_unit_probes.append(pid)
+                findings.append("PROBE_UNIT_NOT_INDEPENDENT")
+        if findings:
+            probe_findings.append({
+                "probe_id": pid,
+                "codes": findings,
+                "rules": [_PROBE_RULE[code] for code in findings],
+                "precedent": sorted({c for code in findings for c in _PROBE_PRECEDENT[code]}),
+                "questions": [_PROBE_QUESTION[code] for code in findings],
+                "usage": [_PROBE_USAGE[code] for code in findings],
+                "blocks_decisive_frontier": any(
+                    code in _DISQUALIFYING_FROM_FRONTIER for code in findings),
+                "independently_verified": False,
+            })
         summaries.append({
             "id": pid, "observable": observable,
             "evaluation_unit": evaluation_unit,
@@ -196,8 +251,19 @@ def assess_proposal(packet: dict) -> dict:
             "declared_cost_band": cost,
             "prediction_evidence_refs": refs,
             "prediction_source_verified": False,
+            "findings": findings,
             "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK",
         })
+
+    # A precheck cannot stay "declared PASS" while the probe it is attached to
+    # counts repeated windows as independent units: that is the CASE-11 defect
+    # reappearing one layer down.
+    if repeated_unit_probes:
+        prechecks["group_independence"]["review"] = "DECLARED_CONFLICT"
+        prechecks["group_independence"]["conflict_with_probe_units"] = repeated_unit_probes
+    no_decisive = bool(summaries) and all(s["pair_count"] == 0 for s in summaries)
+    efficiency = summarize_declared_probe_frontier(summaries)
+    no_legal = efficiency["no_legal_decisive_probe"]
 
     return {
         "status": "ADVISORY_REVIEW_ONLY",
@@ -208,7 +274,19 @@ def assess_proposal(packet: dict) -> dict:
         "positive_premise_candidates": positive_candidates,
         "prechecks": prechecks,
         "probe_comparisons": summaries,
-        "declared_probe_efficiency": summarize_declared_probe_frontier(summaries),
+        "declared_probe_efficiency": efficiency,
+        "probe_findings": probe_findings,
+        "no_decisive_probe": no_decisive,
+        "no_decisive_probe_question": (
+            "Which observable would separate at least one pair of the named hypotheses? "
+            "Without one, running any of these probes cannot change the judgment."
+            if no_decisive else None),
+        "no_legal_decisive_probe": no_legal,
+        "no_legal_decisive_probe_question": (
+            "Which reference condition is available at prediction time? A probe that "
+            "separates the hypotheses only against test-time truth can bound what is "
+            "achievable, but cannot decide between them."
+            if no_legal and not no_decisive else None),
         "no_claim_of_novelty_or_scientific_validity": True,
         "original_user_authorization": "UNVERIFIED",
         "automatic_stop": False,

@@ -240,3 +240,113 @@ existing payload changed. The authoritative science rules stay in PD-RW
    `score_provided`, `scientific_truth_verified`, `automatic_go` and `automatic_stop` are always
    false, and the CLI exits 3.
 5. Token/wall-clock cost in a real session: `NOT_MEASURED` (character counts only).
+
+## SCIENCE-02 — holdout candidate paths and probe contradictions (2026-11-20)
+
+Baseline `0d2cd63` (v0.9.7). Three additive changes: two vocabulary entries in
+`candidate_review`, three declaration-level outputs in `decision.assess_proposal`, and an
+empty frontier in `probe_frontier` when no probe discriminates. No rule, H-node, permission,
+MCP tool, profile count or `next_actions` shape changed; `assess_proposal` and
+`candidate_review` keep every existing key.
+
+### Measured defects
+
+| # | Defect | Evidence it was real | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 1 | The candidate card could not represent a theory or a simulation: `evaluation_unit` was a closed experimental set and `truth_kind` had no analytic option, so both legal PD-RW paths failed **validation** (`CANDIDATE_CARD_INVALID`, exit 2) before any review | two cards written from legal directions (`INSTANCE` over problem instances, `REPLICATE` over simulation runs): represented 0/2 before, 2/2 after | `ANALYTIC_DERIVATION` truth kind; `INSTANCE`/`REPLICATE` independent units; a null count stays `NOT_DECLARED` | `test_science02_candidate_paths` (8) |
+| 2 | A probe whose `comparison_reference` was a test-label oracle sat on the declared frontier as the cheap option | `PA-01` (`ORACLE_OFFSET_REMOVAL_DEV_VAL_LABELS`) returned no finding, `frontier=[PA-01]` | `REFERENCE_NOT_LEGAL` with CASE-02/CASE-12 precedent | `test_science02_probe_design` (11) |
+| 3 | A probe could count `WINDOW` as its evaluation unit while `group_independence` was declared PASS, and the precheck kept a clean `review` | `PB-01` returned `SOURCE_NOT_VERIFIED`, no finding, `pair_count=1` | `PROBE_UNIT_NOT_INDEPENDENT`, and the precheck's `review` becomes `DECLARED_CONFLICT` (never verified) | same file |
+| 4 | When no probe separated any hypothesis pair, the frontier still named the cheapest one — i.e. it recommended an experiment that could not change the judgment | `PC-01` (two probes, all predictions `UNKNOWN`) returned `frontier=[PC-01-A]`, no `no_decisive_probe` field | `no_decisive_probe` + empty frontier + the question to answer | same file |
+
+### Holdout, not the development cards
+
+Six cards reconstructed from cases **not** used to build the review (CASE-12/13/17,
+INT-SUCCESS-03/04, EXT-N06); labels are the library's documented verdict.
+
+| | 0.9.6 checks | 0.9.7 candidate review |
+| --- | --- | --- |
+| Documented defect surfaced | 0 / 3 | 3 / 3 (primary flag in all three) |
+| Historically successful direction kept clean | no signal | 3 / 3 |
+| Non-experimental direction representable | n/a | 2 / 2 after, 0 / 2 before |
+
+### Preservation in this round
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| H3/H4/H6/H8 + H5-with-H6 + H7 in-scope DEV autonomy | unchanged; no new author node | full suite 532/532 under the v1.13 root (`68e29c3`) **and** the v1.14 worktree (`d4056fc`) |
+| SEALED, source tiers, `as_of`, DEV/VAL isolation | unchanged | `test_wp9_*`, `test_science_feedback_link` |
+| MCP surface | 24 tools, profiles 11/21/24, no tool added | `PROFILE_TOOLS`, `case_decision_eval` V9 live stdio |
+| Existing payloads | unchanged: V1/V2/V3 stay 15 512 / 12 824 / 15 787 chars | `case_decision_eval` 10/10; `case_gate_eval` 17/17 |
+| A legal direction must not be eliminated by a form check | theory/simulation now representable; a finding stays a question | `test_the_unit_vocabulary_is_extended_not_opened` |
+| Original research data, Runs, STATE, `CASE_LIBRARY`, frozen protocols | untouched | `git status`; library digest unchanged |
+
+### Unverified in this round
+
+1. **No real model session.** The host check was run once: `~/.workbuddy/mcp.json` declares the
+   stdio server and the installed Skill is `0.9.8`, but this session exposes no
+   `pd-rw-research` tool and `list_installed_plugins` returns no connectors. No reinstall was
+   attempted. `REAL_LLM_END_TO_END = NOT_MEASURED (BLOCKED_BY_HOST_TOOL_MOUNT)`. Everything
+   above is deterministic checker output.
+2. **Model behaviour is not compared.** 0.9.6 vs 0.9.7 differs by 34 lines of H3 guidance and
+   one CLI; whether a model then states a named gap, a two-sided gain and an independent unit
+   is `NOT_MEASURED`.
+3. **The holdout cards are reconstructions** from case premises, not model output and not an
+   expert-labelled benchmark. Three defective + three clean cards cannot establish a false
+   positive rate.
+4. **Research value is `NOT_MEASURED`.** Removing a wrong probe recommendation does not by
+   itself improve a research decision.
+5. Token/wall-clock cost: `NOT_MEASURED`. Character counts: clean packet 2 813 → 2 965,
+   three defective packets 7 400 → 8 640.
+
+## SCIENCE-03 — a cheap probe is not automatically decisive (2026-11-20)
+
+Baseline `a94805c` (v0.9.8). One behavioural change in `probe_frontier` (dominance only among
+eligible candidates), two additive fields in `decision.assess_proposal` (`usage`,
+`blocks_decisive_frontier`) and one top-level flag (`no_legal_decisive_probe`). No required field,
+no rule, no H-node, no permission, no MCP tool, no profile count, no `next_actions` shape.
+
+### Measured defects
+
+| # | Defect | Reproduction (before) | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 5 | A LOW-cost probe that separated no hypothesis pair was still named as a frontier candidate, next to the MEDIUM-cost probe that did separate them | `frontier=[CHEAP-BUT-BLIND, MEDIUM-BUT-DECIDES]` | frontier contains only probes with ≥1 declared pair; the blind one becomes `exploratory_probe_ids` | `test_science03_probe_frontier_boundary` (10) |
+| 6 | An oracle-referenced LOW-cost probe **dominated** the legal probe with the same pair set, so the only remaining candidate was the illegal comparison | `frontier=[ORACLE-UPPER-BOUND]`, `dominated=[LEGAL-SPECIMEN-PROBE]` | `REFERENCE_NOT_LEGAL` disqualifies from dominance and from the frontier; the probe stays as `diagnostic_upper_bound_ids` | same file |
+
+`PROBE_UNIT_NOT_INDEPENDENT` deliberately does **not** disqualify: a `WINDOW`/`FRAME` unit adds
+`needs_unit_verification_ids` and `usage: VERIFY_INDEPENDENT_UNITS_FIRST`, and stays a candidate.
+
+### Real-session evidence (not a benchmark)
+
+One real WorkBuddy session, two existing DEV projects, no download, no fitting, no SEALED read.
+MCP `pd-rw-research` was still not mounted (recorded once, not reinstalled); the model used the
+existing `science.cli decision` path. Full trace: `audit/science03/SCIENCE-03-v0.9.9-2026-11-20.md`.
+
+| Case | Original plan (from the record) | Model-revised plan | Checker contribution |
+| --- | --- | --- | --- |
+| MCS-HEMO-26 | request fitting authorisation for a "fair baseline" against CNAP-derived SBP | zero-fit subject-level cross-session ICC + motion control, because the reference layer is same-source | blind doc check moved to `exploratory`; `RECORD` unit flagged against declared group independence |
+| RCT-CONTACT-26 | DEV-only frame-level slope invariance (already closed) + controlled press needing new truth | split: sensor-swap contrast now, external-modulus press only for the material claim; third explanation (pseudo-label circularity) added | the cheap DEV-only probe dominated the decisive press — a limit, reported below |
+
+### Preservation in this round
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| H1–H10, H5-with-H6, H7 in-scope DEV autonomy, SEALED, source tiers, `as_of`, DEV/VAL | unchanged; no new author node, no new stop | full suite **534 passed / 8 skipped**; `case_gate_eval` 17/17 |
+| Existing payloads | V1/V2/V3 unchanged: 15 512 / 12 824 / 15 787 chars | `case_decision_eval` 10/10 |
+| MCP surface | 24 tools, profiles 11/21/24, none added | `PROFILE_TOOLS` |
+| Probe is never deleted, only re-labelled | `exploratory` / `diagnostic_upper_bound` / `unit_verification` keep the candidate visible | `test_a_pilot_is_still_available_but_not_called_decisive` |
+| Research data, Runs, STATE, `CASE_LIBRARY`, frozen protocols | read-only | `git status`; no file written under any project root |
+
+### Unverified in this round
+
+1. **A cheap but already-executed probe can still dominate a decisive expensive one.** Measured on
+   a real packet: the packet has no "already closed" field, so the frontier compares declared pairs
+   and cost only. Fixing it needs a new field; not done under "minimal necessary".
+2. **A same-source reference is not caught.** `REFERENCE_NOT_LEGAL` matches test-time truth/oracle,
+   not "NIBP is the same device's waveform" and not pseudo-label circularity. Both stayed model
+   judgments, as in v0.9.8 risk 4.
+3. **No baseline field.** A strong simple baseline (`PAT_foot` 0.823, depth-only) can only be stated
+   in prose; it is not machine-checked (the CASE-13 layer).
+4. **Single session, not blind.** The model had just written the patch and knew the new fields; no
+   second arm, no independent packet author. "The model designs better experiments" is
+   `NOT_MEASURED`; what is measured is one trace with its artifacts.
+5. Token, real experiment cost, scientific value, MCP integration: `NOT_MEASURED`.

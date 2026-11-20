@@ -1,0 +1,92 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Does the tactile contact response identify a material's mechanical property, rather than the sensor instance or the press trajectory, in the RCT-CONTACT DEV pool?",
+  "claim_evidence_refs": [
+    "RCT-CONTACT-26/research/dev_audit/contrast_table.json",
+    "RCT-CONTACT-26/research/STATE.md#6",
+    "RCT-CONTACT-26/research/dev_audit/dev_projection/dev_force_derived_stiffness_labels.json"
+  ],
+  "hypotheses": [
+    "H_material",
+    "H_sensor_trajectory"
+  ],
+  "proposed_premise": {
+    "premise_id": "CONTACT_MECHANISM",
+    "scope": {
+      "dataset": "RCT-CONTACT DEV, 98 materials",
+      "rig": "DIGIT sensors, position_1..18",
+      "condition": "robot press sequences"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "group_independence": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "legal_inputs": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "evaluation_integrity": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "metric_appropriateness": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "effect_size": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    }
+  },
+  "probes": [
+    {
+      "id": "ORIG-DEV-SLOPE-INVARIANCE",
+      "observable": "per-material force-Z slope across components/positions/sensors",
+      "evaluation_unit": "FRAME",
+      "comparison_reference": "dev_force_derived_stiffness_labels (fitted from the same force data)",
+      "predictions": {
+        "H_material": "INCREASE",
+        "H_sensor_trajectory": "NO_CHANGE"
+      },
+      "cost_band": "LOW",
+      "prediction_evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#9"
+      ]
+    },
+    {
+      "id": "ORIG-CONTROLLED-PRESS",
+      "observable": "force-Z slope vs external modulus under controlled press",
+      "evaluation_unit": "MATERIAL",
+      "comparison_reference": "external modulus measurement of the same material",
+      "predictions": {
+        "H_material": "INCREASE",
+        "H_sensor_trajectory": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prediction_evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#6"
+      ]
+    }
+  ],
+  "prior_negative_lessons": [
+    {
+      "premise_id": "CONTACT_MECHANISM",
+      "scope": {
+        "dataset": "RCT-CONTACT DEV, 98 materials",
+        "rig": "DIGIT sensors, position_1..18",
+        "condition": "robot press sequences"
+      },
+      "validity": "VALID_NEGATIVE",
+      "evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#9",
+        "RCT-CONTACT-26/research/dev_audit/contrast_table.json"
+      ]
+    }
+  ]
+}

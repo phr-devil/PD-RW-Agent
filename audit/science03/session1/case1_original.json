@@ -1,0 +1,57 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Does the ear-channel synchronicity feature carry information about the haemodynamic state beyond heart rate, in the Auricle DEV pool?",
+  "claim_evidence_refs": [
+    "MCS-HEMO-26/research/dev_audit/beat_level_associations.csv",
+    "MCS-HEMO-26/research/STATE.md#O8",
+    "MCS-HEMO-26/research/dev_audit/ob_reference_recheck.json"
+  ],
+  "hypotheses": ["H_info", "H_artifact"],
+  "proposed_premise": {
+    "premise_id": "C_LAYER_INFORMATION",
+    "scope": {
+      "dataset": "Auricle v1.0.0 DEV",
+      "cohort": "HC + HFC, 52 DEV sessions, 47 paired",
+      "state": "rest and standardised stressors"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {"status": "UNKNOWN", "evidence_refs": []},
+    "group_independence": {"status": "PASS", "evidence_refs": ["MCS-HEMO-26/research/SPLIT_PROTOCOL.md"]},
+    "legal_inputs": {"status": "UNKNOWN", "evidence_refs": []},
+    "evaluation_integrity": {"status": "UNKNOWN", "evidence_refs": []},
+    "metric_appropriateness": {"status": "UNKNOWN", "evidence_refs": []},
+    "effect_size": {"status": "UNKNOWN", "evidence_refs": []}
+  },
+  "probes": [
+    {
+      "id": "ORIG-FUSION-GAIN",
+      "observable": "fusion gain of C-layer features over HR-only baseline, measured per record",
+      "evaluation_unit": "RECORD",
+      "comparison_reference": "NIBP_derived_SBP_from_CNAP (same-device continuous arterial pressure)",
+      "predictions": {"H_info": "INCREASE", "H_artifact": "NO_CHANGE"},
+      "cost_band": "HIGH",
+      "prediction_evidence_refs": ["MCS-HEMO-26/research/STATE.md#O6", "MCS-HEMO-26/research/dev_audit/oa_verification_stats.json"]
+    },
+    {
+      "id": "ORIG-DOC-CHECK",
+      "observable": "whether an independent cuff reading is stored anywhere in the release",
+      "evaluation_unit": "RECORD",
+      "comparison_reference": "official README of Auricle v1.0.0",
+      "predictions": {"H_info": "NO_CHANGE", "H_artifact": "NO_CHANGE"},
+      "cost_band": "LOW"
+    }
+  ],
+  "prior_negative_lessons": [
+    {
+      "premise_id": "C_LAYER_INFORMATION",
+      "scope": {
+        "dataset": "Auricle v1.0.0 DEV",
+        "cohort": "HC + HFC, 52 DEV sessions, 47 paired",
+        "state": "rest and standardised stressors"
+      },
+      "validity": "VALID_NEGATIVE",
+      "evidence_refs": ["MCS-HEMO-26/research/STATE.md#O8", "MCS-HEMO-26/research/dev_audit/competing_explanations.json"]
+    }
+  ]
+}

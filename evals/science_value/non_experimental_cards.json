@@ -1,0 +1,91 @@
+{
+  "schema_version": "pdrw-candidate-card-v1",
+  "note": "Two legitimate non-experimental directions. PD-RW allows theory and simulation evidence paths (EXPERIMENT_LOOP: '理论/仿真按已声明证据路径执行'), so a review that cannot represent them silently narrows the candidate space. Neither card is a historical failure; both are plausible H3 candidates for the same lab.",
+  "cards": [
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "TH-01-SAMPLE-COMPLEXITY-BOUND",
+      "question": "在何种条件下接触式观测的可恢复性存在闭式上界，且该上界随观测维度如何变化",
+      "failure_premise": "现有工作只给经验曲线，未给出可证明的可恢复性上界及其适用条件",
+      "contribution_form": "LAW_BOUNDARY",
+      "success_new_knowledge": "给出可恢复性上界的闭式形式，并明确它在何种自由度条件下紧",
+      "refutation_consequence": "若构造出违反上界的反例族，则上界推导的假设被否定",
+      "named_nearest": [
+        {
+          "work": "ACTS (arXiv:2410.13847)",
+          "covers": "1024-taxel 采样与全 raster 强基线，给出 N*=f(C) 的经验定律",
+          "remaining": "只有经验定律，没有可证明的上界与紧性条件"
+        }
+      ],
+      "nearest_status": "ABSTRACT_ONLY",
+      "competing_explanations": [
+        {
+          "explanation": "上界由观测维度决定的自由度给出",
+          "predicted_observation": "构造维度更高的反例族时上界按闭式预测变化"
+        },
+        {
+          "explanation": "瓶颈是估计方差而不是自由度",
+          "predicted_observation": "增加每个实例的重复次数即可突破该上界"
+        }
+      ],
+      "falsifier": "构造出超出闭式上界的反例族，且该族在每个维度上都可复现，则上界被否定",
+      "truth_kind": "ANALYTIC_DERIVATION",
+      "truth_source": "解析推导：闭式上界与其紧性条件的证明",
+      "truth_independent_of_input": null,
+      "prediction_time_inputs": "不适用：本方向不训练预测器，结论是闭式上界",
+      "evaluation_unit": "INSTANCE",
+      "independent_units": null,
+      "reported_n": null,
+      "confounders": [
+        "上界推导所依赖的独立性假设"
+      ],
+      "evidence_path": "理论：证明 + 数值实例族检验紧性，无数据采集",
+      "confirmation_ref": "独立审阅者重做推导并给出反例族搜索",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "纯推导与 CPU 数值检验"
+    },
+    {
+      "schema_version": "pdrw-candidate-card-v1",
+      "candidate_id": "SIM-01-CONTACT-SCHEDULING",
+      "question": "在仿真接触调度中，观测预算的分配规则在何种扰动强度下仍保持可控",
+      "failure_premise": "真实平台无法在扰动强度上做受控扫描，只能用仿真先确定可控区间",
+      "contribution_form": "SYSTEM",
+      "success_new_knowledge": "给出预算分配规则的可控区间边界，以及越界后失效的形式",
+      "refutation_consequence": "若可控区间在独立仿真副本上不复现，则边界结论只对该仿真器成立",
+      "named_nearest": [
+        {
+          "work": "EXT-N06 的部署期校正（真实平台）",
+          "covers": "真实平台上重佩戴偏移的几何校正与弃权",
+          "remaining": "真实平台无法做扰动强度的受控扫描，缺可控区间边界"
+        }
+      ],
+      "nearest_status": "ACCESSED",
+      "competing_explanations": [
+        {
+          "explanation": "失效由预算不足导致，增加预算即可恢复",
+          "predicted_observation": "同扰动下把预算加倍后成功率回到基线水平"
+        },
+        {
+          "explanation": "失效由观测时序错配导致，与预算总量无关",
+          "predicted_observation": "预算加倍但时序不变时成功率仍低于基线"
+        }
+      ],
+      "falsifier": "预算加倍且时序不变时成功率仍显著低于基线，则预算不足解释被否定",
+      "truth_kind": "SIMULATION_PARAMETER",
+      "truth_source": "仿真器已知参数（真值由构造给定，不是估计）",
+      "truth_independent_of_input": true,
+      "prediction_time_inputs": "推理时仅仿真观测与已知调度日志",
+      "evaluation_unit": "REPLICATE",
+      "independent_units": 50,
+      "reported_n": 50,
+      "confounders": [
+        "仿真器版本",
+        "随机种子族"
+      ],
+      "evidence_path": "仿真：每种条件 50 个独立副本，CPU 可跑完",
+      "confirmation_ref": "另一随机种子族的独立副本",
+      "confirmation_shares_evaluation_data": false,
+      "resources": "CPU，无真实平台采集"
+    }
+  ]
+}

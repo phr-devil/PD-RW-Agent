@@ -31,13 +31,19 @@ FORMS = frozenset({
 NEAREST_STATES = frozenset({"ACCESSED", "ABSTRACT_ONLY", "NOT_ACCESSED", "NONE_FOUND"})
 TRUTH_KINDS = frozenset({
     "MEASURED_INSTRUMENT", "HUMAN_LABEL", "PROXY_FROM_INPUT",
-    "MODEL_GENERATED", "SIMULATION_PARAMETER", "UNKNOWN",
+    "MODEL_GENERATED", "SIMULATION_PARAMETER", "ANALYTIC_DERIVATION", "UNKNOWN",
 })
 SELF_REFERENTIAL_TRUTH = frozenset({"PROXY_FROM_INPUT", "MODEL_GENERATED"})
 # Units that repeat the same physical subject many times. Counting them as N is
 # the CASE-11 defect, not a rounding issue.
 REPEATED_UNITS = frozenset({"WINDOW", "FRAME", "RECORD", "SEGMENT", "SAMPLE", "TOKEN"})
-INDEPENDENT_UNITS = frozenset({"SUBJECT", "SESSION", "DEVICE", "BATCH", "SITE", "SPECIMEN"})
+# A theory is evaluated over independent problem instances; a simulation over
+# independent replicates. Both are legal PD-RW evidence paths (EXPERIMENT_LOOP:
+# "理论/仿真按已声明证据路径执行"), so neither may be unrepresentable here.
+INDEPENDENT_UNITS = frozenset({
+    "SUBJECT", "SESSION", "DEVICE", "BATCH", "SITE", "SPECIMEN",
+    "INSTANCE", "REPLICATE",
+})
 UNITS = REPEATED_UNITS | INDEPENDENT_UNITS
 CARD_FIELDS = frozenset({
     "schema_version", "candidate_id", "question", "failure_premise",

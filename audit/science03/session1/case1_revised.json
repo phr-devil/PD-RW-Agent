@@ -1,0 +1,98 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "In the Auricle DEV pool, is the ear-channel synchronicity feature a physiological carrier or a motion/contact artefact, judged without any model fitting?",
+  "claim_evidence_refs": [
+    "MCS-HEMO-26/research/dev_audit/competing_explanations.json",
+    "MCS-HEMO-26/research/dev_audit/beat_level_associations.csv",
+    "MCS-HEMO-26/research/STATE.md#O8"
+  ],
+  "hypotheses": [
+    "H_info",
+    "H_artifact"
+  ],
+  "proposed_premise": {
+    "premise_id": "C_LAYER_INFORMATION",
+    "scope": {
+      "dataset": "Auricle v1.0.0 DEV",
+      "cohort": "HC + HFC, 52 DEV sessions, 47 paired",
+      "state": "rest and standardised stressors"
+    }
+  },
+  "prechecks": {
+    "label_provenance": {
+      "status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/SPLIT_PROTOCOL.md"
+      ]
+    },
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/SPLIT_PROTOCOL.md"
+      ]
+    },
+    "legal_inputs": {
+      "status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/dev_audit/ob_reference_recheck.json"
+      ]
+    },
+    "evaluation_integrity": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "metric_appropriateness": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    },
+    "effect_size": {
+      "status": "UNKNOWN",
+      "evidence_refs": []
+    }
+  },
+  "probes": [
+    {
+      "id": "REV-CROSS-SESSION-ICC",
+      "observable": "subject-level cross-session ICC of the ear feature",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same subject's second DEV session (repeat measurement, no external truth needed)",
+      "predictions": {
+        "H_info": "INCREASE",
+        "H_artifact": "NO_CHANGE"
+      },
+      "cost_band": "LOW",
+      "prediction_evidence_refs": [
+        "MCS-HEMO-26/research/STATE.md#O8",
+        "MCS-HEMO-26/research/STATE.md#O12"
+      ]
+    },
+    {
+      "id": "REV-MOTION-CONTROL",
+      "observable": "subject-level rho of feature delta vs in-band accelerometer",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "in-band accelerometer amplitude in the same records",
+      "predictions": {
+        "H_info": "NO_CHANGE",
+        "H_artifact": "INCREASE"
+      },
+      "cost_band": "LOW",
+      "prediction_evidence_refs": [
+        "MCS-HEMO-26/research/dev_audit/competing_explanations.json"
+      ]
+    }
+  ],
+  "prior_negative_lessons": [
+    {
+      "premise_id": "C_LAYER_INFORMATION",
+      "scope": {
+        "dataset": "Auricle v1.0.0 DEV",
+        "cohort": "HC + HFC, 52 DEV sessions, 47 paired",
+        "state": "rest and standardised stressors"
+      },
+      "validity": "VALID_NEGATIVE",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/STATE.md#O8"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "stage": "A-prefix",
+  "model_invoked": false,
+  "rows": [
+    {
+      "packet": "P1-blind-cheap",
+      "pair_counts": {
+        "CHEAP-BUT-BLIND": 0,
+        "MEDIUM-BUT-DECIDES": 1
+      },
+      "frontier": [
+        "CHEAP-BUT-BLIND",
+        "MEDIUM-BUT-DECIDES"
+      ],
+      "dominated": [],
+      "no_discriminating_probe": false,
+      "probe_findings": [],
+      "defect": "a probe that separates nothing is listed as a frontier candidate"
+    },
+    {
+      "packet": "P2-oracle-reference",
+      "pair_counts": {
+        "ORACLE-UPPER-BOUND": 1,
+        "LEGAL-SPECIMEN-PROBE": 1
+      },
+      "frontier": [
+        "ORACLE-UPPER-BOUND"
+      ],
+      "dominated": [
+        {
+          "id": "LEGAL-SPECIMEN-PROBE",
+          "dominated_by": [
+            "ORACLE-UPPER-BOUND"
+          ]
+        }
+      ],
+      "no_discriminating_probe": false,
+      "probe_findings": [
+        [
+          "ORACLE-UPPER-BOUND",
+          [
+            "REFERENCE_NOT_LEGAL"
+          ]
+        ]
+      ],
+      "defect": "a probe whose reference needs test-time truth is listed as a legal candidate"
+    }
+  ]
+}

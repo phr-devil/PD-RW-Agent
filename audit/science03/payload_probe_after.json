@@ -1,0 +1,9 @@
+{
+  "clean_two_probe": 3054,
+  "defective": {
+    "PB-01": 2975,
+    "PA-01": 3108,
+    "PC-01": 3041
+  },
+  "defective_total": 9124
+}

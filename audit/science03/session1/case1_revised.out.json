@@ -1,0 +1,143 @@
+{
+  "status": "ADVISORY_REVIEW_ONLY",
+  "question": "In the Auricle DEV pool, is the ear-channel synchronicity feature a physiological carrier or a motion/contact artefact, judged without any model fitting?",
+  "claim_type": "MECHANISM/CAUSAL",
+  "claim_evidence_refs": [
+    "MCS-HEMO-26/research/dev_audit/competing_explanations.json",
+    "MCS-HEMO-26/research/dev_audit/beat_level_associations.csv",
+    "MCS-HEMO-26/research/STATE.md#O8"
+  ],
+  "premise_candidates": [
+    {
+      "premise_id": "C_LAYER_INFORMATION",
+      "status": "DECLARED_SAME_PREMISE_SCOPE_CANDIDATE",
+      "prior_validity_declared": "VALID_NEGATIVE",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/STATE.md#O8"
+      ],
+      "scientific_equivalence_verified": false,
+      "automatic_stop": false
+    }
+  ],
+  "positive_premise_candidates": [],
+  "prechecks": {
+    "label_provenance": {
+      "declared_status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/SPLIT_PROTOCOL.md"
+      ],
+      "review": "SOURCE_NOT_VERIFIED",
+      "independently_verified": false
+    },
+    "group_independence": {
+      "declared_status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/SPLIT_PROTOCOL.md"
+      ],
+      "review": "SOURCE_NOT_VERIFIED",
+      "independently_verified": false
+    },
+    "legal_inputs": {
+      "declared_status": "PASS",
+      "evidence_refs": [
+        "MCS-HEMO-26/research/dev_audit/ob_reference_recheck.json"
+      ],
+      "review": "SOURCE_NOT_VERIFIED",
+      "independently_verified": false
+    },
+    "evaluation_integrity": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "metric_appropriateness": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "effect_size": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    }
+  },
+  "probe_comparisons": [
+    {
+      "id": "REV-CROSS-SESSION-ICC",
+      "observable": "subject-level cross-session ICC of the ear feature",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same subject's second DEV session (repeat measurement, no external truth needed)",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_info",
+          "H_artifact"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [
+        "MCS-HEMO-26/research/STATE.md#O8",
+        "MCS-HEMO-26/research/STATE.md#O12"
+      ],
+      "prediction_source_verified": false,
+      "findings": [],
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    },
+    {
+      "id": "REV-MOTION-CONTROL",
+      "observable": "subject-level rho of feature delta vs in-band accelerometer",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "in-band accelerometer amplitude in the same records",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_info",
+          "H_artifact"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [
+        "MCS-HEMO-26/research/dev_audit/competing_explanations.json"
+      ],
+      "prediction_source_verified": false,
+      "findings": [],
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    }
+  ],
+  "declared_probe_efficiency": {
+    "frontier_candidate_ids_as_declared": [
+      "REV-CROSS-SESSION-ICC",
+      "REV-MOTION-CONTROL"
+    ],
+    "dominated_candidates_as_declared": [],
+    "exploratory_probe_ids": [],
+    "diagnostic_upper_bound_ids": [],
+    "needs_unit_verification_ids": [],
+    "no_discriminating_probe": false,
+    "no_legal_decisive_probe": false,
+    "unknown_cost_ids": [],
+    "scientifically_ranked": false,
+    "automatically_selected": false,
+    "source_predictions_verified": false,
+    "note": "Declared pairs and cost bands only: compare original evidence, scientific importance, independent groups and legal scope before acting. No candidate is rejected by this hint."
+  },
+  "probe_findings": [],
+  "no_decisive_probe": false,
+  "no_decisive_probe_question": null,
+  "no_legal_decisive_probe": false,
+  "no_legal_decisive_probe_question": null,
+  "no_claim_of_novelty_or_scientific_validity": true,
+  "original_user_authorization": "UNVERIFIED",
+  "automatic_stop": false,
+  "automatic_go": false,
+  "guidance": "Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; verify original Run and named literature before choosing a Task or Probe.",
+  "source_binding": {
+    "status": "NOT_CHECKED",
+    "scientific_claims_verified": false
+  }
+}
