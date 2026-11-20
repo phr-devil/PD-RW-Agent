@@ -529,8 +529,9 @@ verdict was rewritten.
    four packets and all four were rejected on shape (`prechecks` as a list, prose `scope`, invented
    enums, prose `predictions`), identically on 0.9.11 and 0.9.12. No independent packet was adjudicated
    without a mechanical normalization; "the model chooses better experiments" stays `NOT_MEASURED`.
-2. **Real records and protocols carry no `premise_id`.** Across 7 Run records in 4 projects, none state
-   a premise and no protocol does either, so on real data the premise question is answered
+2. **Real records and protocols carry no `premise_id`.** Across the 7 real `DEV/runs/*/metrics.json`
+   records in the two projects that have frozen protocols (44, 48), none state a premise and no
+   protocol does either, so on real data the premise question is answered
    `CALLER_DECLARATION` unless the packet adds `premise_ref`; plan bytes and identity are still checked.
 3. **`premise_plan_match` proves plan identity, not premise identity.** A plan may be the operational
    definition of a premise, but equating them remains a reviewer judgment.

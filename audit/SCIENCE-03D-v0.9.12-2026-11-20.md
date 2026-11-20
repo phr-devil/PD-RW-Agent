@@ -72,7 +72,7 @@ detected and called with one argument, and payloads without `prior_execution` ar
 - `run_id_consistency` compares a label with a directory name. A correct label on a wrong file is not
   detected; only a disagreement is.
 - `premise_verified` requires the record or its plan to *state* a premise. In the whole local fleet
-  no Run record and no protocol carries `premise_id` (`grep` over 7 real records / 4 projects), so on
+  no Run record and no protocol carries `premise_id` (`grep` over the 7 real `DEV/runs/*/metrics.json` records in the two projects that have frozen protocols: 44, 48), so on
   real projects the answer is `CALLER_DECLARATION` even when the plan bytes match. That is reported,
   not hidden — and it is why `premise_ref` exists.
 - `premise_plan_match` proves the cited Run executed the plan the caller named for the premise. It
