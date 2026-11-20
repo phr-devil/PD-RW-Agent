@@ -1,0 +1,143 @@
+{
+  "status": "ADVISORY_REVIEW_ONLY",
+  "question": "Does the tactile contact response identify a material's mechanical property, rather than the sensor instance or the press trajectory, in the RCT-CONTACT DEV pool?",
+  "claim_type": "MECHANISM/CAUSAL",
+  "claim_evidence_refs": [
+    "RCT-CONTACT-26/research/dev_audit/contrast_table.json",
+    "RCT-CONTACT-26/research/STATE.md#6",
+    "RCT-CONTACT-26/research/dev_audit/dev_projection/dev_force_derived_stiffness_labels.json"
+  ],
+  "premise_candidates": [
+    {
+      "premise_id": "CONTACT_MECHANISM",
+      "status": "DECLARED_SAME_PREMISE_SCOPE_CANDIDATE",
+      "prior_validity_declared": "VALID_NEGATIVE",
+      "evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#9",
+        "RCT-CONTACT-26/research/dev_audit/contrast_table.json"
+      ],
+      "scientific_equivalence_verified": false,
+      "automatic_stop": false
+    }
+  ],
+  "positive_premise_candidates": [],
+  "prechecks": {
+    "label_provenance": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "group_independence": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "legal_inputs": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "evaluation_integrity": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "metric_appropriateness": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    },
+    "effect_size": {
+      "declared_status": "UNKNOWN",
+      "evidence_refs": [],
+      "review": "UNKNOWN_OR_UNCHECKED",
+      "independently_verified": false
+    }
+  },
+  "probe_comparisons": [
+    {
+      "id": "ORIG-DEV-SLOPE-INVARIANCE",
+      "observable": "per-material force-Z slope across components/positions/sensors",
+      "evaluation_unit": "FRAME",
+      "comparison_reference": "dev_force_derived_stiffness_labels (fitted from the same force data)",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_material",
+          "H_sensor_trajectory"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "LOW",
+      "prediction_evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#9"
+      ],
+      "prediction_source_verified": false,
+      "findings": [],
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    },
+    {
+      "id": "ORIG-CONTROLLED-PRESS",
+      "observable": "force-Z slope vs external modulus under controlled press",
+      "evaluation_unit": "MATERIAL",
+      "comparison_reference": "external modulus measurement of the same material",
+      "distinguishable_hypothesis_pairs_as_declared": [
+        [
+          "H_material",
+          "H_sensor_trajectory"
+        ]
+      ],
+      "pair_count": 1,
+      "missing_hypothesis_predictions": [],
+      "declared_cost_band": "HIGH",
+      "prediction_evidence_refs": [
+        "RCT-CONTACT-26/research/STATE.md#6"
+      ],
+      "prediction_source_verified": false,
+      "findings": [],
+      "recommended_action": "COMPARE_WITH_ORIGINAL_EVIDENCE_NOT_AUTORANK"
+    }
+  ],
+  "declared_probe_efficiency": {
+    "frontier_candidate_ids_as_declared": [
+      "ORIG-DEV-SLOPE-INVARIANCE"
+    ],
+    "dominated_candidates_as_declared": [
+      {
+        "id": "ORIG-CONTROLLED-PRESS",
+        "dominated_by": [
+          "ORIG-DEV-SLOPE-INVARIANCE"
+        ]
+      }
+    ],
+    "exploratory_probe_ids": [],
+    "diagnostic_upper_bound_ids": [],
+    "needs_unit_verification_ids": [],
+    "no_discriminating_probe": false,
+    "no_legal_decisive_probe": false,
+    "unknown_cost_ids": [],
+    "scientifically_ranked": false,
+    "automatically_selected": false,
+    "source_predictions_verified": false,
+    "note": "Declared pairs and cost bands only: compare original evidence, scientific importance, independent groups and legal scope before acting. No candidate is rejected by this hint."
+  },
+  "probe_findings": [],
+  "no_decisive_probe": false,
+  "no_decisive_probe_question": null,
+  "no_legal_decisive_probe": false,
+  "no_legal_decisive_probe_question": null,
+  "no_claim_of_novelty_or_scientific_validity": true,
+  "original_user_authorization": "UNVERIFIED",
+  "automatic_stop": false,
+  "automatic_go": false,
+  "guidance": "Refer to PD-RW HIGH_VALUE_RESEARCH_DESIGN / SCIENCE_RESULT_HARVEST; verify original Run and named literature before choosing a Task or Probe.",
+  "source_binding": {
+    "status": "NOT_CHECKED",
+    "scientific_claims_verified": false
+  }
+}
