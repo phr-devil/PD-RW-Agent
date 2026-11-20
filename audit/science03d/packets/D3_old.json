@@ -1,0 +1,165 @@
+{
+  "claim_type": "CAPABILITY/PERFORMANCE",
+  "question": "在 PoPu DEV 数据上，上层部署链条（由下层 72 通道自恢复的细分姿态 → 压力强度恢复）相对同输入的直接基座（仅下层 Ridge，及匹配非线性的 HGB），是否带来受试者独立划分下可兑现的可部署增量？",
+  "hypotheses": [
+    "H1_CHAIN_PARTIAL_REAL",
+    "H2_EXPRESSIVENESS_CAPACITY_CONFOUND",
+    "H3_POSTURE_RECOVERABILITY_BOTTLENECK",
+    "H4_RANGE_TARGET_ARTIFACT",
+    "H5_SUBJECT_HETEROGENEOUS_NO_POPULATION_GAIN"
+  ],
+  "proposed_premise": {
+    "premise_id": "PREM-DEPLOY-CHAIN-INCREMENT-001",
+    "scope": "PoPu DEV（D1 = PoPu_data_no_segments.zip，60 受试者 / 50,396 有效帧），LOSO 受试者独立划分，部署输入严格限于下层 72 通道（含训练折拟合的预处理）与其交叉拟合派生的细分姿态 one-hot；目标为上层 Tactilus top-1% 强度 MAE（raw 与 dropallGT100 双量程）；结论仅限强度恢复的模型族内表现，不含空间配准、Sensomatt 物理单位、临床高压真值，亦不主张姿态分类本身的价值。"
+  },
+  "prechecks": [
+    {
+      "id": "PC1_ANCHOR_INTEGRITY",
+      "check": "任何新探针开跑前，先用已冻结的 RUN-003 C0/C2 与 RUN-004 M0/M2 数值做锚点核对（RUN-004 记录 raw 9.579142 / 8.783691 与 9.325218 / 8.447900，diff 应为 0），确认目标计算、折划分、派生缓存未漂移。",
+      "on_fail": "标 INVALID 并修 harness，不作科学结论；不得把锚点失败读成负结果。"
+    },
+    {
+      "id": "PC2_SEED_AND_JITTER_FLOOR",
+      "check": "所有 HGB 显式设 random_state（PROJECT-48-DEFECT-005：RUN-001–004 未设 seed，训练样本约 49,556 触发自动 early stopping 的随机 10% 验证集，单折 MAE 抖动可达 0.48）；正式运行前实测单折重跑抖动，作为效应量可分辨下限。",
+      "on_fail": "效应量小于抖动下限时只报方向与 CI 符号，不报数字精度。"
+    },
+    {
+      "id": "PC3_AUTHORITY_AND_INDEPENDENCE",
+      "check": "扩至全 60 人、第二库、SEALED、几何配准均属未授权动作，须先取新授权或经 H8 作者决定；固定 12 人子集已在 RUN-002/003/004/005 反复使用，任何在该子集内的新探针只能称探索性确认。",
+      "on_fail": "无授权则探针降级为 BLOCKED，不得以既有 Run 结果替代执行。"
+    },
+    {
+      "id": "PC4_LEAKAGE",
+      "check": "C2/M3 系列的训练姿态必须是训练受试者的 subject-disjoint OOF 预测，测试姿态由全训练折拟合的分类器给出；真实姿态仅允许出现在 C1（Oracle 诊断，显式不可部署）；禁止受试者身份、测试折统计、文件路径进入部署特征。",
+      "on_fail": "检出泄漏即标 INVALID，修复后重跑受影响折。"
+    }
+  ],
+  "probes": [
+    {
+      "id": "PR-D3-01-C2VS-C0-RIDGE-12SUBJ",
+      "observable": "受试者级配对 ΔMAE = C2（交叉拟合细分姿态 one-hot + 下层 72 → Ridge α=100）− C0（仅下层 72 → Ridge α=100），raw 与 dropallGT100 两量程分别估计，bootstrap CI95 以受试者为重采样单位。",
+      "evaluation_unit": "subject（12 折 LOSO，每折留出 1 名受试者）",
+      "comparison_reference": "同一折、同一目标、同一训练折标准化与同一评价器下的 C0_lower_only 基线；Oracle 上界为 C1（真实姿态 + 下层，不可部署）。",
+      "predictions": {
+        "H1_CHAIN_PARTIAL_REAL": "DECREASE",
+        "H2_EXPRESSIVENESS_CAPACITY_CONFOUND": "NO_CHANGE",
+        "H3_POSTURE_RECOVERABILITY_BOTTLENECK": "DECREASE",
+        "H4_RANGE_TARGET_ARTIFACT": "NO_CHANGE",
+        "H5_SUBJECT_HETEROGENEOUS_NO_POPULATION_GAIN": "UNKNOWN"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "INCONCLUSIVE",
+        "run_ref": "DEV/runs/RUN-003",
+        "premise_id": "PREM-DEPLOY-CHAIN-INCREMENT-001",
+        "conclusion": "冻结协议 PROTO-POPU-DEPLOY-v3-DEV003 下判 INCONCLUSIVE_LEANING_ORACLE_ONLY：C2−C0 raw −0.254 CI[−0.468,+0.015]（10/12，跨 0）、dropallGT100 −0.336 CI[−0.511,−0.144]（10/12，不含 0），量程敏感；C1−C0 −0.722/−0.783 两量程 CI 均不含 0（11/12）→ Oracle 增益稳健，可部署链条未稳健成立。",
+        "new_information": "随机 28 类 one-hot 对照相对 C0 仅 +0.002（两量程）→ 增益非 one-hot 容量；4 类主姿态 C2 增益 +0.018/+0.071 且 CI 跨 0 → 增益特异于细分姿态；细分姿态 macro-F1 均值 0.540（受试者 0.255–0.729）→ 链条瓶颈定位到姿态恢复质量。"
+      }
+    },
+    {
+      "id": "PR-D3-02-MATCHED-EXPRESSIVENESS-12SUBJ",
+      "observable": "受试者级配对 ΔMAE = M3（OOF 细分姿态 + HGB）− M1（直接 HGB，同折同配置），以及 M3 − M5（随机 28 类 one-hot + 同 HGB），两量程，含 Cohen's dz 与逐受试者胜向。",
+      "evaluation_unit": "subject（12 折 LOSO）",
+      "comparison_reference": "M1 强直接非线性模型（匹配表达对抗臂）与 M5 匹配容量对照臂；M2−M0 作为未匹配表达时的分层线性增益参照。",
+      "predictions": {
+        "H1_CHAIN_PARTIAL_REAL": "DECREASE",
+        "H2_EXPRESSIVENESS_CAPACITY_CONFOUND": "NO_CHANGE",
+        "H3_POSTURE_RECOVERABILITY_BOTTLENECK": "DECREASE",
+        "H4_RANGE_TARGET_ARTIFACT": "NO_CHANGE",
+        "H5_SUBJECT_HETEROGENEOUS_NO_POPULATION_GAIN": "UNKNOWN"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "COMPLETED_VALID",
+        "run_ref": "DEV/runs/RUN-004",
+        "premise_id": "PREM-DEPLOY-CHAIN-INCREMENT-001",
+        "conclusion": "冻结协议 PROTO-POPU-POSTUREVALUE-v4-DEV004，锚点精确复现（M0=9.579142/8.783691、M2=9.325218/8.447900，diff=0），判 NEG_SCOPED_EXPRESSIVENESS_CONFOUNDED：M3−M1 raw −0.059 dz−0.19 CI[−0.234,0.104]（7/12）、dropall −0.215 dz−0.89 CI[−0.341,−0.082]（10/12）；M3−M5 raw −0.072 CI 跨 0（8/12）、dropall −0.131 CI[−0.246,−0.022] 但仅 7/12 且受试者双峰。",
+        "new_information": "分层相对直接的优势在匹配非线性表达后大幅塌缩（M2−M0 的 −0.254/−0.336 → M3−M1 的 −0.059/−0.215，raw 约 76% 由新增表达/one-hot 容量解释；M5 随机 one-hot+HGB 在 dropall 仍胜 M1 −0.083）。按 RUN-005 记录的 PROJECT-48-DEFECT-005，该 Run 的 HGB 未设 random_state、单折抖动可达 0.48，故其记录数字为 METRIC_REPRODUCIBILITY_DEGRADED：结论方向可用，数字精度不成立。"
+      }
+    },
+    {
+      "id": "PR-D3-03-FULL60-REPLICATION",
+      "observable": "两量程一致的可部署增量判据：ΔMAE(C2−C0) 与 ΔMAE(M3−M1) 在 60 折 LOSO 上的符号一致性与 CI95（仅当两量程同号且 CI 均不含 0 才计为增量），并与 12 人子集已记录效应量比较。",
+      "evaluation_unit": "subject（60 折 LOSO，每折留出 1 名受试者；独立单位仍为受试者而非帧）",
+      "comparison_reference": "12 人子集锚：RUN-003 C2−C0 −0.254/−0.336；RUN-004 M3−M1 −0.059/−0.215；同协议同目标同评价器，仅样本规模不同。",
+      "predictions": {
+        "H1_CHAIN_PARTIAL_REAL": "DECREASE",
+        "H2_EXPRESSIVENESS_CAPACITY_CONFOUND": "NO_CHANGE",
+        "H3_POSTURE_RECOVERABILITY_BOTTLENECK": "DECREASE",
+        "H4_RANGE_TARGET_ARTIFACT": "NO_CHANGE",
+        "H5_SUBJECT_HETEROGENEOUS_NO_POPULATION_GAIN": "NO_CHANGE"
+      },
+      "cost_band": "HIGH",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "run_ref": "DEV/runs/RUN-003",
+        "premise_id": "PREM-DEPLOY-CHAIN-INCREMENT-001",
+        "conclusion": "从未执行：扩至全 60 人属未授权动作，STATE 与 RUN-003 明记首轮未给出改变判断的稳健 POS，故未扩全 60 折；此处 run_ref 仅指向 12 人子集的现有锚点，不代表该探针已被执行。",
+        "new_information": "若执行，可区分'12 人子集的弱正效应是小样本偶然'与'真实但小、需规模才能检出'；亦能检验 H5 的受试者异质性是否在 60 人上被平均掉。"
+      }
+    },
+    {
+      "id": "PR-D3-04-CAPACITY-DOSE-SWEEP",
+      "observable": "可归因于容量的增益比例 ρ = ΔMAE(随机 k 类 one-hot + HGB) / ΔMAE(OOF 细分姿态 one-hot + HGB)，k ∈ {28, 56, 112}，两量程分别估计，以受试者为重采样单位给 CI。",
+      "evaluation_unit": "subject（12 折 LOSO；随机 one-hot 按折内固定种子生成，全折同一种子序列）",
+      "comparison_reference": "M5（k=28 随机 one-hot）与 M1 直接 HGB；ρ 的参照为 RUN-004 的 M3−M1 = −0.059/−0.215 与 M5−M1 = −0.012/−0.083（由 RUN-004 记录表推得）。",
+      "predictions": {
+        "H1_CHAIN_PARTIAL_REAL": "DECREASE",
+        "H2_EXPRESSIVENESS_CAPACITY_CONFOUND": "INCREASE",
+        "H3_POSTURE_RECOVERABILITY_BOTTLENECK": "NO_CHANGE",
+        "H4_RANGE_TARGET_ARTIFACT": "UNKNOWN",
+        "H5_SUBJECT_HETEROGENEOUS_NO_POPULATION_GAIN": "NO_CHANGE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "run_ref": "DEV/runs/RUN-004",
+        "premise_id": "PREM-DEPLOY-CHAIN-INCREMENT-001",
+        "conclusion": "未执行：RUN-004 只做了单个 k=28 的随机 one-hot 对照，未做维度剂量扫描；此处引用仅说明 ρ 的分母来自该 Run，不代表已执行剂量实验。",
+        "new_information": "可把'表达混淆'从定性判断变成可测的归因比例：若 ρ 随 k 单调升至接近 1，则细分姿态的剩余独立信息接近于零；若 ρ 在 k=112 仍明显小于 1，则 NEG 结论需收窄为'在 k=28 容量下'. "
+      }
+    },
+    {
+      "id": "PR-D3-05-POSTURE-QUALITY-LIFT",
+      "observable": "受试者内细分姿态 macro-F1 的提升量（相对基线 0.540）与同受试者 ΔMAE(C2−C0) 变化量的受试者级关联（Spearman），以及提升后 C2−C0 的配对 ΔMAE 与 CI95。",
+      "evaluation_unit": "subject（12 折 LOSO；姿态分类器改进只用训练折做选择）",
+      "comparison_reference": "RUN-003 Stage A 的 P1_logreg 细分姿态 macro-F1 0.540（受试者 0.255–0.729）与其 Stage B C2−C0 −0.254/−0.336。",
+      "predictions": {
+        "H1_CHAIN_PARTIAL_REAL": "DECREASE",
+        "H2_EXPRESSIVENESS_CAPACITY_CONFOUND": "NO_CHANGE",
+        "H3_POSTURE_RECOVERABILITY_BOTTLENECK": "DECREASE",
+        "H4_RANGE_TARGET_ARTIFACT": "NO_CHANGE",
+        "H5_SUBJECT_HETEROGENEOUS_NO_POPULATION_GAIN": "UNKNOWN"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "run_ref": "DEV/runs/RUN-003",
+        "premise_id": "PREM-DEPLOY-CHAIN-INCREMENT-001",
+        "conclusion": "未执行：该探针曾被列为授权内的下一判别行动，但 RUN-004（匹配表达后优势塌缩）与 RUN-005（可靠性门控 NEG）之后，STATE 已把该线标为 STOP/HOLD 并交 H8，故不应在同一 12 人子集上自行加变体。",
+        "new_information": "是唯一能直接检验'瓶颈在姿态恢复质量'的剂量实验：若 F1 提升而 ΔMAE 不动，则链条瓶颈假设被取代，NEG 应升级为'中间表示本身无信息'而非'恢复得不够好'。"
+      }
+    },
+    {
+      "id": "PR-D3-06-TARGET-DEFINITION-SENSITIVITY",
+      "observable": "dropallGT100 专属增量在目标定义变换后的存活率：在 {top-1% raw, dropallGT100, >100 单元替换为该帧 99 分位} 三种目标下 ΔMAE(C2−C0) 的符号一致比例与 CI 是否仍不含 0。",
+      "evaluation_unit": "subject（12 折 LOSO，三种目标共用同一折划分与同一预测，仅重算目标）",
+      "comparison_reference": "RUN-003 的 raw 与 dropallGT100 双量程结果（C2−C0 −0.254 跨 0 / −0.336 不含 0）。",
+      "predictions": {
+        "H1_CHAIN_PARTIAL_REAL": "INCREASE",
+        "H2_EXPRESSIVENESS_CAPACITY_CONFOUND": "NO_CHANGE",
+        "H3_POSTURE_RECOVERABILITY_BOTTLENECK": "NO_CHANGE",
+        "H4_RANGE_TARGET_ARTIFACT": "DECREASE",
+        "H5_SUBJECT_HETEROGENEOUS_NO_POPULATION_GAIN": "NO_CHANGE"
+      },
+      "cost_band": "LOW",
+      "prior_execution": {
+        "status": "NOT_EXECUTED",
+        "run_ref": "DEV/runs/RUN-003",
+        "premise_id": "PREM-DEPLOY-CHAIN-INCREMENT-001",
+        "conclusion": "未执行：RUN-003 只报了 raw 与 dropallGT100 两个量程的结论差异（量程敏感 → INCONCLUSIVE），未用第三种目标定义检验该差异是真实信号还是删点规则造成；引用 run_ref 仅为取基线数值。",
+        "new_information": "若第三种（不删点、改为截尾替换）目标下 dropall 增量消失，则'可部署增量'实质是评价口径的产物，H4 成立，RUN-003 的 INCONCLUSIVE 应改读为量程伪影；若存活，则量程敏感性只是噪声水平差异，可支持继续沿链条做规模检验。"
+      }
+    }
+  ]
+}

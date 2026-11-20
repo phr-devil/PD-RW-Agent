@@ -4,6 +4,7 @@ Inputs are researcher/Agent proposals; this module does NOT attest their truth.
 Scientific rules and actual Run evidence remain with PD-RW.
 """
 from __future__ import annotations
+import inspect
 import re
 from itertools import combinations
 from ..schemas import AgentError
@@ -41,6 +42,8 @@ _PROBE_RULE = {
     "EXECUTION_DECLARED_NOT_VERIFIED": "SCIENCE_RESULT_HARVEST §RUN_EVIDENCE / CASE-20",
     "EXECUTION_STATUS_CONFLICT": "SCIENCE_RESULT_HARVEST §RUN_EVIDENCE / CASE-20",
     "CLOSURE_PREMISE_UNBOUND": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
+    "CLOSURE_PREMISE_CONTRADICTED": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
+    "CLOSURE_PLAN_UNRESOLVED": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
 }
 _PROBE_PRECEDENT = {
     "REFERENCE_NOT_LEGAL": ["CASE-02", "CASE-12"],
@@ -48,6 +51,8 @@ _PROBE_PRECEDENT = {
     "EXECUTION_DECLARED_NOT_VERIFIED": ["CASE-20", "CASE-21"],
     "EXECUTION_STATUS_CONFLICT": ["CASE-20", "CASE-21"],
     "CLOSURE_PREMISE_UNBOUND": ["CASE-20", "CASE-21"],
+    "CLOSURE_PREMISE_CONTRADICTED": ["CASE-20", "CASE-21"],
+    "CLOSURE_PLAN_UNRESOLVED": ["CASE-20", "CASE-21"],
 }
 _PROBE_QUESTION = {
     "REFERENCE_NOT_LEGAL": "Which reference is legal at prediction time, and does it exist already?",
@@ -58,6 +63,11 @@ _PROBE_QUESTION = {
         "The cited Run and the declaration disagree about whether it ran; which is right?"),
     "CLOSURE_PREMISE_UNBOUND": (
         "Under which premise was this experiment run? Without one it closes nothing."),
+    "CLOSURE_PREMISE_CONTRADICTED": (
+        "The cited Run executed another premise or plan. Which experiment did it answer, "
+        "and is this probe that experiment or a new one?"),
+    "CLOSURE_PLAN_UNRESOLVED": (
+        "The Run names a frozen plan that cannot be read here; which plan did it execute?"),
 }
 # What the probe may still be used for. A test-time-truth reference is a
 # legitimate diagnostic upper bound and an illegitimate decisive comparison;
@@ -69,7 +79,14 @@ _PROBE_USAGE = {
     "EXECUTION_DECLARED_NOT_VERIFIED": "DO_NOT_TREAT_AS_CLOSED_OR_AS_NEW",
     "EXECUTION_STATUS_CONFLICT": "DO_NOT_TREAT_AS_CLOSED_OR_AS_NEW",
     "CLOSURE_PREMISE_UNBOUND": "BIND_PREMISE_BEFORE_RELYING_ON_IT",
+    "CLOSURE_PREMISE_CONTRADICTED": "DO_NOT_TREAT_AS_CLOSED_OR_AS_NEW",
+    "CLOSURE_PLAN_UNRESOLVED": "VERIFY_FROZEN_PLAN_BEFORE_RELYING_ON_IT",
 }
+
+# Not "run it again": if this probe *is* the experiment that Run executed, it is
+# closed there. Confirm which experiment was answered before spending anything.
+_CONTRADICTION_NEXT_ACTION = "CONFIRM_WHICH_EXPERIMENT_THE_RUN_ANSWERED"
+
 _DISQUALIFYING_FROM_FRONTIER = frozenset({"REFERENCE_NOT_LEGAL"})
 
 # CASE-20/CASE-21: an experiment that already answered this premise cannot
@@ -77,8 +94,9 @@ _DISQUALIFYING_FROM_FRONTIER = frozenset({"REFERENCE_NOT_LEGAL"})
 # and a state without a Run reference stays a claim, never a verified closure.
 EXECUTION_STATUSES = {"NOT_EXECUTED", "COMPLETED_VALID", "COMPLETED_INVALID",
                       "INCONCLUSIVE", "BLOCKED"}
-_PRIOR_EXECUTION_FIELDS = {"status", "run_ref", "record_ref", "premise_id",
-                           "conclusion", "new_information", "requires_new_authorization"}
+_PRIOR_EXECUTION_FIELDS = {"status", "run_ref", "record_ref", "premise_ref",
+                           "premise_id", "conclusion", "new_information",
+                           "requires_new_authorization"}
 _MAX_PRIOR_TEXT = 240
 
 # The next action each declared state implies. Nothing here runs, stops, or
@@ -113,11 +131,17 @@ def _status_consistency(declared_status: str, binding: dict | None) -> str:
     """Compare a declared execution state with the Run's own record.
 
     CONSISTENT means the two agree. CONFLICT means the record contradicts the
-    declaration -- an "invalid" attempt declared as a valid closure, or the
-    reverse. UNKNOWN covers everything else, including "no record was read".
+    declaration -- an "invalid" attempt declared as a valid closure, the reverse,
+    a directory holding another Run's record, or a plan whose bytes are not the
+    bytes the record names. UNKNOWN covers everything else, including "no record
+    was read".
     """
     if not binding or binding.get("status") != "RUN_RECORD_BOUND":
         return "UNKNOWN"
+    if binding.get("run_id_consistency") == "MISMATCH":
+        return "CONFLICT"
+    if (binding.get("plan") or {}).get("hash_match") is False:
+        return "CONFLICT"
     term = str(binding.get("run_status_declared") or "").strip().upper()
     verdict = str(binding.get("verdict_declared") or "").strip().upper()
     anchor_failed = binding.get("anchor_pass_declared") is False
@@ -147,10 +171,35 @@ def _binding_echo(binding: dict | None) -> dict | None:
         "run_dir": binding.get("run_dir"),
         "record_ref": binding.get("record_ref"),
         "record_sha256": binding.get("record_sha256"),
+        "run_id_declared": binding.get("run_id_declared"),
+        "run_id_expected": binding.get("run_id_expected"),
+        "run_id_consistency": binding.get("run_id_consistency"),
+        "record_structure": binding.get("record_structure"),
+        "premise_id_recorded": binding.get("premise_id_recorded"),
+        "plan": binding.get("plan"),
+        "premise_plan": binding.get("premise_plan"),
+        "premise_plan_match": binding.get("premise_plan_match"),
+        "artifact_links_verified": binding.get("artifact_links_verified"),
         "run_status_declared": binding.get("run_status_declared"),
         "verdict_declared": binding.get("verdict_declared"),
         "anchor_pass_declared": binding.get("anchor_pass_declared"),
     }
+
+
+def _invoke_binder(binder, ref, record_ref, premise_ref):
+    """Pass the optional references when the binder accepts them.
+
+    Custom binders written against 0.9.11 take one argument. Refusing to call
+    them would turn a schema addition into a breaking change.
+    """
+    try:
+        params = inspect.signature(binder).parameters
+        flexible = any(p.kind is p.VAR_KEYWORD for p in params.values())
+    except (TypeError, ValueError):
+        flexible = False
+    if flexible or "premise_ref" in params:
+        return binder(ref, record_ref=record_ref, premise_ref=premise_ref)
+    return binder(ref)
 
 
 def _prior_execution(value, premise_id: str, binder=None) -> dict:
@@ -158,19 +207,22 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
 
     Absent means "not run", which is the only reading that keeps old packets
     valid. When a project root is available the cited reference is resolved to
-    Run bytes (`binder`) and five questions are answered separately:
+    Run bytes (`binder`) and six questions are answered separately:
 
     * is a reference declared at all (`reference_present`);
     * did it resolve to a Run record inside this project (`file_binding`);
+    * is that record the Run it claims to be (`run_identity`: record id against
+      the directory, structure rather than a bare metrics file);
     * does that record's own status agree with the declaration
       (`status_consistency`);
-    * was the experiment run under *this* premise (`premise_binding`);
+    * did it execute *this* premise's frozen plan (`premise_binding` with
+      `premise_binding_basis`);
     * therefore, is the closure trustworthy (`status_verified`).
 
-    Only the last one is an inference, and it needs all four. A missing
-    premise, an unresolvable Run, a Run from another project and a contradicting
-    status each keep the closure unknown -- they are never promoted to verified,
-    and they never delete the probe either.
+    Only the last one is an inference, and it needs all of the others. The
+    premise question is deliberately not answered by comparing two strings the
+    caller wrote: the record's own premise, or the premise of the plan the
+    record names, has to disagree for a citation to be contradicted.
     """
     if value is None:
         return {
@@ -180,6 +232,11 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
             "file_binding": "NOT_CHECKED",
             "status_consistency": "UNKNOWN",
             "premise_binding": "NOT_APPLICABLE",
+            "premise_binding_basis": None,
+            "premise_evidence": "NONE",
+            "premise_verified": False,
+            "premise_contradicted": False,
+            "plan_unresolved": False,
             "status_verified": False,
             "binding_checked": False,
             "premise_match": None,
@@ -198,7 +255,7 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
     if not isinstance(status, str) or status not in EXECUTION_STATUSES:
         raise AgentError("SCIENCE_PACKET_INVALID", "Unsupported declared execution status")
     texts = {}
-    for key in ("run_ref", "record_ref", "conclusion", "new_information"):
+    for key in ("run_ref", "record_ref", "premise_ref", "conclusion", "new_information"):
         item = value.get(key)
         if item is None:
             texts[key] = None
@@ -218,7 +275,8 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
     binding = None
     if reference_present and binder is not None:
         try:
-            binding = binder(texts["run_ref"])
+            binding = _invoke_binder(binder, texts["run_ref"], texts["record_ref"],
+                                     texts["premise_ref"])
         except AgentError as exc:
             binding = {"status": "BINDING_ERROR", "reason": exc.code,
                        "run_ref": texts["run_ref"]}
@@ -227,26 +285,62 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         file_binding = ("BOUND" if binding.get("status") == "RUN_RECORD_BOUND"
                         else "UNRESOLVED")
     consistency = _status_consistency(status, binding)
-    # A closure recorded under another premise says nothing about this one, and
-    # a closure that never states its premise says nothing either.
-    premise_binding = ("NOT_APPLICABLE" if status == "NOT_EXECUTED"
-                       else "UNBOUND" if prior_premise is None
-                       else "MATCH" if prior_premise == premise_id
-                       else "MISMATCH")
+    plan = (binding or {}).get("plan") or {}
+    recorded_premise = ((binding or {}).get("premise_id_recorded")
+                        or plan.get("premise_id"))
+    premise_plan_mismatch = (binding or {}).get("premise_plan_match") is False
+    plan_declared = plan.get("plan_status") not in (None, "NOT_DECLARED")
+    plan_unresolved = bool(plan_declared and plan.get("plan_status") != "BOUND")
+    if status == "NOT_EXECUTED":
+        premise_binding, premise_basis = "NOT_APPLICABLE", None
+    elif prior_premise is None:
+        premise_binding, premise_basis = "UNBOUND", None
+    elif prior_premise.strip().casefold() != premise_id.strip().casefold():
+        # The caller already says the closure concerns another premise. No file
+        # is needed to see that, and no record can turn it into this one.
+        premise_binding, premise_basis = "MISMATCH", "CALLER_DECLARATION"
+    elif premise_plan_mismatch:
+        # The caller said which plan encodes this premise; the cited Run
+        # executed another one.
+        premise_binding, premise_basis = "MISMATCH", "PREMISE_PLAN"
+    elif recorded_premise:
+        same = recorded_premise.strip().casefold() == prior_premise.strip().casefold()
+        premise_binding = "MATCH" if same else "MISMATCH"
+        premise_basis = ("RUN_RECORD" if (binding or {}).get("premise_id_recorded")
+                         else "FROZEN_PLAN")
+    else:
+        # Nothing on disk speaks to the premise: the attribution is a label the
+        # caller wrote twice. Kept, and labelled as such.
+        premise_binding, premise_basis = "MATCH", "CALLER_DECLARATION"
+    contradicted = (premise_binding == "MISMATCH"
+                    and premise_basis in {"RUN_RECORD", "FROZEN_PLAN", "PREMISE_PLAN"})
+    premise_verified = (premise_binding == "MATCH"
+                        and premise_basis in {"RUN_RECORD", "FROZEN_PLAN"})
+    if (binding or {}).get("premise_id_recorded"):
+        premise_evidence = "RUN_RECORD"
+    elif plan.get("premise_id"):
+        premise_evidence = "FROZEN_PLAN"
+    elif plan.get("plan_status") == "BOUND":
+        premise_evidence = "FROZEN_PLAN_WITHOUT_PREMISE"
+    else:
+        premise_evidence = "NONE"
     trustworthy = (status == "COMPLETED_VALID" and reference_present
                    and file_binding == "BOUND" and consistency == "CONSISTENT"
-                   and premise_binding == "MATCH")
+                   and premise_binding == "MATCH" and not plan_unresolved)
 
     if status == "NOT_EXECUTED":
         applicability = "NEEDS_AUTHORIZATION" if needs_auth else "NOT_YET_RUN"
+    elif consistency == "CONFLICT":
+        # The record contradicts the citation about what ran: until that is
+        # resolved it is not evidence about this probe, and the probe is not a
+        # free new experiment either.
+        applicability = "STATUS_CONFLICT"
     elif premise_binding == "MISMATCH":
         applicability = "NOT_YET_RUN"
     elif premise_binding == "UNBOUND":
         # Running it again would be waste; calling it closed would let an
         # unbound claim remove a live candidate. Neither is allowed.
         applicability = "CLOSURE_PREMISE_UNBOUND"
-    elif consistency == "CONFLICT":
-        applicability = "STATUS_CONFLICT"
     elif status == "COMPLETED_VALID":
         applicability = "HISTORICAL_EVIDENCE_ONLY" if trustworthy else "CLOSURE_DECLARED_NOT_VERIFIED"
     elif status == "COMPLETED_INVALID":
@@ -263,8 +357,15 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         "file_binding": file_binding,
         "status_consistency": consistency,
         "premise_binding": premise_binding,
+        # How the premise question was answered: the Run's own record, the
+        # frozen plan it names, the caller's plan reference, or nothing.
+        "premise_binding_basis": premise_basis,
+        "premise_evidence": premise_evidence,
+        "premise_verified": premise_verified,
+        "premise_contradicted": contradicted,
+        "plan_unresolved": plan_unresolved,
         # Kept for compatibility; now True only for a bound, consistent closure
-        # under this same premise.
+        # under this same premise, whose plan (if named) resolves here.
         "status_verified": trustworthy,
         "binding_checked": binding is not None,
         "premise_match": None if premise_binding in {"UNBOUND", "NOT_APPLICABLE"}
@@ -275,7 +376,11 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         "authorization_basis": "CALLER_DECLARED_ONLY",
         "new_information_declared": bool(texts["new_information"]),
         "applicability": applicability,
-        "next_action": _NEXT_ACTION[applicability],
+        # A probe whose citation turned out to be another experiment is runnable,
+        # but "run it" is the wrong instruction until the identity is settled.
+        "next_action": (_CONTRADICTION_NEXT_ACTION
+                        if contradicted and applicability == "NOT_YET_RUN"
+                        else _NEXT_ACTION[applicability]),
         "run_binding": _binding_echo(binding),
     }
 
@@ -319,8 +424,8 @@ def assess_proposal(packet: dict, *, project_root=None, run_binder=None) -> dict
     if binder is None and project_root is not None:
         from .feedback_link import bind_run_reference  # local: keeps import graph flat
 
-        def binder(ref):
-            return bind_run_reference(project_root, ref)
+        def binder(ref, record_ref=None, premise_ref=None):
+            return bind_run_reference(project_root, ref, record_ref, premise_ref)
     if not isinstance(packet, dict):
         raise AgentError("SCIENCE_PACKET_INVALID", "Expected a JSON object")
     raw_type = packet.get("claim_type")
@@ -470,8 +575,15 @@ def assess_proposal(packet: dict, *, project_root=None, run_binder=None) -> dict
         # a record to check, not a finished experiment and not a free rerun
         # (CASE-20). A contradicting record is a different question again.
         prior = _prior_execution(probe.get("prior_execution"), premise_id, binder)
+        # The cited Run executed another premise or another frozen plan: this
+        # experiment is still unanswered, whatever the packet's labels say. When
+        # the record is not even the cited Run, the identity conflict speaks
+        # first and its premise is not evidence about anything.
+        if prior["premise_contradicted"] and prior["status_consistency"] != "CONFLICT":
+            findings.append("CLOSURE_PREMISE_CONTRADICTED")
         if prior["applicability"] == "CLOSURE_DECLARED_NOT_VERIFIED":
-            findings.append("EXECUTION_DECLARED_NOT_VERIFIED")
+            findings.append("CLOSURE_PLAN_UNRESOLVED" if prior["plan_unresolved"]
+                            else "EXECUTION_DECLARED_NOT_VERIFIED")
         elif prior["applicability"] == "CLOSURE_PREMISE_UNBOUND":
             findings.append("CLOSURE_PREMISE_UNBOUND")
         elif prior["applicability"] == "STATUS_CONFLICT":

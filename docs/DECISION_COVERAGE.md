@@ -507,3 +507,36 @@ verdict was rewritten.
    project and is not wired into `decision`.
 4. **The `VALID_POS` branch is unexercised on real data.**
 5. Token, paid compute, real experiment cost, MCP integration: `NOT_MEASURED`.
+
+## Premise evidence closeout — 0.9.12 (SCIENCE-03D, 2026-11-20)
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| A closure must not rest on two strings the caller wrote | fixed: the record's premise, or the premise of the plan the record names, is what can contradict it | `test_science03d_premise_evidence.py` (16) + `audit/science03d/repro_before.json` / `repro_after.json` |
+| A cited Run that executed another plan must not close this probe | `NOT_YET_RUN` + `CLOSURE_PREMISE_CONTRADICTED`, `next_action: CONFIRM_WHICH_EXPERIMENT_THE_RUN_ANSWERED` | `test_a_run_that_executed_another_plan_does_not_close_this_premise`; real project 48 with `premise_ref` to the v3 plan |
+| A directory holding another Run's record | `STATUS_CONFLICT` (`run_id_consistency: MISMATCH`) | `test_a_directory_holding_another_runs_record_is_a_conflict` |
+| Only aggregate metrics in the directory | `record_structure: METRICS_ONLY`, closure unverified | `test_numbers_without_identity_are_reported_as_metrics_only` |
+| A plan the Run names that cannot be read | `CLOSURE_DECLARED_NOT_VERIFIED` + `CLOSURE_PLAN_UNRESOLVED` | `test_a_plan_that_cannot_be_read_keeps_the_closure_unverified` |
+| Plan bytes disagreeing with the declared hash | `STATUS_CONFLICT` | `test_plan_bytes_that_differ_from_the_declared_hash_are_a_conflict` |
+| Attribution that only the caller asserts | kept as history, labelled `premise_binding_basis: CALLER_DECLARATION`, `premise_verified: false` | `test_two_equal_labels_are_reported_as_a_caller_declaration` |
+| Old packets, old binders | accepted; one-argument binders still called with one argument | `test_a_binder_with_the_old_signature_still_works` |
+| No second validator / ledger / approver | one resolver, one axis; `artifact_links_verified: false` states what is not checked | full suite **584 passed / 8 skipped / 151 subtests**; `case_gate_eval` 17/17; MCP 24 tools, 11/21/24 |
+| Project 48 | HOLD_RELIABILITY / H8_PENDING, RUN-001–005 and frozen protocols untouched | read-only checks only |
+
+### Unverified in this round
+
+1. **The packet contract, not the checker, is now the bottleneck.** Four independent sessions produced
+   four packets and all four were rejected on shape (`prechecks` as a list, prose `scope`, invented
+   enums, prose `predictions`), identically on 0.9.11 and 0.9.12. No independent packet was adjudicated
+   without a mechanical normalization; "the model chooses better experiments" stays `NOT_MEASURED`.
+2. **Real records and protocols carry no `premise_id`.** Across the 7 real `DEV/runs/*/metrics.json`
+   records in the two projects that have frozen protocols (44, 48), none state a premise and no
+   protocol does either, so on real data the premise question is answered
+   `CALLER_DECLARATION` unless the packet adds `premise_ref`; plan bytes and identity are still checked.
+3. **`premise_plan_match` proves plan identity, not premise identity.** A plan may be the operational
+   definition of a premise, but equating them remains a reviewer judgment.
+4. **`run_id_consistency` compares a label with a directory name**; a correct label on a wrong file is
+   not detected. `status_consistency` remains a bounded term match.
+5. **Linked artifacts and their hashes are still not opened** (`artifact_links_verified: false`);
+   `run_integrity` remains unwired.
+6. Token, paid compute, real experiment cost, MCP integration, `VALID_POS` on real data: `NOT_MEASURED`.

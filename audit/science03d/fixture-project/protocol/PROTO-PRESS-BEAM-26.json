@@ -1,0 +1,15 @@
+{
+  "protocol_id": "PROTO-PRESS-BEAM-26",
+  "premise_id": "BEAM_STIFFNESS_MECHANISM",
+  "scientific_line": "contact force reconstruction under press deformation",
+  "frozen_before_fitting": true,
+  "scope": {
+    "dataset": "PRESS DEV 26",
+    "input": "beam strain channels",
+    "unit": "SUBJECT"
+  },
+  "goal": "Does beam stiffness carry information the load cell does not?",
+  "primary_outcome": "subject-level MAE of reconstructed contact force",
+  "decision_rule_frozen_before_results": "NEG if paired delta CI includes 0 at 95%",
+  "authorization_basis": "DEV_ONLY"
+}

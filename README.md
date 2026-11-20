@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.11 (a cited Run is checked, not trusted).**
+> **Current release — 0.9.12 (a premise label is not a bound premise).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
 > projection from an evidence-linked Run to the next action, and one read-only
@@ -12,7 +12,8 @@
 > independent group check, when no candidate probe separates any hypothesis, and
 > whether the probe you are about to run has already answered this premise, and
 > whether the Run it cites actually exists here, says the same thing, and was
-> run under the same premise.
+> run under the same premise — the last question answered from the record or its
+> frozen plan, never from two labels the caller wrote.
 > Theory and simulation paths are representable (`ANALYTIC_DERIVATION`,
 > `INSTANCE`/`REPLICATE`), so a form check cannot eliminate a legal direction.
 > No scientific rule, H-node, permission gate or tool count changed: MCP stays
@@ -24,6 +25,22 @@
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v0.9.12 a premise label is not a bound premise:** `prior_execution.premise_id`
+> and `proposed_premise.premise_id` are both caller text, so their equality was
+> treated as proof that a cited Run tested this premise. It is not: with
+> `--project-root` the resolver now also reads what the record claims about
+> itself (`run_id` against the directory, structure rather than a bare metrics
+> file) and which frozen plan it executed (the record's `protocol_id` /
+> `protocol_ref`, resolved inside the project, hash compared when declared;
+> `premise_ref` from the packet names the plan that encodes the premise under
+> study). A Run that executed another plan no longer closes this probe: it
+> returns to `NOT_YET_RUN` with `CLOSURE_PREMISE_CONTRADICTED` and the
+> instruction to confirm which experiment was answered. `premise_binding_basis`
+> says who answered the premise question (`RUN_RECORD`, `FROZEN_PLAN`,
+> `PREMISE_PLAN`, `CALLER_DECLARATION`), `premise_verified` stays false when only
+> the caller named it, and an unreadable plan keeps the closure unverified. No
+> new approver, ledger, second validator or tool: MCP stays 11/21/24.
 
 > **v0.9.11 a cited Run is checked, not trusted:** `status_verified` used to be
 > `bool(run_ref)`, so a missing Run, another project's Run and a Run whose own

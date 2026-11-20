@@ -298,20 +298,96 @@ def _run(root: Path, block: dict) -> dict:
 
 RUN_RECORD_NAMES = ("metrics.json", "run.json", "RUN.json")
 MAX_RUN_RECORD_BYTES = 128 * 1024
+# The record may name a premise directly, or name the frozen plan it executed.
+# The plan is the operational definition of a premise, so either one is usable
+# evidence; a free-form premise label in a packet is not.
+PREMISE_RECORD_KEYS = ("premise_id", "scientific_premise_id", "premise")
+PLAN_SEARCH_DIRS = ("protocol", "protocols")
+MAX_PLAN_BYTES = 128 * 1024
 
 
-def bind_run_reference(project_root, run_ref, run_record_ref=None) -> dict:
+def _record_premise(record: dict) -> str | None:
+    for key in PREMISE_RECORD_KEYS:
+        value = record.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()[:120]
+    return None
+
+
+def _locate_plan(root: Path, record: dict, *, ref: str | None,
+                 allow_id_lookup: bool) -> dict:
+    """Find and read the frozen plan a Run says it executed (bounded, read-only).
+
+    Two lookups, deliberately separate: the plan the *record* claims, and the
+    plan a caller says encodes the *premise under study*. Keeping them apart is
+    what makes "this Run executed another plan" a checkable statement.
+    """
+    declared_id = _text(record.get("protocol_id")) if record else None
+    declared_sha = _text(record.get("protocol_sha256"), 64) if record else None
+    candidates = []
+    if ref:
+        candidates.append(ref)
+    elif isinstance(record.get("protocol_ref"), str) and record["protocol_ref"].strip():
+        candidates.append(record["protocol_ref"].strip())
+    if allow_id_lookup and declared_id:
+        candidates += [f"{folder}/{declared_id}.json" for folder in PLAN_SEARCH_DIRS]
+    located = None
+    for candidate in candidates:
+        try:
+            located = _resolve(root, candidate)
+        except AgentError:
+            continue
+        break
+    if located is None:
+        status = "NOT_DECLARED" if not candidates else "UNRESOLVED"
+        return {"plan_status": status, "plan_ref": None, "plan_id": None,
+                "plan_sha256": None, "hash_declared": declared_sha,
+                "hash_match": None, "premise_id": None}
+    if located.stat().st_size > MAX_PLAN_BYTES:
+        return {"plan_status": "TOO_LARGE", "plan_ref": None, "plan_id": None,
+                "plan_sha256": None, "hash_declared": declared_sha,
+                "hash_match": None, "premise_id": None}
+    try:
+        plan = _read_json(located, limit=MAX_PLAN_BYTES)
+    except AgentError:
+        return {"plan_status": "UNREADABLE", "plan_ref": None, "plan_id": None,
+                "plan_sha256": None, "hash_declared": declared_sha,
+                "hash_match": None, "premise_id": None}
+    actual_sha = _sha256(located)
+    hash_match = (None if not declared_sha
+                  else declared_sha.strip().lower() == actual_sha)
+    return {
+        "plan_status": "BOUND",
+        "plan_ref": str(located.relative_to(root.resolve())).replace("\\", "/"),
+        "plan_id": _text(plan.get("protocol_id")),
+        "plan_sha256": actual_sha,
+        "hash_declared": declared_sha,
+        "hash_match": hash_match,
+        "premise_id": _record_premise(plan),
+    }
+
+
+def bind_run_reference(project_root, run_ref, run_record_ref=None,
+                       premise_ref=None) -> dict:
     """Resolve one declared Run reference to bytes inside *this* project.
 
-    Answers exactly one question: does the reference point at a readable Run
-    record here, and what does that record say about itself? It does not judge
-    scientific validity, does not read SEALED/holdout paths (``_resolve``
-    refuses them), and does not grant permission. A missing directory, a path
-    that escapes the project, and a directory with no run record stay three
-    different answers -- collapsing them into "verified" was the defect.
+    Answers three narrow questions, kept separate: does the reference point at a
+    readable record here; is that record the Run it claims to be (``run_id``
+    against the directory, structure rather than a bare metrics file); and which
+    frozen plan did it execute. It does not judge scientific validity, does not
+    read SEALED/holdout paths (``_resolve`` refuses them), and does not grant
+    permission. A missing directory, a path that escapes the project, and a
+    directory with no run record stay three different answers.
 
-    The declared ``status`` of a *claim* is compared with the Run's own
-    ``status``/``verdict``/``anchor_pass`` upstream, never here.
+    The declarative part is upstream: a packet's ``premise_id`` is a label, and
+    the equality of two labels proves nothing. What is returned here is the
+    record's own premise (or its plan's), so the caller's label can be compared
+    with something that exists on disk.
+
+    ``premise_ref`` is the caller's statement of *which* frozen plan encodes the
+    premise under study. When it disagrees with the plan the record names, the
+    cited Run did not execute the experiment being discussed -- that is the
+    contradiction this function makes visible, not a conclusion about science.
     """
     if project_root is None:
         raise AgentError("FEEDBACK_LINK_INVALID", "A project root is required")
@@ -319,7 +395,9 @@ def bind_run_reference(project_root, run_ref, run_record_ref=None) -> dict:
     if not root.is_dir():
         raise AgentError("FEEDBACK_LINK_INVALID", "Project root is not a directory")
     ref = _bounded(run_ref, "run_ref", 300)
+    premise_ref = None if premise_ref is None else _bounded(premise_ref, "premise_ref", 300)
     base = {"run_ref": ref, "run_record_ref": run_record_ref,
+            "premise_ref": premise_ref,
             "scope": "DECLARED_REFERENCE_TO_PROJECT_BYTES_ONLY"}
     try:
         run_dir = _resolve(root, ref, directory=True)
@@ -364,19 +442,66 @@ def bind_run_reference(project_root, run_ref, run_record_ref=None) -> dict:
         return {**base, "status": "RUN_RECORD_UNREADABLE", "reason": exc.code,
                 "run_dir": runner, "record_ref": str(record_path.name)}
     anchor = record.get("anchor_pass")
+    declared_run_id = _text(record.get("run_id"))
+    if target_is_dir:
+        expected_run_id = run_dir.name
+    elif record_path.name in RUN_RECORD_NAMES:
+        expected_run_id = record_path.parent.name
+    else:
+        # "RUN-005_RESULT.md" says nothing about the Run's identity.
+        expected_run_id = None
+    if declared_run_id and expected_run_id:
+        run_id_consistency = ("MATCH" if declared_run_id.casefold() == expected_run_id.casefold()
+                              else "MISMATCH")
+    elif declared_run_id:
+        run_id_consistency = "UNKNOWN"
+    else:
+        run_id_consistency = "UNKNOWN"
+    structured = bool(declared_run_id) and (
+        isinstance(record.get("status"), str) or isinstance(record.get("verdict"), str)
+        or isinstance(anchor, bool))
+    plan = _locate_plan(root, record,
+                        ref=None, allow_id_lookup=True)
+    plan_echo = {key: plan[key] for key in
+                 ("plan_status", "plan_ref", "plan_id", "hash_match", "premise_id")}
+    premise_plan = (None if premise_ref is None
+                    else _locate_plan(root, {}, ref=premise_ref, allow_id_lookup=False))
+    premise_plan_match = None
+    if premise_plan is not None and premise_plan["plan_status"] == "BOUND":
+        if _text(record.get("protocol_id")) and premise_plan["plan_id"]:
+            premise_plan_match = (_text(record.get("protocol_id")).casefold()
+                                  == premise_plan["plan_id"].casefold())
+        elif _text(record.get("protocol_sha256"), 64):
+            premise_plan_match = (_text(record.get("protocol_sha256"), 64).lower()
+                                  == premise_plan["plan_sha256"])
     return {
         **base,
         "status": "RUN_RECORD_BOUND",
         "run_dir": runner,
         "record_ref": str(record_path.relative_to(root.resolve())).replace("\\", "/"),
         "record_sha256": _sha256(record_path),
-        "run_id_declared": _text(record.get("run_id")),
+        "run_id_declared": declared_run_id,
+        "run_id_expected": expected_run_id,
+        "run_id_consistency": run_id_consistency,
+        # A file with numbers but no identity and no status is not a Run record
+        # that can close anything, however readable it is.
+        "record_structure": "RUN_RECORD" if structured else "METRICS_ONLY",
+        "premise_id_recorded": _record_premise(record),
+        "plan": plan_echo,
+        "premise_plan": (None if premise_plan is None else
+                         {key: premise_plan[key] for key in
+                          ("plan_status", "plan_ref", "plan_id", "premise_id")}),
+        "premise_plan_match": premise_plan_match,
+        # Nothing here opens a linked artifact or its hash. Saying so is the
+        # difference between "the record was read" and "its links were checked".
+        "artifact_links_verified": False,
         "run_status_declared": _text(record.get("status")),
         "verdict_declared": _text(record.get("verdict")),
         "anchor_pass_declared": anchor if isinstance(anchor, bool) else None,
         "note": ("The record was read from this project. Its own status is compared "
                  "with the declared one upstream; bytes matching is not a scientific "
-                 "conclusion and not a permission."),
+                 "conclusion and not a permission. A premise label in a packet is not "
+                 "evidence: only the record or its frozen plan can contradict it."),
     }
 
 

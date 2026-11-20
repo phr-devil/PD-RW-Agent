@@ -1,11 +1,11 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.11.** Read this section only; everything below the
+**Current release: 0.9.12.** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.11` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `0.9.12` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
 | Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
@@ -93,6 +93,31 @@ a packet is a caller statement and not an execution permit. Measured cost
 (compact JSON): clean two-probe 3 541 → 3 726 (+5.2%), three defective
 10 429 → 10 984 (+5.3%), a three-probe packet carrying real history
 6 706 → 8 180 (+22%, ~490 characters per closed probe).
+
+0.9.12 stops answering the premise question with the caller's own words. Both
+`prior_execution.premise_id` and `proposed_premise.premise_id` are packet text,
+so their equality cannot show that a cited Run tested this premise; a real,
+status-consistent Run that executed a *different* frozen plan still closed the
+probe. The resolver now also reads what the record claims about itself — its
+`run_id` against the directory it was found in (`run_id_consistency`), whether
+it is a Run record or a bare metrics file (`record_structure`), the premise it
+states (`premise_id`), and the frozen plan it names (`protocol_id` /
+`protocol_ref`, resolved inside the project and hash-compared when a hash is
+declared). A packet may add `premise_ref`: the project-relative plan that
+encodes the premise under study. When that plan and the plan the Run executed
+disagree, or when the record's own premise disagrees with the declared one, the
+probe returns to `NOT_YET_RUN` with `CLOSURE_PREMISE_CONTRADICTED` and
+`next_action: CONFIRM_WHICH_EXPERIMENT_THE_RUN_ANSWERED` — not a closure, not a
+silent rerun. `premise_binding_basis` names the source that answered the
+question (`RUN_RECORD`, `FROZEN_PLAN`, `PREMISE_PLAN`, `CALLER_DECLARATION`),
+`premise_verified` is false when only the caller named the premise, and a plan
+the record names but that cannot be read keeps the closure
+`CLOSURE_DECLARED_NOT_VERIFIED` (`CLOSURE_PLAN_UNRESOLVED`). A directory holding
+another Run's record, or plan bytes that differ from the declared hash, are
+`STATUS_CONFLICT`. `artifact_links_verified` stays false: linked artifacts and
+their hashes are still not opened here. Measured cost (compact JSON): clean
+two-probe 3 726 → 3 756 (+0.8%), three defective 10 984 → 11 074 (+0.8%), the
+three-probe packet with real history 8 180 → 8 641 (+5.6%).
 
 Nothing here authorizes anything: Python and MCP **cannot** approve a download,
 a SEALED read, a manuscript, a figure, a payment or a submission, and no
@@ -213,7 +238,7 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.11 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.12 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
 
