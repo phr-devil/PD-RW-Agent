@@ -44,6 +44,7 @@ _PROBE_RULE = {
     "CLOSURE_PREMISE_UNBOUND": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
     "CLOSURE_PREMISE_CONTRADICTED": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
     "CLOSURE_PLAN_UNRESOLVED": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
+    "CLOSURE_ATTRIBUTION_UNCHECKED": "RESEARCH_RECORD §EXP_PREMISE / CASE-20",
 }
 _PROBE_PRECEDENT = {
     "REFERENCE_NOT_LEGAL": ["CASE-02", "CASE-12"],
@@ -53,6 +54,7 @@ _PROBE_PRECEDENT = {
     "CLOSURE_PREMISE_UNBOUND": ["CASE-20", "CASE-21"],
     "CLOSURE_PREMISE_CONTRADICTED": ["CASE-20", "CASE-21"],
     "CLOSURE_PLAN_UNRESOLVED": ["CASE-20", "CASE-21"],
+    "CLOSURE_ATTRIBUTION_UNCHECKED": ["CASE-20", "CASE-21"],
 }
 _PROBE_QUESTION = {
     "REFERENCE_NOT_LEGAL": "Which reference is legal at prediction time, and does it exist already?",
@@ -68,6 +70,9 @@ _PROBE_QUESTION = {
         "and is this probe that experiment or a new one?"),
     "CLOSURE_PLAN_UNRESOLVED": (
         "The Run names a frozen plan that cannot be read here; which plan did it execute?"),
+    "CLOSURE_ATTRIBUTION_UNCHECKED": (
+        "Which frozen plan did this Run execute, and is that plan this probe? Nothing "
+        "on disk says the Run answered this experiment."),
 }
 # What the probe may still be used for. A test-time-truth reference is a
 # legitimate diagnostic upper bound and an illegitimate decisive comparison;
@@ -81,6 +86,7 @@ _PROBE_USAGE = {
     "CLOSURE_PREMISE_UNBOUND": "BIND_PREMISE_BEFORE_RELYING_ON_IT",
     "CLOSURE_PREMISE_CONTRADICTED": "DO_NOT_TREAT_AS_CLOSED_OR_AS_NEW",
     "CLOSURE_PLAN_UNRESOLVED": "VERIFY_FROZEN_PLAN_BEFORE_RELYING_ON_IT",
+    "CLOSURE_ATTRIBUTION_UNCHECKED": "VERIFY_ATTRIBUTION_BEFORE_CITING_OR_RERUNNING",
 }
 
 # Not "run it again": if this probe *is* the experiment that Run executed, it is
@@ -106,10 +112,16 @@ _NEXT_ACTION = {
     "NOT_YET_RUN": "RUN_IF_LEGAL_AND_DISCRIMINATING",
     "NEEDS_AUTHORIZATION": "OBTAIN_AUTHORIZATION_FIRST",
     "HISTORICAL_EVIDENCE_ONLY": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
-    # Same action, different epistemic footing: cite it and say that the premise
-    # link is the caller's declaration rather than the record's.
-    "HISTORICAL_EVIDENCE_PREMISE_ASSUMED":
-        "CITE_AS_EVIDENCE_ONLY_AND_DECLARE_THE_PREMISE_LINK",
+    # The Run executed the frozen plan the caller named, and that plan states no
+    # premise of its own: the Run-to-plan link is on disk, the plan-to-probe
+    # link is the caller's reading of a frozen document. Evidence, not closure.
+    "HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED":
+        "CITE_AS_EVIDENCE_ONLY_AND_CONFIRM_THE_PLAN_IS_THIS_EXPERIMENT",
+    # A valid Run exists and nothing on disk says which experiment it answered.
+    # Neither "already done" nor "run it again": attribute it first. 0.9.13
+    # filed this case as historical evidence, which let a caller's own label
+    # retire an experiment that was never run.
+    "CLOSURE_ATTRIBUTION_UNCHECKED": "CHECK_WHICH_PLAN_THE_RUN_EXECUTED",
     "CLOSURE_DECLARED_NOT_VERIFIED": "VERIFY_RUN_BEFORE_DECIDING",
     "TARGETED_REPAIR": "REPAIR_NAMED_DEFECT_FIRST",
     "REVISIT_ON_NEW_INFORMATION": "REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT",
@@ -241,6 +253,8 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
             "premise_evidence": "NONE",
             "premise_verified": False,
             "premise_contradicted": False,
+            "attribution_basis": "NOT_APPLICABLE",
+            "attribution_verified": False,
             "plan_unresolved": False,
             "status_verified": False,
             "binding_checked": False,
@@ -321,6 +335,21 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
                     and premise_basis in {"RUN_RECORD", "FROZEN_PLAN", "PREMISE_PLAN"})
     premise_verified = (premise_binding == "MATCH"
                         and premise_basis in {"RUN_RECORD", "FROZEN_PLAN"})
+    # The third question, between "the Run ran" and "this premise is settled":
+    # is there anything on disk that places this Run under *this* experiment?
+    # Either the record states the premise itself, or the Run executed the
+    # frozen plan the caller named as encoding it (protocol_id/sha256 compared
+    # by the binder). Nothing else counts -- in particular, a plan that merely
+    # exists and states no premise proves nothing about this probe.
+    plan_matches_named_premise = (binding or {}).get("premise_plan_match") is True
+    if premise_verified:
+        attribution_basis = ("RUN_RECORD" if (binding or {}).get("premise_id_recorded")
+                             else "FROZEN_PLAN")
+    elif plan_matches_named_premise:
+        attribution_basis = "CALLER_PREMISE_PLAN"
+    else:
+        attribution_basis = "NONE"
+    attribution_verified = attribution_basis != "NONE"
     if (binding or {}).get("premise_id_recorded"):
         premise_evidence = "RUN_RECORD"
     elif plan.get("premise_id"):
@@ -357,10 +386,16 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
             applicability = "HISTORICAL_EVIDENCE_ONLY"
         elif plan_unresolved:
             applicability = "CLOSURE_DECLARED_NOT_VERIFIED"
-        elif execution_verified and premise_binding == "MATCH":
-            # The Run is real and ran as declared; the premise it tested is a
-            # label the caller wrote. Recorded evidence, not a settled premise.
-            applicability = "HISTORICAL_EVIDENCE_PREMISE_ASSUMED"
+        elif execution_verified and attribution_verified:
+            # The Run is real and executed the plan the caller named; the plan
+            # states no premise. Recorded evidence with a named attribution
+            # basis, and still not a settled premise.
+            applicability = "HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED"
+        elif execution_verified:
+            # The Run is real, and nothing on disk ties it to this experiment:
+            # the attribution is the caller's label alone. Calling that
+            # historical evidence would let a label retire an unanswered probe.
+            applicability = "CLOSURE_ATTRIBUTION_UNCHECKED"
         else:
             applicability = "CLOSURE_DECLARED_NOT_VERIFIED"
     elif status == "COMPLETED_INVALID":
@@ -383,6 +418,12 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         "premise_evidence": premise_evidence,
         "premise_verified": premise_verified,
         "premise_contradicted": contradicted,
+        # Is there a disk-backed link between this Run and this experiment?
+        # RUN_RECORD / FROZEN_PLAN state the premise themselves; CALLER_PREMISE_PLAN
+        # means the Run executed the frozen plan the caller named (checked against
+        # the record's protocol id/sha); NONE means only the caller says so.
+        "attribution_basis": attribution_basis,
+        "attribution_verified": attribution_verified,
         "plan_unresolved": plan_unresolved,
         # Did the cited Run run as declared? Independent of what premise it
         # tested, and of whether this probe is closed.
@@ -396,7 +437,10 @@ def _prior_execution(value, premise_id: str, binder=None) -> dict:
         "binding_checked": binding is not None,
         "premise_match": None if premise_binding in {"UNBOUND", "NOT_APPLICABLE"}
                         else premise_binding == "MATCH",
-        "history_applicable": premise_binding == "MATCH" and status != "NOT_EXECUTED",
+        # "This Run is history for this premise" needs the disk-backed
+        # attribution, not the caller's label: a declared link is exactly the
+        # case where the probe may still be unanswered.
+        "history_applicable": attribution_verified and status != "NOT_EXECUTED",
         "requires_new_authorization": needs_auth,
         # A declared boolean is a caller statement, never an execution permit.
         "authorization_basis": "CALLER_DECLARED_ONLY",
@@ -680,6 +724,8 @@ def assess_proposal(packet: dict, *, project_root=None, run_binder=None) -> dict
                             else "EXECUTION_DECLARED_NOT_VERIFIED")
         elif prior["applicability"] == "CLOSURE_PREMISE_UNBOUND":
             findings.append("CLOSURE_PREMISE_UNBOUND")
+        elif prior["applicability"] == "CLOSURE_ATTRIBUTION_UNCHECKED":
+            findings.append("CLOSURE_ATTRIBUTION_UNCHECKED")
         elif prior["applicability"] == "STATUS_CONFLICT":
             findings.append("EXECUTION_STATUS_CONFLICT")
         if findings:
@@ -757,7 +803,8 @@ def assess_proposal(packet: dict, *, project_root=None, run_binder=None) -> dict
             "Which listed probe has not already answered this premise and can start "
             "under the current authorization? A closed probe is recorded evidence, an "
             "invalid one needs its named defect repaired, a closure without a bound "
-            "premise or Run must be verified first, and an ungranted one is a "
+            "premise or Run must be verified first, a Run that nothing on disk ties to "
+            "this experiment must be attributed first, and an ungranted one is a "
             "candidate rather than a next action."
             if no_executable else None),
         # What was actually checked this call. Without a project root every

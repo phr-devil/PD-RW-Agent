@@ -7,7 +7,9 @@ separates the same hypothesis pair -- so a cost-only frontier kept naming it.
 
 What the fix must and must not do:
 
-* a completed-and-valid probe stays as recorded evidence and is not rerun;
+* a completed-and-valid probe whose Run can be tied to the plan it names stays
+  as recorded evidence and is not rerun; one that nothing on disk ties to this
+  experiment is a question about the plan, not history and not a rerun;
 * an INVALID run asks for a repair of its named defect, not a repeat;
 * an INCONCLUSIVE run continues only when new information can change the call;
 * a probe that needs an authorization remains a candidate, not a next action;
@@ -48,6 +50,9 @@ def packet(probes):
 
 
 CLOSED = {"status": "COMPLETED_VALID", "run_ref": "EXP-006", "premise_id": "CONTACT"}
+# The same closure, with the frozen plan the Run executed named explicitly. The
+# binder can then check the record's protocol id against that plan's bytes.
+CLOSED_ATTRIBUTED = {**CLOSED, "premise_ref": "protocol/PROTO-CONTACT-v1.json"}
 PRESS = {"id": "PRESS", "observable": "slope vs external modulus",
          "evaluation_unit": "MATERIAL", "comparison_reference": "external modulus",
          "predictions": dict(PREDICTS), "cost_band": "HIGH"}
@@ -80,8 +85,17 @@ class ClosedProbeTests(unittest.TestCase):
         record = cls.root / "EXP-006" / "metrics.json"
         record.parent.mkdir(parents=True)
         record.write_text(json.dumps({"run_id": "EXP-006", "status": "COMPLETED",
-                                      "verdict": "NEG_NO_STABLE_LAW", "anchor_pass": True}),
+                                      "verdict": "NEG_NO_STABLE_LAW", "anchor_pass": True,
+                                      "protocol_id": "PROTO-CONTACT-v1"}),
                           encoding="utf-8")
+        # The frozen plan the Run executed. It states no premise of its own, which
+        # is the 0.9.14 case: the Run-to-plan link is on disk, the plan-to-probe
+        # link is the caller's reading of a frozen document.
+        plan = cls.root / "protocol" / "PROTO-CONTACT-v1.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text(json.dumps({"protocol_id": "PROTO-CONTACT-v1",
+                                    "frozen_before_fitting": True}),
+                        encoding="utf-8")
         # EXP-005 was the invalid transform attempt; RUN-002 was inconclusive.
         for name, payload in (("EXP-005", {"run_id": "EXP-005", "status": "INVALID",
                                            "anchor_pass": False}),
@@ -95,15 +109,33 @@ class ClosedProbeTests(unittest.TestCase):
     def tearDownClass(cls):
         cls._tmp.cleanup()
 
-    def test_a_closed_probe_is_history_not_the_next_experiment(self):
-        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS, SWAP]),
-                                 project_root=self.root)
+    def test_a_closed_probe_naming_its_plan_is_history_not_the_next_experiment(self):
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED_ATTRIBUTED),
+                                         PRESS, SWAP]), project_root=self.root)
         self.assertEqual(["SWAP"], eff(result)["frontier_candidate_ids_as_declared"])
         self.assertEqual(["SLOPE"], eff(result)["historical_evidence_ids"])
-        # 0.9.13: this fixture's record states no premise, so the closure is
-        # recorded evidence under a *declared* premise -- not a verified one.
-        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ASSUMED", app(result, "SLOPE"))
-        self.assertEqual(["SLOPE"], eff(result)["premise_assumed_ids"])
+        # 0.9.14: the Run executed the plan the caller named, so the attribution
+        # is on disk; the plan states no premise, so this is still not a closure.
+        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED", app(result, "SLOPE"))
+        prior = next(s for s in result["probe_comparisons"]
+                     if s["id"] == "SLOPE")["prior_execution"]
+        self.assertEqual("CALLER_PREMISE_PLAN", prior["attribution_basis"])
+        self.assertTrue(prior["attribution_verified"])
+        self.assertFalse(prior["premise_verified"])
+        self.assertFalse(prior["closure_verified"])
+
+    def test_a_run_nothing_ties_to_this_experiment_is_neither_history_nor_next(self):
+        # A caller's premise label alone must not retire a probe: the same Run,
+        # cited without naming its plan, leaves the experiment unattributed.
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED),
+                                         PRESS, SWAP]), project_root=self.root)
+        self.assertNotIn("SLOPE", eff(result)["historical_evidence_ids"])
+        self.assertIn("SLOPE", eff(result)["attribution_unchecked_ids"])
+        self.assertEqual("CLOSURE_ATTRIBUTION_UNCHECKED", app(result, "SLOPE"))
+        self.assertNotIn("SLOPE", eff(result)["frontier_candidate_ids_as_declared"])
+        codes = next(f["codes"] for f in result["probe_findings"]
+                     if f["probe_id"] == "SLOPE")
+        self.assertIn("CLOSURE_ATTRIBUTION_UNCHECKED", codes)
 
     def test_a_closed_probe_cannot_dominate_a_live_one(self):
         result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS, SWAP]),
@@ -112,16 +144,24 @@ class ClosedProbeTests(unittest.TestCase):
         self.assertNotIn("SLOPE", [d["id"] for d in eff(result)["dominated_candidates_as_declared"]])
 
     def test_a_closed_probe_keeps_its_next_action_label(self):
-        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS]),
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED_ATTRIBUTED), PRESS]),
                                  project_root=self.root)
         entry = next(s for s in result["probe_comparisons"] if s["id"] == "SLOPE")
-        self.assertEqual("CITE_AS_EVIDENCE_ONLY_AND_DECLARE_THE_PREMISE_LINK",
+        self.assertEqual("CITE_AS_EVIDENCE_ONLY_AND_CONFIRM_THE_PLAN_IS_THIS_EXPERIMENT",
                          entry["next_action"])
         # The Run ran; the premise is the caller's label. Both stated separately
         # so neither can pass for the other.
         self.assertTrue(entry["prior_execution"]["execution_verified"])
         self.assertFalse(entry["prior_execution"]["premise_verified"])
         self.assertFalse(entry["prior_execution"]["status_verified"])
+
+    def test_an_unattributed_run_asks_for_the_plan_not_for_a_rerun(self):
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS]),
+                                 project_root=self.root)
+        entry = next(s for s in result["probe_comparisons"] if s["id"] == "SLOPE")
+        self.assertEqual("CHECK_WHICH_PLAN_THE_RUN_EXECUTED", entry["next_action"])
+        self.assertTrue(entry["prior_execution"]["execution_verified"])
+        self.assertFalse(entry["prior_execution"]["attribution_verified"])
 
     def test_the_same_claim_without_a_bound_run_is_not_history(self):
         # The 03C correction: `run_ref` alone used to set status_verified true.

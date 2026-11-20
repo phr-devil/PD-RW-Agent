@@ -13,7 +13,9 @@ What this file pins, one axis at a time:
 * a missing directory, an escaping path, a directory with no record and a
   contradicting record stay four different answers;
 * a sealed/holdout path is never read to "verify" anything;
-* an unbound premise neither closes the probe nor eliminates a live one;
+* an unbound premise neither closes the probe nor eliminates a live one, and a
+  premise only the caller names is not evidence either: the Run has to be tied
+  to the experiment on disk before it can be cited;
 * a declared authorization boolean is a caller statement, not a permit;
 * packets without `prior_execution` behave exactly as before.
 """
@@ -164,23 +166,28 @@ class BindingAxisTests(unittest.TestCase):
         self.assertEqual([], eff(result)["historical_evidence_ids"])
         self.assertIn("LIVE", eff(result)["frontier_candidate_ids_as_declared"])
 
-    def test_a_bound_consistent_run_under_this_premise_is_recorded_evidence(self):
+    def test_a_bound_consistent_run_without_a_recorded_attribution_is_not_evidence(self):
         result = assess_proposal(packet([
             probe("RAN", {"status": "COMPLETED_VALID", "run_ref": "runs/RUN-OK",
                           "premise_id": PREMISE}), LIVE]), project_root=self.project.root)
         prior = entry_of(result, "RAN")["prior_execution"]
         # The record runs and says COMPLETED, and the caller's premise label
-        # matches its own -- but no file states the premise, so this is execution
-        # evidence with a declared premise link (0.9.13 draws that line).
+        # matches its own -- but no file states the premise and no plan is named,
+        # so this is a real execution nothing ties to *this* experiment.
         self.assertTrue(prior["execution_verified"])
         self.assertFalse(prior["premise_verified"])
+        self.assertFalse(prior["attribution_verified"])
+        self.assertEqual("NONE", prior["attribution_basis"])
         self.assertEqual("CALLER_DECLARATION", prior["premise_binding_basis"])
         self.assertEqual("BOUND", prior["file_binding"])
         self.assertEqual("CONSISTENT", prior["status_consistency"])
         self.assertEqual("MATCH", prior["premise_binding"])
-        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ASSUMED",
+        self.assertEqual("CLOSURE_ATTRIBUTION_UNCHECKED",
                          entry_of(result, "RAN")["applicability"])
-        self.assertIn("RAN", eff(result)["historical_evidence_ids"])
+        self.assertEqual("CHECK_WHICH_PLAN_THE_RUN_EXECUTED",
+                         entry_of(result, "RAN")["next_action"])
+        self.assertNotIn("RAN", eff(result)["historical_evidence_ids"])
+        self.assertIn("RAN", eff(result)["attribution_unchecked_ids"])
         self.assertNotIn("RAN", eff(result)["frontier_candidate_ids_as_declared"])
 
     def test_an_invalid_declaration_matching_an_invalid_record_is_a_repair(self):

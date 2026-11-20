@@ -229,7 +229,8 @@ class UnitTokenTests(unittest.TestCase):
 
 
 class VerifiedMeansVerifiedTests(unittest.TestCase):
-    """`status_verified` may not outrun `premise_verified` (the 0.9.13 line)."""
+    """`status_verified` may not outrun `premise_verified` (the 0.9.13 line),
+    and evidence may not outrun attribution (the 0.9.14 line)."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -238,12 +239,16 @@ class VerifiedMeansVerifiedTests(unittest.TestCase):
         run.mkdir(parents=True)
         (run / "metrics.json").write_text(json.dumps(
             {"run_id": "RUN-9", "status": "COMPLETED", "verdict": "NEG",
-             "anchor_pass": True}), encoding="utf-8")
+             "anchor_pass": True, "protocol_id": "P-POPU"}), encoding="utf-8")
+        plan = self.root / "protocol" / "P-POPU.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text(json.dumps({"protocol_id": "P-POPU",
+                                    "frozen_before_fitting": True}), encoding="utf-8")
 
     def tearDown(self):
         self._tmp.cleanup()
 
-    def test_a_run_that_ran_with_a_declared_premise_is_evidence_not_a_closure(self):
+    def test_a_run_that_ran_with_a_declared_premise_is_not_yet_evidence(self):
         body = packet(probes=[probe("BARE", prior_execution={
             "status": "COMPLETED_VALID", "run_ref": "DEV/runs/RUN-9",
             "premise_id": SENSOR})])
@@ -252,14 +257,31 @@ class VerifiedMeansVerifiedTests(unittest.TestCase):
         self.assertTrue(prior["execution_verified"])
         self.assertFalse(prior["premise_verified"])
         self.assertFalse(prior["status_verified"])
+        self.assertFalse(prior["attribution_verified"])
         self.assertEqual("CALLER_DECLARATION", prior["premise_binding_basis"])
-        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ASSUMED",
+        self.assertEqual("CLOSURE_ATTRIBUTION_UNCHECKED",
                          result["probe_comparisons"][0]["applicability"])
-        # Same action as a verified closure: do not spend the compute again.
         self.assertNotIn("BARE",
                          result["declared_probe_efficiency"]["frontier_candidate_ids_as_declared"])
-        self.assertEqual(["BARE"], result["declared_probe_efficiency"]["premise_assumed_ids"])
-        self.assertEqual(["BARE"], result["declared_probe_efficiency"]["historical_evidence_ids"])
+        self.assertEqual(["BARE"],
+                         result["declared_probe_efficiency"]["attribution_unchecked_ids"])
+        self.assertEqual([],
+                         result["declared_probe_efficiency"]["historical_evidence_ids"])
+
+    def test_naming_the_plan_the_run_executed_makes_it_citable_evidence(self):
+        body = packet(probes=[probe("BARE", prior_execution={
+            "status": "COMPLETED_VALID", "run_ref": "DEV/runs/RUN-9",
+            "premise_ref": "protocol/P-POPU.json", "premise_id": SENSOR})])
+        result = assess_proposal(body, project_root=self.root)
+        prior = result["probe_comparisons"][0]["prior_execution"]
+        self.assertTrue(prior["attribution_verified"])
+        self.assertEqual("CALLER_PREMISE_PLAN", prior["attribution_basis"])
+        self.assertFalse(prior["premise_verified"])
+        self.assertFalse(prior["closure_verified"])
+        self.assertEqual("HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED",
+                         result["probe_comparisons"][0]["applicability"])
+        self.assertEqual(["BARE"],
+                         result["declared_probe_efficiency"]["historical_evidence_ids"])
 
     def test_a_record_that_states_the_premise_is_a_verified_closure(self):
         run = self.root / "DEV" / "runs" / "RUN-9" / "metrics.json"
