@@ -1,0 +1,62 @@
+{
+  "cross_plan": {
+    "applicability": "HISTORICAL_EVIDENCE_ONLY",
+    "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+    "historical": true,
+    "frontier": [
+      "SENSOR-DEV"
+    ],
+    "status_verified": true,
+    "file_binding": "BOUND",
+    "status_consistency": "CONSISTENT",
+    "premise_binding": "MATCH",
+    "record_ref_echo": "DEV/runs/RUN-101/metrics.json",
+    "findings": []
+  },
+  "run_id_conflict": {
+    "applicability": "HISTORICAL_EVIDENCE_ONLY",
+    "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+    "historical": true,
+    "frontier": [
+      "SENSOR-DEV"
+    ],
+    "status_verified": true,
+    "file_binding": "BOUND",
+    "status_consistency": "CONSISTENT",
+    "premise_binding": "MATCH",
+    "record_ref_echo": "DEV/runs/RUN-102/metrics.json",
+    "findings": []
+  },
+  "metrics_only": {
+    "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+    "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+    "historical": false,
+    "frontier": [
+      "SENSOR-DEV"
+    ],
+    "status_verified": false,
+    "file_binding": "BOUND",
+    "status_consistency": "UNKNOWN",
+    "premise_binding": "MATCH",
+    "record_ref_echo": "DEV/runs/RUN-103/metrics.json",
+    "findings": [
+      "EXECUTION_DECLARED_NOT_VERIFIED"
+    ]
+  },
+  "premise_unbound": {
+    "applicability": "CLOSURE_PREMISE_UNBOUND",
+    "next_action": "BIND_PREMISE_ID_BEFORE_TREATING_AS_CLOSED",
+    "historical": false,
+    "frontier": [
+      "SENSOR-DEV"
+    ],
+    "status_verified": false,
+    "file_binding": "BOUND",
+    "status_consistency": "CONSISTENT",
+    "premise_binding": "UNBOUND",
+    "record_ref_echo": "DEV/runs/RUN-101/metrics.json",
+    "findings": [
+      "CLOSURE_PREMISE_UNBOUND"
+    ]
+  }
+}

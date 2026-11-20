@@ -1,0 +1,20 @@
+{
+  "run_id": "RUN-101",
+  "protocol_id": "PROTO-PRESS-BEAM-26",
+  "protocol_sha256": "9beefb418196d07382c55ed673dddca50208af34be4aa697d4d5705e5985cd6f",
+  "status": "COMPLETED",
+  "verdict": "NEG_BEAM_STIFFNESS",
+  "anchor_pass": true,
+  "scope": "DEV_ONLY / EXPLORATORY",
+  "aggregate": {
+    "base_mae": 9.171,
+    "beam_arm_mae": 9.204,
+    "delta_ci95": [
+      -0.09,
+      0.16
+    ]
+  },
+  "cost": {
+    "cpu_seconds": 41.2
+  }
+}
