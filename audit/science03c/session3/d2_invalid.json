@@ -1,0 +1,46 @@
+{
+  "claim_type": "MECHANISM/CAUSAL",
+  "question": "Is there a deployable increment beyond the posture prior in PoPu DEV?",
+  "claim_evidence_refs": [
+    "48/DEV/runs/RUN-004/metrics.json",
+    "48/DEV/runs/RUN-005/metrics.json"
+  ],
+  "hypotheses": [
+    "H_deployable",
+    "H_prior_only"
+  ],
+  "proposed_premise": {
+    "premise_id": "POPU_LOWER72_RECOVERY",
+    "scope": {
+      "dataset": "PoPu DEV 12",
+      "input": "lower 72"
+    }
+  },
+  "prechecks": {
+    "group_independence": {
+      "status": "PASS",
+      "evidence_refs": [
+        "48/protocol/PROTO-POPU-POSTUREVALUE-v4-DEV004.json"
+      ]
+    }
+  },
+  "probes": [
+    {
+      "id": "P-ATTEMPT1-VARIANT",
+      "observable": "intensity MAE of the restricted-training variant",
+      "evaluation_unit": "SUBJECT",
+      "comparison_reference": "same folds, full training set",
+      "predictions": {
+        "H_deployable": "INCREASE",
+        "H_prior_only": "NO_CHANGE"
+      },
+      "cost_band": "MEDIUM",
+      "prior_execution": {
+        "status": "COMPLETED_INVALID",
+        "run_ref": "DEV/runs/RUN-005/attempt-1-invalid-anchor",
+        "premise_id": "POPU_LOWER72_RECOVERY",
+        "conclusion": "INVALID_HARNESS_TRAINING_SET_RESTRICTED"
+      }
+    }
+  ]
+}

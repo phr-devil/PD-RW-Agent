@@ -1,0 +1,152 @@
+{
+ "declared_only": {
+  "run_ref_missing": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "run_ref_wrong_project": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "run_status_conflict": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "run_ref_ok": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "premise_missing": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "premise_other": {
+   "status_verified": true,
+   "applicability": "NOT_YET_RUN",
+   "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": false,
+   "in_frontier": true,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "_authorization": null
+ },
+ "with_project_root": {
+  "run_ref_missing": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "run_ref_wrong_project": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "run_status_conflict": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "run_ref_ok": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "premise_missing": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "premise_other": {
+   "status_verified": true,
+   "applicability": "NOT_YET_RUN",
+   "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+   "file_binding": null,
+   "status_consistency": null,
+   "premise_binding": null,
+   "history_applicable": false,
+   "in_frontier": true,
+   "live_still_in_frontier": true,
+   "authorization_basis": null
+  },
+  "_authorization": null
+ }
+}

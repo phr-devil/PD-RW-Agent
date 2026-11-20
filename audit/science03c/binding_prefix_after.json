@@ -1,0 +1,152 @@
+{
+ "declared_only": {
+  "run_ref_missing": {
+   "status_verified": false,
+   "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+   "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+   "file_binding": "NOT_CHECKED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "run_ref_wrong_project": {
+   "status_verified": false,
+   "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+   "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+   "file_binding": "NOT_CHECKED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "run_status_conflict": {
+   "status_verified": false,
+   "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+   "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+   "file_binding": "NOT_CHECKED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "run_ref_ok": {
+   "status_verified": false,
+   "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+   "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+   "file_binding": "NOT_CHECKED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "premise_missing": {
+   "status_verified": false,
+   "applicability": "CLOSURE_PREMISE_UNBOUND",
+   "next_action": "BIND_PREMISE_ID_BEFORE_TREATING_AS_CLOSED",
+   "file_binding": "NOT_CHECKED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "UNBOUND",
+   "history_applicable": false,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "premise_other": {
+   "status_verified": false,
+   "applicability": "NOT_YET_RUN",
+   "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+   "file_binding": "NOT_CHECKED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "MISMATCH",
+   "history_applicable": false,
+   "in_frontier": true,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "_authorization": "CALLER_DECLARED_ONLY_NEVER_A_PERMIT"
+ },
+ "with_project_root": {
+  "run_ref_missing": {
+   "status_verified": false,
+   "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+   "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+   "file_binding": "UNRESOLVED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "run_ref_wrong_project": {
+   "status_verified": false,
+   "applicability": "CLOSURE_DECLARED_NOT_VERIFIED",
+   "next_action": "VERIFY_RUN_BEFORE_DECIDING",
+   "file_binding": "UNRESOLVED",
+   "status_consistency": "UNKNOWN",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "run_status_conflict": {
+   "status_verified": false,
+   "applicability": "STATUS_CONFLICT",
+   "next_action": "RESOLVE_RUN_STATUS_CONFLICT_FIRST",
+   "file_binding": "BOUND",
+   "status_consistency": "CONFLICT",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "run_ref_ok": {
+   "status_verified": true,
+   "applicability": "HISTORICAL_EVIDENCE_ONLY",
+   "next_action": "KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN",
+   "file_binding": "BOUND",
+   "status_consistency": "CONSISTENT",
+   "premise_binding": "MATCH",
+   "history_applicable": true,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "premise_missing": {
+   "status_verified": false,
+   "applicability": "CLOSURE_PREMISE_UNBOUND",
+   "next_action": "BIND_PREMISE_ID_BEFORE_TREATING_AS_CLOSED",
+   "file_binding": "BOUND",
+   "status_consistency": "CONSISTENT",
+   "premise_binding": "UNBOUND",
+   "history_applicable": false,
+   "in_frontier": false,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "premise_other": {
+   "status_verified": false,
+   "applicability": "NOT_YET_RUN",
+   "next_action": "RUN_IF_LEGAL_AND_DISCRIMINATING",
+   "file_binding": "BOUND",
+   "status_consistency": "CONSISTENT",
+   "premise_binding": "MISMATCH",
+   "history_applicable": false,
+   "in_frontier": true,
+   "live_still_in_frontier": true,
+   "authorization_basis": "CALLER_DECLARED_ONLY"
+  },
+  "_authorization": "CALLER_DECLARED_ONLY_NEVER_A_PERMIT"
+ }
+}
