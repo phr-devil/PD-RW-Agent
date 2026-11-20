@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.12 (a premise label is not a bound premise).**
+> **Current release — 0.9.13 (the contract is the interface).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
 > projection from an evidence-linked Run to the next action, and one read-only
@@ -25,6 +25,27 @@
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v0.9.13 the contract is the interface:** four independent sessions in 03D each wrote a decision
+> packet and every one was rejected — not on science, on shape. The rejections could not be
+> repaired from: only the first defect was reported, and the message named the wrong thing
+> ("Unexpected precheck names" for a `prechecks` **list**), so the obvious fix made it worse.
+> `packet-check` now returns every violation at once with a field path, the value found and what
+> the field accepts, plus the fields the decision path will silently ignore and the ones it reads
+> but does not enforce (a prose `evaluation_unit` quietly disables the repeated-unit check).
+> `normalize` moves only shapes that are a bijection of the input — a `prechecks` list keyed by its
+> own ids, `predictions` written as pairs — and refuses a prose `scope` or a hoisted execution
+> field, because choosing what those mean is the author's call. `template` prints a packet that
+> already passes, with all six check names, so the closed vocabulary is visible before it is
+> violated. Measured on the four real packets: 1/24/4/22 violations named individually instead of
+> one opaque message; a session given the template went from "never adjudicated" to a valid packet
+> in two rounds and three minutes, while a session asked to repair the four after the fact
+> **declined all four** rather than invent a prediction direction, a `scope` key or a check name.
+> Separately, `status_verified` now means the *closure* is verified and can no longer be true
+> while `premise_verified` is false; `execution_verified` is the other half, and a closure whose
+> premise is only the caller's label becomes `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` — still not a
+> next action, no longer presented as settled. No new approver, ledger, validator or checker axis;
+> MCP stays 11/21/24.
 
 > **v0.9.12 a premise label is not a bound premise:** `prior_execution.premise_id`
 > and `proposed_premise.premise_id` are both caller text, so their equality was

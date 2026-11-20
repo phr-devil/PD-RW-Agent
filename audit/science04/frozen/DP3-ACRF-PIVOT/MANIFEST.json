@@ -1,0 +1,58 @@
+{
+  "decision_point": "DP3-ACRF-PIVOT",
+  "project": "17",
+  "question": "一次性少样本校准能否预测 ACRF 的 ΔF，从而支撑后续研发？",
+  "truth": {
+    "decision": "PIVOT：终止 ACRF 的 ΔF 预测研发线",
+    "verdict": "sealed negative"
+  },
+  "source_root": "D:\\workbuddy-work\\17",
+  "files": [
+    {
+      "path": "STATE.md",
+      "bytes": 16595,
+      "sha256": "7cfcfa84141e40ea6b5b13e77a85e6d2346f74512486ee5982173cbb1a69fbdc"
+    },
+    {
+      "path": "HOLDOUT_STATUS.md",
+      "bytes": 4857,
+      "sha256": "7ae3381905f624d1ff4949593f6ee01fd3f8383297bb92e008ece2869c013c3c"
+    },
+    {
+      "path": "SPLIT_PROTOCOL.md",
+      "bytes": 5440,
+      "sha256": "35518e8a2841e6eb9e6936b5e934d3952e2cc425351f2765ce2ba8f306494cff"
+    },
+    {
+      "path": "BASELINE_PLAN.md",
+      "bytes": 7402,
+      "sha256": "98bf1cd5badedee789456dccf0fe66a08ddafd4337d2a0598261b86de7aba40f"
+    },
+    {
+      "path": "DATA_AUDIT.md",
+      "bytes": 13323,
+      "sha256": "7534da9a93a1edd628c03a758419a349050da6da16d7d1fe25a54869220f8912"
+    },
+    {
+      "path": "RUNS.tsv",
+      "bytes": 1681,
+      "sha256": "7472cccc768bbaad6e1635f80d5a86a58c130941ef79f909e94bbf3256f2610b"
+    },
+    {
+      "path": "RUNS_PHASE4.tsv",
+      "bytes": 175,
+      "sha256": "f0aa429d918520f5c74b9794d202de42c847d3fc32fe6ceb27fff2aa5cd91120"
+    },
+    {
+      "path": "RUNS_PHASE5.tsv",
+      "bytes": 425,
+      "sha256": "ce0c505c1e8c0e16be3b57813788d30d9c3ea702ccd77c06c51391912f7c9579"
+    }
+  ],
+  "skipped": [],
+  "withheld": [
+    "_rct_repo/ 与 artifacts/（原始与中间数据）",
+    "9.9 GB RCT 数据归档"
+  ],
+  "total_bytes": 49898
+}

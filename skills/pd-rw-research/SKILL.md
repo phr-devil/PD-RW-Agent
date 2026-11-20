@@ -13,7 +13,7 @@ examples_zh:
   - "按 PD-RW 研究高影响力问题并提出最快可靠证据路径"
 examples_en:
   - "Resume an existing PD-RW research project"
-version: 0.9.12
+version: 0.9.13
 author: phr-devil
 ---
 
@@ -152,7 +152,7 @@ tool is registered for it. See `docs/EXPERIMENT_FEEDBACK_LINK.md`.
 - [references/plan-selection.md](references/plan-selection.md): new-project H3/H4/H6 stage card, lineage and choice boundary
 - [references/research-leverage.md](references/research-leverage.md): high-impact scientific opportunity, H6 decision or significant negative/pivot only
 - [references/integration.md](references/integration.md): installation, mapping, version or project-switch issues
-- [references/execution.md](references/execution.md): authorized DEV continuation, evidence handoff, interruption
+- [references/execution.md](references/execution.md): authorized DEV continuation, evidence handoff, interruption; [references/packet.md](references/packet.md) to write and check a decision packet
 - [references/troubleshooting.md](references/troubleshooting.md): missing sources, identity or permission conflicts
 - [references/INDEX.json](references/INDEX.json): optional routing metadata, never policy authority
 

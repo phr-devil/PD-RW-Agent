@@ -93,6 +93,18 @@
       ],
       "scope": "Failure diagnosis",
       "authority": "ADAPTER_GUIDANCE_ONLY"
+    },
+    {
+      "file": "packet.md",
+      "triggers": [
+        "decision packet",
+        "packet-check",
+        "packet rejected",
+        "shape violation",
+        "prior_execution"
+      ],
+      "scope": "writing a decision packet that the checker accepts, and the repair budget",
+      "authority": "ADAPTER_GUIDANCE_ONLY"
     }
   ]
 }

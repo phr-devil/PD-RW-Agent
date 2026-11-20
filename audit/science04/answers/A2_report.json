@@ -1,0 +1,16 @@
+{
+  "rounds": 2,
+  "final_shape": "SHAPE_OK",
+  "decision_ran": true,
+  "decision_status": "ADVISORY_REVIEW_ONLY",
+  "frontier": [
+    "P-RUN005-REPLICATION"
+  ],
+  "no_executable_next_probe": false,
+  "changed_paths": [
+    "claim_type"
+  ],
+  "author_values_changed": false,
+  "wall_clock_minutes": 3,
+  "notes": "首轮仅 claim_type 非枚举值（PREDICTION → CAPABILITY/PERFORMANCE），第二轮即 SHAPE_OK 且 decision 退出码 0；两个 precheck 按作者指定写 PASS 但 evidence_refs 为空，decision 将其标为 SOURCE_REQUIRED 未独立验证，此处照原样保留。"
+}

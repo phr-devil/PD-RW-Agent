@@ -33,7 +33,7 @@ v0.5 adds private SQLite operational receipts, read-only recovery, PD-RW Run reg
 
 ## Optional scientific discriminability helper
 
-Only at a consequential research fork, assemble a small local DEV proposal with exact premise/scope, at least two competing hypotheses, qualitative probe predictions and original source refs. Use `python -m pdrw_agent.science.cli decision --packet FILE.json` to compare stated distinctions. A matched prior negative is an **advisory candidate**, not automatic STOP. Missing evidence is UNKNOWN; no new approval step or research authority.
+Only at a consequential research fork, assemble a small local DEV proposal with exact premise/scope, at least two competing hypotheses, qualitative probe predictions and original source refs. Write it with `template` and check it with `packet-check` **while you decide** — see [packet.md](packet.md); a packet reconstructed afterwards from prose has never once passed (03D, 04). Use `python -m pdrw_agent.science.cli decision --packet FILE.json` to compare stated distinctions. A matched prior negative is an **advisory candidate**, not automatic STOP. Missing evidence is UNKNOWN; no new approval step or research authority.
 
 `prechecks` is a **mapping keyed by check name** (`group_independence`, `legal_inputs`, `label_provenance`, `evaluation_integrity`, `metric_appropriateness`, `effect_size`), not a list of objects: unknown keys are rejected, and a list-shaped block fails the whole packet. Keep `predictions` a mapping of hypothesis ID to `INCREASE`/`DECREASE`/`NO_CHANGE`/`UNKNOWN`, `cost_band` one of `LOW`/`MEDIUM`/`HIGH`/`UNKNOWN`, and `evaluation_unit` a short unit name — prose belongs in `conclusion`, not in those fields.
 
@@ -55,9 +55,11 @@ Declare what already happened with one optional field per probe, `prior_executio
 | no `premise_id` on the closure | `CLOSURE_PREMISE_UNBOUND` + `CLOSURE_PREMISE_UNBOUND` | state the premise; an unbound closure cannot remove a live probe |
 | the cited Run executed another premise/plan | `NOT_YET_RUN` + `CLOSURE_PREMISE_CONTRADICTED` | this experiment is unanswered; design it, do not cite that Run |
 | bound, consistent, premise agrees (record or plan) | `HISTORICAL_EVIDENCE_ONLY` | cite it as evidence, do not rerun |
-| bound and consistent, but only you name the premise | `HISTORICAL_EVIDENCE_ONLY`, `premise_verified: false` | still recorded evidence; do not describe it as a verified premise match |
+| bound and consistent, but only you name the premise | `HISTORICAL_EVIDENCE_PREMISE_ASSUMED`, `execution_verified: true`, `premise_verified: false` | still recorded evidence and still not a next action — but say the premise link is declared, not recorded |
 
-`requires_new_authorization` is your statement, never a permit: the payload carries `authorization_basis: CALLER_DECLARED_ONLY`, and no field in it authorizes a download, a SEALED read or a payment.
+`status_verified` means the **closure** is verified, so it is never true while `premise_verified` is false; `execution_verified` is the other half (the Run ran as declared). Two different claims, two different fields — do not report the first as the second.
+
+`requires_new_authorization` is your statement, never a permit: the payload carries `authorization_basis: CALLER_DECLARED_ONLY`, and no field in it authorizes a download, a SEALED read or a payment. Declare it on a probe you have **not** run but cannot start (`status: NOT_EXECUTED` + `requires_new_authorization: true`): it then reads `NEEDS_AUTHORIZATION` and is not counted as a next action. A 03D-era proposal in this repo reached the reserved validation subjects precisely because nothing in the packet said the set was off-limits; a probe that spends data beyond the frozen DEV subset must declare it here, not in prose.
 
 ## Case-library decision reuse (v0.5.4 local increment)
 
