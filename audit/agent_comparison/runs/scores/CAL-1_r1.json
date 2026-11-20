@@ -1,0 +1,19 @@
+{
+  "answer_1": {
+    "D1": 3,
+    "D2": null,
+    "D3": 3,
+    "D4": 3,
+    "major_errors": [],
+    "reasons": "All required values match the key: 0.67175 and 0.713501 recomputed from results[obj]['SF|lag3'|'GRUctx|lag3']['seg_f1'] in CRPS_L2_EVAL.json, 17/17 objects, 97/111 & 92/111 episodes, reproducible=false. Extra cross-checks independently verified (1464 rows / 111 ids; 2025-01-13 27/34 vs audit 26/34; GateCtx 8/17 objects, 23/1464 rows=1.57%; Wilcoxon W=508 p=2.0e-14 vs audit 493). does_not_license names real boundaries: correlated folds (75.8/86.1 overlap), label-level gain with flat boundary F1, sealed set unread. Only soft spot: 14.5 train-overlap quoted from the audit without a key path, immaterial."
+  },
+  "answer_2": {
+    "D1": 2,
+    "D2": null,
+    "D3": 3,
+    "D4": 3,
+    "major_errors": [],
+    "reasons": "SF 0.67175, 17/17 wins, 97/111 + 92/111, and the 26-vs-27 date-sign explanation all reproduce exactly; secondary values (0.59484/0.58945, 75.8/86.1 overlap, D-SUB -0.0211, medium gear -0.0116) verified. GRUctx headline is 0.70909 from CRPS_L2_ALGO_ROUND.json, 0.0044 outside the key's EVAL 0.7135 (tol 0.0002): the value is right for the file it names and the EVAL 0.713501 is disclosed in method, but the required field is off-key. Claim boundary is calibrated (DEV-only, sealed G1, no SOTA/unseen claim)."
+  },
+  "key_dispute": "Two soft points. (1) PROMPT's object_macro_segF1 block asks for one `file` covering both schemes but never says EVAL vs ALGO_ROUND, while the key silently requires CRPS_L2_EVAL.json; the fair reading is EVAL (it is named the main L2 evaluation and owns the 17-object/111-episode frame), so 0.7091 from the round file is a defensible but off-key choice, not a wrong computation. (2) key.strongest_deployable_baseline.why_not_others and key.does_not_license rest on TRAINING_PROTOCOL_AUDIT.md (37.6% training frames, 85.3% test-frame sharing), which is not among the four frozen inputs, so no answer can reach those exact justifications; only the fold-overlap and date facts in CRPS_L2_STATS_AUDIT.json are checkable, and both answers used those."
+}

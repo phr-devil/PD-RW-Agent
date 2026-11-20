@@ -1,0 +1,19 @@
+{
+  "answer_1": {
+    "D1": 2,
+    "D2": null,
+    "D3": 3,
+    "D4": 2,
+    "major_errors": [],
+    "reasons": "Numbers check out: 411202 B, sha256 da1122…, n_arms 18 / 468 groups / 183600 records, LOSO means 0.9846/0.9342/0.9992/0.9183, BOTH 0.7937/0.7179. Identity DECLARED_ID_MATCH/verified=false is right and the basis correctly notes the map entry was written by the same agent in EXP-001. bindable=true matches the key, but the status is its own recount check rather than RUN_RECORD_BOUND and it wrongly limits the binding to 'not a machine run contract'; the rules.proves line still leans on the 2026-11-15 local=remote equality. Claim ceiling is correct (DEV_ONLY negative result, no transferable stiffness, no mechanism, CLM-001 not upgraded)."
+  },
+  "answer_2": {
+    "D1": 2,
+    "D2": null,
+    "D3": 3,
+    "D4": 3,
+    "major_errors": [],
+    "reasons": "All numeric claims verify (411202 B, 468 groups, 183600 records, per-fold means reproduced), and identity plus rules.does_not_prove (REMOTE_NOT_CHECKED, no local checkout) match the key best of the two. But it reports bindable=false on the strength of verify-run's RUN_HISTORY_NOT_ATTESTABLE, which audits the registered hash chain, not whether the 411202 B record binds to RUN-002 (binder answers RUN_RECORD_BOUND after the cap raise) — the key's headline Run verdict is missed. Authorization list is complete and quoted. Claim ceiling is correct and it adds the honest caveat that predictions.jsonl/manifests are absent from the bundle."
+  },
+  "key_dispute": "Two ambiguities. (1) next_legal_action: STATE.md's NEXT line says the only legal next action is NONE/HOLD (NEXT_ACTION_OWNER=NONE, HOLD_NO_ACTION) and that EXP-005's recomputation is already done with max |delta| 0.0, so the key's 'zero-new-fit re-analysis over RUN-002 predictions' is neither the project's declared next action nor a new step. Fair reading: read-only re-verification is not within STOPPED_SCOPE (which bars new models/transforms/ablations/new prediction analyses/retuning) and 'necessary scientific evidence audit' is inside the 2026-11-15 grant, so it is permissible but should be labelled an audit/re-check, not 'the next legal action'; the literal NEXT=NONE should not be silently overridden. Both answers effectively chose this reading, so neither is penalised. (2) bindable: 'bindable' can mean (a) the Run record binds to a Run identity (feedback_link binder -> RUN_RECORD_BOUND once MAX_RUN_RECORD_BYTES was raised from 128 KiB to 4 MiB) or (b) the Run is attestable through the registered event/hash chain (run_integrity verify-run -> RUN_HISTORY_NOT_ATTESTABLE / HISTORY_SOURCES_MISSING). The frozen bundle holds only metrics.json with no registry, manifest or predictions.jsonl, and contains no trace of the 128 KiB->4 MiB cap change (it exists only in the runtime source, pdrw_agent/science/feedback_link.py), so an answer working strictly from the bundle can defensibly land on either. Scored per the key's reading (a) = true, but answer_2's false is a definitional disagreement with a real tool output, not a fabrication; a grader adopting reading (b) would invert the two Run verdicts."
+}

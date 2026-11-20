@@ -1,5 +1,9 @@
 # The task bundles are copies of private research projects, and this repository is
-# public.  The manifests, prompts, answer keys and the build script are committed;
-# the copied bytes are not.  `build_tasks.py --verify` re-checks them on the
-# machine that holds the projects.
+# public.  The manifests, prompts and the build script are committed; the copied
+# bytes are not.  `build_tasks.py --verify` re-checks them on the machine that holds
+# the projects.  Answer keys live outside the repository (see answers/README.md).
 inputs/
+
+# Run evidence: the command logs are the record of what an arm actually did, so the
+# repository-wide `*.log` ignore is lifted for exactly these four files.
+!runs/**/calls.log

@@ -1,0 +1,77 @@
+# calls.log — CAL-2 / B（每条一行，按步骤分组；组件调用逐条列出，含失败）
+# 说明：Bash 命令均在 D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/B 或其 inputs/ 下执行；
+#       python -m pdrw_agent.cli 前缀统一为 PYTHONPATH=D:/workbuddy-agent/eval-runtime/pkg
+
+## 步骤 1 读取任务与 Skill
+Read  D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/B/PROMPT.md
+Read  C:/Users/user/.workbuddy/skills/pd-rw-research/SKILL.md
+
+## 步骤 2 清点 bundle
+Bash  ls -la "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/B" && find inputs -type f | sort
+
+## 步骤 3 读原始件
+Read  inputs/STATE.md
+Read  inputs/RESEARCH_RECORD.md
+Read  inputs/D1_ACCEPTANCE_REPORT_2026-11-14.md
+Read  inputs/H8_DECISION_BRIEF_2026-11-16.md
+
+## 步骤 4 工件字节与哈希（自查，非组件）
+Bash  wc -c DEV/runs/RUN-00{1,2}/metrics.json protocol/*.json
+Bash  sha256sum DEV/runs/RUN-001/metrics.json DEV/runs/RUN-002/metrics.json protocol/PROTO-GEOM-HS-v1.json protocol/PROTO-GEOM-HS-v2.json
+Bash  head -c 3000 DEV/runs/RUN-002/metrics.json
+
+## 步骤 5 组件 CLI：探路
+Bash  python -m pdrw_agent.cli --help
+Bash  python -m pdrw_agent.cli verify-run --help
+Bash  python -m pdrw_agent.cli context --help
+Bash  python -m pdrw_agent.cli rules --help
+
+## 步骤 6 组件 CLI：配置（第一次失败，保留）
+Bash  cat > project-map.json  ({"projects":{"44":{"project_id":"44","root":".../inputs"}}})
+Bash  python -m pdrw_agent.cli --project-map project-map.json context --project-id 44
+      → ERROR CONFIG_REQUIRED（要求 PDRW_AGENT_CONFIG + PDRW_WORKFLOW_ROOT）
+Bash  ls D:/workbuddy-agent/eval-runtime/pkg && find . -maxdepth 3 -name "*.json"
+Bash  ls D:/workbuddy-agent/eval-runtime/pkg/pdrw_agent && grep -rn PDRW_AGENT_CONFIG --include=*.py .
+Read  D:/workbuddy-agent/eval-runtime/pkg/pdrw_agent/config.py
+
+## 步骤 7 组件 CLI：配置（工作区内 stub 规则根，成功）
+Bash  mkdir -p wf_stub; 写 wf_stub/AGENTS.md、wf_stub/WORKFLOW.md（STUB，非 PD-RW 文本）
+Bash  cat > project-map.json  (schema_version=1, root=.../inputs)
+Bash  python -m pdrw_agent.cli --project-map project-map.json --workflow-root wf_stub context --project-id 44
+      → SOURCE_REVIEW_REQUIRED / identity=UNKNOWN / identity_basis=EXPLICIT_PROJECT_ID / identity_verified=false
+        workflow_commit_local_only=null / rule_freshness=REMOTE_NOT_CHECKED / original_user_authorization=UNVERIFIED
+        paper_blueprint exists=false / state_integrity=NOT_VERIFIED_AGAINST_EVENTS
+
+## 步骤 8 组件 CLI：Run 校验
+Bash  python -m pdrw_agent.cli --project-map project-map.json --workflow-root wf_stub verify-run --project-id 44 --run-id RUN-002
+      → status=RUN_HISTORY_NOT_ATTESTABLE / history_status=HISTORY_SOURCES_MISSING / scientific_validity_verified=false
+Bash  python -m pdrw_agent.cli --project-map project-map.json --workflow-root wf_stub verify-run --project-id 44 --run-id RUN-001
+      → 同上（RUN_HISTORY_NOT_ATTESTABLE / HISTORY_SOURCES_MISSING）
+
+## 步骤 9 自查：从 per_fold 复算（不引用组件输出）
+Bash  python - <<EOF  读两份 metrics.json：键、run_id/protocol/task、len(per_fold)、split/arm 集合、按 (split,arm) 求 mean balanced_accuracy
+      → RUN-002: 468 组 / 18 臂 / 26 折；RAW .9846/.9342、DEMEAN .7621/.7233、NORM .9992/.9183、BOTH .7937/.7179
+      → RUN-001: 169 组 / 7 臂；LOSO_SHAPE FULL_LR .9846、LSSO .9342
+
+## 步骤 10 自查：metrics 内部是否链接预测
+Bash  python（首次）检视 summary.keys()
+      → AttributeError: 'list' object has no attribute 'keys'（summary 实为 90 元素 list；已重跑，非隐藏）
+Bash  python（重跑）检视 summary[0] / interpretation_lock / mechanism_identifiability / ex_ante_decision_evaluation，
+      并搜索 'predictions.jsonl' 'sha256' 'verification' 'manifest' → 全部 False
+
+## 步骤 11 组件 CLI：规则路由（失败）
+Bash  python -m pdrw_agent.cli --project-map project-map.json --workflow-root wf_stub rules --topic "identity/authorization"
+      → ERROR RULE_ROUTE_MISSING（stub 无路由表，未行使任何规则权威）
+
+## 步骤 12 自查：v2 协议字段
+Bash  python 读 protocol/PROTO-GEOM-HS-v2.json 键列表与 frozen/freeze/legal_inputs/task_id 片段
+Bash  python 读 d['boundaries'] 与 d['data_isolation']
+
+## 步骤 13 交付前自检
+Bash  wc -l notes.md calls.log && python -c 校验 answer.json 可解析、顶层键与 calls 条数
+
+## 汇总
+# Bash/python 调用 17 次（含本次这份 wc/json 自检）；Read 7 次；组件 CLI 实际执行 9 次：
+#   --help×4、context×2（1 次 CONFIG_REQUIRED）、verify-run×2（均 RUN_HISTORY_NOT_ATTESTABLE）、rules×1（RULE_ROUTE_MISSING）。
+# 未使用：case_gate_check / case_search / search_research_memory / case_bridge / case_export / case-knowledge-* / PDRW_CASE_LIBRARY_ROOT。
+# 未读取：VAL/、SEALED/、D:/workbuddy-work/44、D:/workbuddy-agent/Problem-Data-Research-Workflow、任何审计或案例目录。

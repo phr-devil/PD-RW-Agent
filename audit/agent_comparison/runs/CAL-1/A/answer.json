@@ -1,0 +1,46 @@
+{
+  "object_macro_segF1": {
+    "SF|lag3": 0.67175,
+    "GRUctx|lag3": 0.70909,
+    "file": "CRPS_L2_ALGO_ROUND.json"
+  },
+  "object_wins": {
+    "wins": 17,
+    "of": 17,
+    "file": "CRPS_L2_EVAL.json",
+    "rule": "Strict per-object comparison results[obj]['GRUctx|lag3']['seg_f1'] > results[obj]['SF|lag3']['seg_f1'] over the 17 keys of 'objects' (not episode rows): 17/17 in CRPS_L2_EVAL.json. The same rule in CRPS_L2_ALGO_ROUND.json gives 15/17 (D-SUB -0.0211, medium gear -0.0116), so the report's 17/17 holds only for the main L2 file."
+  },
+  "episode_claim": {
+    "claimed": "96/111",
+    "reproducible": false,
+    "values_you_get": {
+      "CRPS_L2_EVAL.json": "97/111",
+      "CRPS_L2_ALGO_ROUND.json": "92/111"
+    },
+    "why": "Flattening all episode_paired rows gives 1464 rows but only 111 unique episode ids (each episode appears in ~13.2 object folds); averaging each episode's dSegF1 over its folds gives 97 positive and 14 negative in CRPS_L2_EVAL.json, not 96/15. The audit's own per-date signs sum to 96 only because it records 26/34 on 2025-01-13 where the data give 27/34."
+  },
+  "strongest_deployable_baseline": {
+    "scheme": "SF|lag3",
+    "value": 0.67175,
+    "why_the_others_are_not_eligible": "SFA_Oracle (0.8236) needs the true parent action at every frame and Shufctx (0.4098) is a shuffled-context control, so neither is deployable; GateCtx (0.7093) and GRUctx (0.7091) are the champion family, and GRUskill (0.6514)/DualHead (0.6468) are deployable but weaker than SF."
+  },
+  "does_not_license": "These DEV-only numbers from 17 correlated leave-one-object folds (mean pairwise test overlap 75.8 of 86.1 episodes) do not license any claim about truly unseen objects, the untouched 37-episode sealed cross-recording set (G1), or state-of-the-art/deployment performance.",
+  "method": "Per-object macro = unweighted mean over the 17 'objects' of results[obj][scheme]['seg_f1'] (CRPS_L2_ALGO_ROUND.json for the round table; CRPS_L2_EVAL.json recomputed separately: SF 0.671750, GRUctx 0.713501).\nObject wins = strict '>' at object level, counted once per object, both files.\nEpisode claim = results[obj]['episode_paired'] flattened, deduped to 111 unique episode ids, dSegF1 averaged within episode across folds, then counted mean>0; sanity checks gave mean per-episode dSegF1 0.04461 (report 0.0447).\nCross-checks: test-set size 86.1 and mean pairwise overlap 75.8 reproduce the audit exactly; boundary F1 means 0.59484 (SF) / 0.58945 (GRUctx) reproduce the report, not the audit's 0.5954/0.5901.\nNo number was taken from the report or the audit; all were recomputed from the two result JSONs.",
+  "calls": [
+    "Read D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/A/PROMPT.md",
+    "Bash: ls -la workspace and inputs",
+    "Read inputs/FINAL_ALGO_ROUND_REPORT.md",
+    "Read inputs/CRPS_L2_STATS_AUDIT.json",
+    "Bash/python: walk top-level structure of CRPS_L2_EVAL.json and CRPS_L2_ALGO_ROUND.json",
+    "Bash/python: print top-level keys, objects list, per-object scheme keys",
+    "Bash/python: per-scheme object-macro seg_f1 for both files; inspect episode_paired record schema",
+    "Bash/python: object-level GRUctx>SF counts and unique-episode dedup statistics",
+    "Bash/python: test 5 episode attribution rules (mean/median/majority/first/max) per date",
+    "Bash/python: (syntax error run, no output; rerun next)",
+    "Bash/python: per-episode mean dSegF1, row-level mean, per-date signs, boundary F1 means, fold overlap, scheme table",
+    "Bash/python: GateCtx vs GRUctx episode counts (aborted on missing per_class key; rerun next)",
+    "Bash/python: row-level vs object-level GateCtx wins, cross-file GRUctx/SF identity, episode-id identity",
+    "Bash/python: recompute all answer.json fields and write answer.json",
+    "Bash: python -c load answer.json, print 7 top-level keys and three blocks; wc -l notes.md calls.log"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "object_macro_segF1": {
+    "SF|lag3": 0.67175,
+    "GRUctx|lag3": 0.713501,
+    "file": "inputs/CRPS_L2_EVAL.json"
+  },
+  "object_wins": {
+    "wins": 17,
+    "of": 17,
+    "file": "inputs/CRPS_L2_EVAL.json",
+    "rule": "For each of the 17 keys of results{}, compared results[obj]['GRUctx|lag3']['seg_f1'] > results[obj]['SF|lag3']['seg_f1'] with strict >; one object = one vote, no rows or episodes involved. (Same comparison on inputs/CRPS_L2_ALGO_ROUND.json gives only 15/17.)"
+  },
+  "episode_claim": {
+    "claimed": "96/111",
+    "reproducible": false,
+    "values_you_get": {
+      "inputs/CRPS_L2_EVAL.json": "97/111",
+      "inputs/CRPS_L2_ALGO_ROUND.json": "92/111",
+      "inputs/CRPS_L2_STATS_AUDIT.json": "96/111 (declared, not evidence)"
+    },
+    "why": "Deduplicating the 1464 object-episode rows of results[obj]['episode_paired'] down to the 111 unique episodes and taking each episode's mean dSegF1 gives 97 positive / 14 negative from CRPS_L2_EVAL.json and 92/19 from CRPS_L2_ALGO_ROUND.json. No 96 appears in either pairing; the audit's own date_signs sum to 96 only because it records 26/34 for 2025-01-13 where the EVAL pairing yields 27/34."
+  },
+  "strongest_deployable_baseline": {
+    "scheme": "SF|lag3 (single-frame logistic regression, no context, lag 3)",
+    "value": 0.67175,
+    "why_the_others_are_not_eligible": "SFA_Oracle|lag3 (0.8236) is an oracle upper bound requiring the true parent action every frame, Shufctx|lag3 (0.4098) and GateCtx|lag3 (0.7093) are a shuffled control and a tuned variant of the champion rather than deployable competitors, and GRUskill|lag3 (0.6514) / DualHead|lag3 (0.6468) are LODO-eligible but already fall below SF, so SF is the strongest legal-input baseline that the champion must beat."
+  },
+  "does_not_license": "These DEV-only, 17-correlated-fold numbers do not license any 'unseen-object' or state-of-the-art claim, nor the 96/111 coverage figure: the folds share ~76 of ~86 test episodes and 14.5 training episodes per pair, the gain is label-level while boundary F1 is flat, and the sealed 37 recordings were never evaluated.",
+  "method": "1) Loaded the four input JSONs read-only and enumerated the actual key paths instead of trusting the report; no network, no re-training (only per-object metric dicts and per-episode pairings exist, no predictions or frames).\n2) object_macro_segF1 = unweighted mean over the 17 entries of results[obj][scheme]['seg_f1'] for scheme in {'SF|lag3','GRUctx|lag3'}: EVAL 0.671750 / 0.713501; ALGO_ROUND 0.671750 / 0.709091.\n3) object_wins = count of objects with GRUctx seg_f1 strictly greater than SF seg_f1: 17/17 in EVAL, 15/17 in ALGO_ROUND.\n4) Episode claim: pooled all results[obj]['episode_paired'] rows (1464 rows, 111 unique episode ids), averaged dSegF1 per episode id, counted signs: EVAL 97/111 (mean d = +0.0446), ALGO_ROUND 92/111; per-date recount matches the audit's date_signs except 2025-01-13 (27 vs declared 26).\n5) Cross-checks: GateCtx beats GRUctx on 8/17 objects and on 20/111 episodes (the report's '1.6%' is 23/1464 object-episode rows = 1.57%), boundary F1_full_0.5 macro 0.5948 (SF) vs 0.5894 (GRUctx), and Paired Wilcoxon on the 111 EVAL episode deltas gives W=508, p=2.0e-14 (audit declares W=493, p=1.4e-14).",
+  "calls": [
+    "Read D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/B/PROMPT.md",
+    "Read C:/Users/user/.workbuddy/skills/pd-rw-research/SKILL.md",
+    "ls -la D:/workbuddy-agent/eval-runs/2026-11-20/CAL-1/B && ls -la .../inputs",
+    "Read inputs/FINAL_ALGO_ROUND_REPORT.md",
+    "Read inputs/CRPS_L2_STATS_AUDIT.json",
+    "python: dump top-3-level structure of CRPS_L2_EVAL.json and CRPS_L2_ALGO_ROUND.json",
+    "python: print EVAL top keys, objects list, proto, scheme names, first episode_paired row",
+    "python: recompute per-object seg_f1 for SF|lag3 and GRUctx|lag3, macro mean, strict-win count, episode dedup sign counts",
+    "python: dump ALGO_ROUND structure (objects, hparams, per-object schemes, episode_paired lengths)",
+    "python: print ALGO_ROUND episode_paired field names and 3 sample rows",
+    "python: recompute macro seg_f1 for every scheme in both files; episode counts under mean/median/sum aggregation and pooled row means",
+    "python: per-date positive/total episode counts vs STATS_AUDIT date_signs; list near-zero episodes",
+    "python: print SFA_Oracle note, LODO_SF(seen), volume_match record, lodo_baseline_segF1, ALGO hparams/proto",
+    "python: volume_match macro, SFA/LODOseen macro, ALGO object wins for 4 scheme pairs, GateCtx episode and row win counts",
+    "PYTHONPATH=... python -m pdrw_agent.cli --help",
+    "PYTHONPATH=... python -m pdrw_agent.science.cli --help",
+    "PYTHONPATH=... python -m pdrw_agent.cli science-audit --help; python -m pdrw_agent.cli verify-run --help",
+    "PYTHONPATH=... python -m pdrw_agent.cli science-audit --project-id 19 --run-id final_algo_round  -> {\"status\":\"ERROR\",\"error_code\":\"CONFIG_REQUIRED\",\"authorization_verified\":false}",
+    "python: episode mean/median dSegF1, per-date means, scipy wilcoxon on 111 episode deltas, macro bnd_F1_full_0_5 for both files",
+    "wc -l notes.md calls.log && python -c 'json.load(answer.json); print(keys, object_macro_segF1, wins)'  (final validation)"
+  ]
+}

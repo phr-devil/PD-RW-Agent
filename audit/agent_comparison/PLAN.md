@@ -1,9 +1,11 @@
 # Agent comparison plan — v1.0 RC
 
-**Status: prepared, not run.** No arm has been executed against these tasks. This
-file freezes what would be compared, on what inputs, under which budget, and how
-it would be scored — so that the comparison cannot be redesigned after the
-numbers arrive.
+**Status: CAL-1 and CAL-2 run on 2026-11-20; T1–T3 not run.** This file freezes
+what would be compared, on what inputs, under which budget, and how it would be
+scored — so that the comparison cannot be redesigned after the numbers arrive.
+The four calibration runs, their scores and the isolation defects found while
+running them are in `audit/EVAL-START-v1.0.0-rc.1-2026-11-20.md`; the runs
+themselves are in `runs/`.
 
 ## 0. What is being compared
 
@@ -49,7 +51,8 @@ this instead of treating the Skill and the Python layer as rival systems.
 
 Two calibration tasks, three formal ones. Bundles are frozen copies of real
 project files under `tasks/<ID>/inputs/` with per-file sha256 in `MANIFEST.json`;
-answers are in `answers/` and are never placed in a bundle.
+keys are held outside the repository (`answers/README.md`) and are never placed in
+a bundle.
 
 | id | kind | project | dimension | what the arm must produce |
 | --- | --- | --- | --- | --- |
@@ -76,7 +79,8 @@ PYTHONPATH=src python audit/agent_comparison/build_tasks.py --verify
 - The bundle is a **copy**, taken once; the source project may keep changing.
 - **The copies stay local.** This repository is public and the projects are not,
   so what is committed is the manifest (paths, bytes, sha256, exclusions), the
-  prompt, the build script and the answer key — never the project bytes.
+  prompt and the build script — never the project bytes, and since 2026-11-20 not
+  the keys either.
   `build_tasks.py --verify` re-checks the copies on the machine that holds the
   projects, and a manifest is enough for a third party to confirm that the bundle
   they were given is the one that was frozen.
@@ -89,6 +93,31 @@ PYTHONPATH=src python audit/agent_comparison/build_tasks.py --verify
   is legitimate but is a separate question and needs its own freeze.
 - The answer keys are scored by a grader script or a human who has the key, never
   by an arm. An arm that has read `answers/` invalidates its own run.
+
+### 3a. Found after the freeze: the keys were public (2026-11-20)
+
+The five keys were committed in `0ff9948` and shipped in tag `v1.0.0-rc.1` and PR #27 on a
+public repository, so the statement above was a rule nobody could enforce and everybody
+had already broken. They were removed from the tree in the EVAL-START commit and replaced
+by `answers/KEYS.sha256`; the keys are held at `~/.pdrw-eval/keys/agent_comparison-rc1/`.
+See `answers/README.md` for what moving them does and does not fix.
+
+Consequences, fixed before any arm runs:
+
+- **CAL-1, CAL-2, T1, T2, T3 are not blind.** They are calibration, regression and
+  exploratory tasks. Scores on them are reported as such.
+- A second channel leaks the same answers and cannot be closed by moving a file: the
+  public `audit/` reports quote `0.6717`, `96/111` and the RUN-002 binding state, which are
+  exactly what T3 and CAL-1 ask for. A task drawn from projects 19, 44 or 48 is not blind
+  to an arm that can read this repository.
+- An arm's workspace is therefore built as a copy of `inputs/` **only** — no `MANIFEST.json`
+  (it carries `source_root`), no `PROMPT.md` from another task, no `answers/`, nothing above
+  the workspace root. That is procedure, not enforcement: the host gives every arm the
+  same filesystem, so a determined arm can still walk to `D:/workbuddy-work/19`. This is
+  recorded as a limitation of the round, not papered over.
+- The honest label for what follows: **grading is blind (arm labels stripped, order
+  shuffled); execution is not.** A difference in favour of B is therefore an upper bound on
+  B's real advantage, since leakage favours the arm that reads more files.
 
 ## 4. Metrics
 
@@ -110,7 +139,8 @@ wrong; a more expensive arm that is right is still more expensive.
 
 1. Three graders, none of whom built the arm they grade; each receives the
    answer files with the arm label stripped and the order shuffled per task.
-2. Each grader scores independently against `answers/*_KEY.json` and `RUBRIC.md`.
+2. Each grader scores independently against the key (`answers/README.md` for its
+   location) and `RUBRIC.md`.
 3. Agreement: the median per dimension. If the range on any dimension is ≥ 2
    points, a fourth grader adjudicates that dimension and writes one paragraph
    saying why.
@@ -142,6 +172,8 @@ does not: search over candidate solutions rather than review of one.
 
 ## 7. What this round does not do
 
-No arm was executed. No external framework was installed. No GPU training. No
-paper, figure or submission. The tasks are frozen inputs and hidden keys; running
-them is the next round's work.
+No formal task (T1–T3) was executed, and none can be blind: see §3a. No external
+framework was installed. No GPU training, no paper, no figure, no submission. The
+calibration runs measured the harness, not the component; T1–T3 remain frozen
+inputs, and running them would be an exploratory comparison until §5 of the
+EVAL-START record's unblock list is satisfied.

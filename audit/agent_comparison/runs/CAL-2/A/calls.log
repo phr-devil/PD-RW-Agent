@@ -1,0 +1,33 @@
+# calls.log — 每个实际执行的命令/工具调用一行，按步骤分组
+
+## step 0 — 读任务
+Read D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A/PROMPT.md
+
+## step 1 — 清点工作区与 bundle
+bash: cd "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A" && ls -la && echo "---INPUTS---" && ls -la inputs/
+bash: cd "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A" && find inputs -type f | sort && echo "---SIZES---" && find inputs -type f -printf "%s\t%p\n" | sort -k2
+
+## step 2 — 读文档
+Read inputs/STATE.md
+Read inputs/RESEARCH_RECORD.md
+Read inputs/H8_DECISION_BRIEF_2026-11-16.md
+Read inputs/D1_ACCEPTANCE_REPORT_2026-11-14.md
+
+## step 3 — 协议哈希与字段
+bash: cd "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A" && python - <<'PY'  # 两协议 size/sha256/顶层键打印
+bash: cd "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A" && python - <<'PY'  # v2 validity_guards/boundaries/mechanism_identifiability/data_isolation/splits
+
+## step 4 — Run 工件核对
+bash: cd "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A" && python - <<'PY'  # 两 metrics.json size/sha256/键/样本
+bash: cd "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A" && python - <<'PY'  # RUN-002 468 组/Σn=183600/26 折/18 臂/关键词扫描
+bash: cd "D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A" && python - <<'PY'  # summary BA 复算 + dc_amplitude_effects
+
+## step 5 — 身份/绑定线索检索
+Grep D:/workbuddy-agent/eval-runs/2026-11-20/CAL-2/A/inputs: project-map|PROJECT_IDENTITY|IDENTITY_CHECK|绑定|NOT_REGISTERED|registered
+
+## step 6 — 交付物
+Write answer.json
+Write notes.md
+Write calls.log
+
+# 合计 15 次工具调用（预算 60）；未联网、未读工作区外目录、未调用任何 Skill / pdrw_agent。
