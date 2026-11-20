@@ -67,6 +67,10 @@ def main() -> int:
         p = sub.add_parser(kind)
         p.add_argument("--packet", type=Path, required=True)
         _binding_options(p)
+        if kind == "decision":
+            p.add_argument("--project-root", type=Path,
+                           help="Optional project root: resolve declared Run references "
+                                "to project bytes before judging a closure")
     h6 = sub.add_parser("h6-review", help="Review new-project H6 card / declared choice")
     h6.add_argument("--plan", type=Path, required=True)
     h6.add_argument("--choice", type=Path, help="Optional declared user choice; never proof of authorization")
@@ -104,7 +108,8 @@ def main() -> int:
     try:
         if args.action in {"decision", "lessons"}:
             packet = read_json(args.packet, limit=128 * 1024)
-            result = (assess_proposal(packet) if args.action == "decision"
+            result = (assess_proposal(packet, project_root=getattr(args, "project_root", None))
+                      if args.action == "decision"
                       else compile_declared_lessons(packet))
             binding = _binding(args, packet, kind=args.action)
             if binding["status"] in {"NOT_REPLAYABLE", "EVIDENCE_OUT_OF_FREEZE",

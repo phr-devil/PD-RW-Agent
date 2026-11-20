@@ -1,11 +1,11 @@
 # Python Runtime + MCP — operator documentation
 
-**Current release: 0.9.10.** Read this section only; everything below the
+**Current release: 0.9.11.** Read this section only; everything below the
 historical index is kept verbatim for audit.
 
 | Fact | Current value |
 | --- | --- |
-| Package version | `0.9.10` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
+| Package version | `0.9.11` (`pyproject.toml`, `pdrw_agent.__version__`, Skill frontmatter) |
 | MCP tools | 24 defined; profiles `minimal` **11**, `research` **21** (default), `diagnostic` **24** |
 | CLI | `python -m pdrw_agent.cli <command>`; same `ResearchService` as MCP |
 | Optional science CLI | `python -m pdrw_agent.science.cli {decision,lessons,candidate-review,h6-review,early-review,feedback-link,replay-check,replay-blind}` |
@@ -71,6 +71,28 @@ probe summary carries `applicability` and `next_action`. Packets without the
 field behave exactly as in 0.9.9. Measured cost (compact JSON, character proxy):
 clean two-probe packet 3 054 → 3 541 (+15.9%), three defective packets
 9 124 → 10 429 (+14.3%), all of it the two short per-probe codes.
+
+0.9.11 makes those closures checkable instead of declarable. Before it,
+`status_verified` was `status != NOT_EXECUTED and bool(run_ref)`: a Run that did
+not exist, a Run belonging to another project and a Run whose own record said
+INVALID all came back verified, and a closure with no `premise_id` was still
+accepted as history. `decision` now takes an optional `--project-root`; the
+existing `feedback_link` resolver binds a cited `run_ref` to a Run record inside
+that project (SEALED/holdout paths are refused, not read) and reports five
+separate axes: `reference_present`, `file_binding`, `status_consistency`
+(the record's own `status`/`verdict`/`anchor_pass` vs the declaration),
+`premise_binding`, and only then `status_verified`. Two new outcomes keep the
+distinction honest: `STATUS_CONFLICT` (the record contradicts the claim) and
+`CLOSURE_PREMISE_UNBOUND` (a closure that never named its premise). Neither
+closes the premise nor removes a live candidate; both are new ID lists
+(`status_conflict_ids`, `premise_unbound_ids`). Without a root every closure is
+`NOT_CHECKED` — the same answer as "not verified", never "true". The payload also
+states `run_binding_checked`, `run_binding_scope`, and
+`authorization_basis: CALLER_DECLARED_ONLY_NEVER_A_PERMIT`, because a boolean in
+a packet is a caller statement and not an execution permit. Measured cost
+(compact JSON): clean two-probe 3 541 → 3 726 (+5.2%), three defective
+10 429 → 10 984 (+5.3%), a three-probe packet carrying real history
+6 706 → 8 180 (+22%, ~490 characters per closed probe).
 
 Nothing here authorizes anything: Python and MCP **cannot** approve a download,
 a SEALED read, a manuscript, a figure, a payment or a submission, and no
@@ -191,7 +213,7 @@ git pull --ff-only
 .\.venv\Scripts\python.exe tools\package_skill.py
 ```
 
-The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.10 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
+The following paragraph concerns *reproducing the historical v0.5.3 A/B/C study*, not upgrading the current installation. For that replay, install the originally tested versions and keep tool counts matched (that release reported **0.7.5** with **17**/20 tools) — **do not** apply those counts to the current 0.9.11 installation, which reports 11/21/24. A manual MCP smoke call does not count as autonomous tool selection.
 
 **Matched evaluation:** A = PD-RW only, no Skill/MCP; B = PD-RW + Skill v0.5.3, MCP disabled; C = PD-RW + the SAME Skill v0.5.3, MCP enabled. The user prompt, frozen input, model and permissions must be identical. In C, verify an **actual** project MCP tool call. If C does not call it, record `INTEGRATION_NOT_EXERCISED` (do not fabricate MCP usage). Compare scientific correctness separately from call overhead. B may legitimately fall back to direct file reads. The updated Skill improves routing instructions but **cannot force** the WorkBuddy host to invoke a tool or intercept terminal/SEALED operations.
 

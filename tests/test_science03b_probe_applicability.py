@@ -15,7 +15,10 @@ What the fix must and must not do:
 * nothing is deleted, nothing stops, and old packets without the field behave
   exactly as before.
 """
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from pdrw_agent.schemas import AgentError
 from pdrw_agent.science.decision import assess_proposal
@@ -63,22 +66,63 @@ def app(result, ident):
 
 
 class ClosedProbeTests(unittest.TestCase):
+    """A recorded closure needs a bound Run from 0.9.11 on.
+
+    The 03B behaviour is unchanged *when the evidence exists*: a valid Run under
+    the same premise makes the probe history. What changed is that a bare string
+    no longer counts as that evidence, so these tests now supply a real root.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.root = Path(cls._tmp.name)
+        record = cls.root / "EXP-006" / "metrics.json"
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps({"run_id": "EXP-006", "status": "COMPLETED",
+                                      "verdict": "NEG_NO_STABLE_LAW", "anchor_pass": True}),
+                          encoding="utf-8")
+        # EXP-005 was the invalid transform attempt; RUN-002 was inconclusive.
+        for name, payload in (("EXP-005", {"run_id": "EXP-005", "status": "INVALID",
+                                           "anchor_pass": False}),
+                              ("RUN-002", {"run_id": "RUN-002",
+                                           "status": "INCONCLUSIVE"})):
+            path = cls.root / name / "metrics.json"
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
     def test_a_closed_probe_is_history_not_the_next_experiment(self):
-        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS, SWAP]))
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS, SWAP]),
+                                 project_root=self.root)
         self.assertEqual(["SWAP"], eff(result)["frontier_candidate_ids_as_declared"])
         self.assertEqual(["SLOPE"], eff(result)["historical_evidence_ids"])
         self.assertEqual("HISTORICAL_EVIDENCE_ONLY", app(result, "SLOPE"))
 
     def test_a_closed_probe_cannot_dominate_a_live_one(self):
-        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS, SWAP]))
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS, SWAP]),
+                                 project_root=self.root)
         self.assertEqual(["PRESS"], [d["id"] for d in eff(result)["dominated_candidates_as_declared"]])
         self.assertNotIn("SLOPE", [d["id"] for d in eff(result)["dominated_candidates_as_declared"]])
 
     def test_a_closed_probe_keeps_its_next_action_label(self):
-        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS]))
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS]),
+                                 project_root=self.root)
         entry = next(s for s in result["probe_comparisons"] if s["id"] == "SLOPE")
         self.assertEqual("KEEP_AS_RECORDED_EVIDENCE_DO_NOT_RERUN", entry["next_action"])
         self.assertTrue(entry["prior_execution"]["status_verified"])
+
+    def test_the_same_claim_without_a_bound_run_is_not_history(self):
+        # The 03C correction: `run_ref` alone used to set status_verified true.
+        result = assess_proposal(packet([probe("SLOPE", prior=CLOSED), PRESS]))
+        entry = next(s for s in result["probe_comparisons"] if s["id"] == "SLOPE")
+        self.assertFalse(entry["prior_execution"]["status_verified"])
+        self.assertEqual("CLOSURE_DECLARED_NOT_VERIFIED", entry["applicability"])
+        self.assertEqual("VERIFY_RUN_BEFORE_DECIDING", entry["next_action"])
+        self.assertEqual([], eff(result)["historical_evidence_ids"])
 
 
 class RepairAndRevisitTests(unittest.TestCase):

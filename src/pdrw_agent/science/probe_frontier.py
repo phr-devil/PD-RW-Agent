@@ -109,6 +109,11 @@ def summarize_declared_probe_frontier(summaries: list[dict]) -> dict:
         # A caller-declared closure with no Run reference is neither accepted
         # as closed nor safe to duplicate: verify the Run first.
         "unverified_closure_ids": with_role("CLOSURE_DECLARED_NOT_VERIFIED"),
+        # A closure that never named its premise, or a Run record that
+        # contradicts the declaration: neither closes this premise, and neither
+        # may be used to eliminate a live probe.
+        "premise_unbound_ids": with_role("CLOSURE_PREMISE_UNBOUND"),
+        "status_conflict_ids": with_role("STATUS_CONFLICT"),
         "no_discriminating_probe": bool(known) and not discriminating,
         "no_legal_decisive_probe": bool(known) and not legal_decisive,
         "no_executable_next_probe": bool(known) and bool(legal_decisive) and not runnable,

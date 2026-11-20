@@ -423,3 +423,87 @@ Recorded as `PROJECT-48-DEFECT-005`; historical files untouched.
 4. **`run_ref` is a string, not a verified link.** `status_verified` means "a reference was cited",
    not "the Run was read". Cross-checking it against `feedback_link`/Run integrity is not wired.
 5. Token, paid compute, real experiment cost, MCP integration: `NOT_MEASURED`.
+
+## SCIENCE-03C — a cited Run is checked, not trusted (2026-11-20)
+
+Baseline `1318732` (v0.9.10), branch `science/03c-run-binding`. One read-only function in
+`feedback_link` (`bind_run_reference`), one optional keyword on `assess_proposal`
+(`project_root`), one CLI option (`--project-root`), five per-probe axes, two new outcomes and
+one narrowed regex. No required field, no rule, no H-node, no permission, no MCP tool, no profile
+count, no `next_actions` shape, no new ledger.
+
+### Measured defect
+
+| # | Defect | Reproduction (before) | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 10 | `status_verified` was `status != NOT_EXECUTED and bool(run_ref)` | a nonexistent `DEV/runs/RUN-999`, an escaping `../MCS-HEMO-26/...`, and `attempt-1-invalid-anchor` (whose record says `INVALID_HARNESS_TRAINING_SET_RESTRICTED`) all returned `true` | five axes: `reference_present`, `file_binding`, `status_consistency`, `premise_binding`, `status_verified` | `test_science03c_run_binding` (21) |
+| 11 | a closure with no `premise_id` counted as history for the current premise | `COMPLETED_VALID` + no premise → `HISTORICAL_EVIDENCE_ONLY`, probe removed from the frontier | `CLOSURE_PREMISE_UNBOUND` + `premise_unbound_ids`; still not rerun, and it cannot dominate | same file |
+| 12 | a record that contradicts the declaration was still history | declared `COMPLETED_VALID` over an INVALID attempt → `HISTORICAL_EVIDENCE_ONLY` | `STATUS_CONFLICT` + `EXECUTION_STATUS_CONFLICT` | same file |
+| 13 | `REFERENCE_NOT_LEGAL` fired on a diagnostic arm named beside a legal one | reference "oracle upper bound and deployable arm, same folds" → `no_legal_decisive_probe: true` for a probe whose deciding arm is deployable | strip a named `oracle/diagnostic upper bound` before matching; the oracle *as* the reference stays illegal | `ReferenceWordingTests` (3) |
+
+The five axes answer five different questions, and only the last is an inference:
+"is a reference declared", "did it resolve to Run bytes in this project", "does the record agree
+with the declaration", "was it run under this premise", "therefore is the closure trustworthy".
+A sealed/holdout path is refused rather than read (`_resolve` already enforced this).
+
+### Real replay: four validity states, four different next actions
+
+Same project (PoPu-48), real Run paths, one CLI call each. No project file was written.
+
+| Decision point | Prior state | `applicability` | `next_action` | Frontier |
+| --- | --- | --- | --- | --- |
+| RUN-005 answered the reliability premise | `COMPLETED_VALID`, bound | `HISTORICAL_EVIDENCE_ONLY` | `KEEP_AS_RECORDED_DO_NOT_RERUN` | empty |
+| `attempt-1-invalid-anchor` | `COMPLETED_INVALID`, bound, consistent | `TARGETED_REPAIR` | `REPAIR_NAMED_DEFECT_FIRST` | empty |
+| RUN-003, oracle-leaning | `INCONCLUSIVE`, bound | `AWAIT_NEW_INFORMATION` | `HOLD_UNTIL_NEW_INFORMATION_EXISTS` | empty |
+| same, with a named new unit | `INCONCLUSIVE` + `new_information` | `REVISIT_ON_NEW_INFORMATION` | `REVISIT_ONLY_IF_NEW_INFORMATION_CHANGES_JUDGMENT` | empty |
+| geometric registration | no prior run | `NEEDS_AUTHORIZATION` | `OBTAIN_AUTHORIZATION_FIRST` | empty |
+
+The `VALID_POS` branch could not be exercised on real data: no accessible DEV Run in this corpus
+carries a positive verdict. It is covered only by the fixture in the test file and is marked
+`NOT_MEASURED` as a behaviour claim.
+
+### The failure mode the replay exposed
+
+The 03B packet cited `"RUN-005"` and `"RUN-004"` as bare IDs. With a project root those resolve to
+nothing, so both closures became `CLOSURE_DECLARED_NOT_VERIFIED` — honest, but a reader can mistake
+it for "the record is broken, run it again". Re-cited as `DEV/runs/RUN-005` and `DEV/runs/RUN-004`
+both bind, verify, and become recorded evidence. The Skill now states the path rule, and the
+`next_action` for an unresolved closure is `VERIFY_RUN_BEFORE_DECIDING`, never `RUN`.
+
+### Part B: bounded read-only review of project 48
+
+| Question | Finding |
+| --- | --- |
+| Effect of the missing seed on the historical record | RUN-004's per-number precision is not reproducible. Confirmed: `status_verified` could not help here, because the record itself was consistent — the defect is statistical, not documentary. |
+| Paired effect vs subject-level CI vs single-fit jitter | **Conflated in the record.** `M3−M1` is a paired subject-level contrast (`per_subject_delta`, `dz = −0.19`, CI `[−0.234, 0.104]`), while 0.271 is a marginal single-condition jitter over 3 folds. Comparing them as magnitudes is not a paired argument, and the CI is *optimistic* because it treats each fit as exact. The NEG verdict is unaffected (that CI already spans zero, `dz` is small), but the wording overstates what the jitter comparison shows. |
+| Generalisation of RUN-005's negative | Correctly scoped in `STATE.md` and `RUN-005_RESULT.md`: 12-subject DEV subset, this model family, these deployable inputs; explicitly not "physically unrecoverable", not a project failure. No over-generalisation found. |
+| Protocol amendment order | `AMENDMENT-001` (training-set alignment) and `AMENDMENT-002` (seeding + jitter baseline) both state their trigger, both refuse to relax the decision rule, and the INVALID attempt is archived. **Gap:** the intermediate run after AMENDMENT-001 (anchor 9.1836) was overwritten by the final run; only the numbers quoted inside the amendment survive, and the cost line omits it. |
+| HOLD vs H8 | Separate: `branch_status = 可靠性门控分支 HOLD`, `CURRENT_JUDGMENT = ACTIVE / HOLD_RELIABILITY + H8_PENDING`, and the only legal next step is the author's H8 decision or a new authorization. |
+
+A sourced addendum was appended to `48/STATE.md` (`§勘误 · SCIENCE-03C`) recording the paired-CI
+correction, the missing intermediate artifact and the cost-line gap. No Run file, no number and no
+verdict was rewritten.
+
+### Preservation in this round
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| H1–H10, H5-with-H6, H7 in-scope DEV, SEALED, source tiers, DEV/VAL/SEALED | unchanged; no new author node, no new stop | full suite **568 passed / 8 skipped**; `case_gate_eval` 17/17 |
+| Existing payloads | V1/V2/V3 unchanged: 15 512 / 12 824 / 15 787 chars | `case_decision_eval` 9/10 (V9 skipped: no `mcp` SDK, same on baseline) |
+| MCP surface | 24 tools, profiles 11/21/24, none added | `PROFILE_TOOLS` |
+| Old packets | no `prior_execution` → byte-compatible; with history, closures become stricter, never looser | `test_packets_without_execution_fields_are_unchanged`, `test_the_same_claim_without_a_bound_run_is_not_history` |
+| Research data | no Run written, no download, no SEALED, no new training | `git status` in the project tree; only `STATE.md` appended |
+
+### Unverified in this round
+
+1. **One real replay, one project, one model.** The four decision points are real records, but the
+   trace is a single session and I wrote both the checker and the packets. "The model chooses better
+   next actions" stays `NOT_MEASURED`; what is measured is that four validity states yield four
+   different, correct `next_action` values.
+2. **`status_consistency` is a term match, not a contract check.** It compares a bounded vocabulary
+   of `status`/`verdict` strings; a Run that reuses a known term while being wrong still passes.
+3. **`bind_run_reference` reads one record file** (≤128 KiB) and does not verify linked artifacts,
+   hashes or the event metadata chain. That remains `run_integrity`'s job, which needs a registered
+   project and is not wired into `decision`.
+4. **The `VALID_POS` branch is unexercised on real data.**
+5. Token, paid compute, real experiment cost, MCP integration: `NOT_MEASURED`.
