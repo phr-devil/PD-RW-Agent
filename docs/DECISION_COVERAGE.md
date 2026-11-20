@@ -551,7 +551,7 @@ verdict was rewritten.
 | Only unambiguous structure may be rewritten | `normalize` = `prechecks` list → mapping (notes kept), `predictions` pairs → mapping; refuses prose `scope`, hoisted execution fields, unknown outcomes | `NormalizationTests` (6) |
 | No automatic science | a fresh session asked to repair all four changed **zero** science fields and accepted 0 of 4 rather than invent a direction | `audit/science04/answers/A1_report.json`, `A1_*_fixed.json` |
 | The usable path exists | a fresh session given `template` reached `SHAPE_OK` in 2 rounds / 3 min, and `decision` ran | `audit/science04/answers/A2_run005_packet.json` |
-| A closure is not verified while its premise is not | `status_verified` = `closure_verified`; `execution_verified` is separate; caller-only premise → `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` | `VerifiedMeansVerifiedTests` (3); five 03B/03C/03D assertions rewritten |
+| A closure is not verified while its premise is not | `status_verified` = `closure_verified`; `execution_verified` is separate; caller-only premise → `HISTORICAL_EVIDENCE_PREMISE_ASSUMED` (renamed in 0.9.14: that label still counted as evidence) | `VerifiedMeansVerifiedTests` (3); five 03B/03C/03D assertions rewritten |
 | Descriptions are not identifiers | `observable` / `comparison_reference` 240 characters (was 80, which produced 10 of one packet's 13 violations) | `test_a_long_scope_value_names_which_key`; full suite 610 |
 | No new approver, ledger, validator or checker axis | MCP 24 tools, profiles 11/21/24; `case_gate_eval` 17/17; payload +0.7% / +2.1% | this file, `RUNTIME_AND_MCP.md` |
 
@@ -569,7 +569,19 @@ verdict was rewritten.
 1. No real `VALID_POS` Run exists in any project here, so the "positive evidence" half of
    contribution identification has never been exercised.
 2. On real data every closure's premise resolves to `CALLER_DECLARATION` (no record or protocol
-   states a `premise_id`), so `closure_verified` is unreachable in practice.
+   states a `premise_id`), so `closure_verified` is unreachable in practice. 0.9.14 made the middle
+   level reachable — naming the frozen plan yields `HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED` on real
+   `RUN-005` — but `premise_verified` still needs a recorded `premise_id`.
 3. `REAL_LLM_END_TO_END`, token cost, MCP integration, paid compute: `NOT_MEASURED`.
 4. All six sessions are the same model family as the patch author: single non-blind arm.
 5. Two arms reached reserved data without declaring the need (B2's experiment, B4's path step 3); B3 declared it. Handled by a written rule, not a mechanism.
+
+### RC preflight (0.9.14): attribution, and a plan that says what it needs
+
+| decision | what changed | test / evidence |
+| --- | --- | --- |
+| A Run that ran is not yet evidence about *this* experiment | `attribution_basis` (`RUN_RECORD` / `FROZEN_PLAN` / `CALLER_PREMISE_PLAN` / `NONE`) and `attribution_verified`; `NONE` → `CLOSURE_ATTRIBUTION_UNCHECKED`, out of `historical_evidence_ids`, action `CHECK_WHICH_PLAN_THE_RUN_EXECUTED` | `audit/rc_preflight/adversarial_attribution.py` (AD1/AD2 on real 48 bytes); `test_a_run_nothing_ties_to_this_experiment_is_neither_history_nor_next` |
+| Naming the plan is checkable, and weaker than a premise | the Run executed the plan you named → `HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED`, `premise_verified: false`, `closure_verified: false` | `real_48_check.py`: same plan → attributed; another line's plan → `CLOSURE_PREMISE_CONTRADICTED`, probe back in the frontier |
+| Three levels are never collapsed | `execution_verified` / `attribution_verified` / `premise_verified` + `closure_verified`; no field claims a scientific conclusion | `VerifiedMeansVerifiedTests` (3), 03B/03C/03D assertions rewritten to the split |
+| A plan must say what it needs permission for | Skill handoff = `NOW` / `NEEDS_NEW_AUTHORIZATION` / `FUTURE_CONDITIONAL`, with the grant named | DP3 replayed by an independent session (`audit/rc_preflight/answers/B5_DP3.json`): the 20 Holdout materials and the 40 sealed materials became two separate grants, and four legal TRAIN steps appeared that 04's arm never proposed |
+| Positive evidence can be independently checked | means reproduce exactly; the coverage claims do not | `CRPS_L2_EVAL.json` 0.6717 / 0.6514 / 0.6468 / 0.7135 recomputed; 17/17 holds only for that file (ALGO_ROUND gives 15/17); 96/111 is recorded in `CRPS_L2_STATS_AUDIT.json` but not rebuildable from `episode_paired` (92/111 or 97/111) |

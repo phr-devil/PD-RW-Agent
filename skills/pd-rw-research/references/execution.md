@@ -45,6 +45,8 @@ Declare what already happened with one optional field per probe, `prior_executio
 
 **A premise label you wrote twice is not evidence.** `prior_execution.premise_id` and `proposed_premise.premise_id` are both yours, so their equality proves nothing; from 0.9.12 the checker answers the premise question from the record instead. `premise_binding_basis` says which source did it: `RUN_RECORD` (the record states `premise_id`), `FROZEN_PLAN` (the plan the record names states it), `PREMISE_PLAN` (your `premise_ref` disagrees with the plan the Run executed), or `CALLER_DECLARATION` (nothing on disk speaks to it — `premise_verified: false`, and the echo says so). `premise_ref` is how you state **which frozen plan encodes the premise under study** (project-relative path, e.g. `protocol/PROTO-POPU-RELIABILITY-v5-DEV005.json`); the record's `protocol_id`/`protocol_sha256` is then compared with that plan's bytes. A contradiction means the cited Run executed another experiment: the probe returns to `NOT_YET_RUN` with `CLOSURE_PREMISE_CONTRADICTED`, which is a new experiment, not a repeat and not a verdict about the science.
 
+**Three levels, not two: ran / attributed / settled.** `execution_verified` says the Run ran as declared. `attribution_verified` (+ `attribution_basis`) says something on disk ties that Run to *this* experiment: the record states the premise (`RUN_RECORD`), its frozen plan states it (`FROZEN_PLAN`), or the Run executed the plan you named (`CALLER_PREMISE_PLAN`). `closure_verified` says all of that holds and the premise is settled. A Run that ran but is tied to nothing on disk (`attribution_basis: NONE`) is `CLOSURE_ATTRIBUTION_UNCHECKED`: not evidence for this probe, not a next action, not a rerun — the next step is to read which plan it executed. That case is listed in `attribution_unchecked_ids` and is deliberately absent from `historical_evidence_ids`, because a caller's own label must not retire an experiment that may never have been run. **None of the three levels is a scientific conclusion**: whether the cited result is true, novel or generalizable is not decided here.
+
 `run_ref` must be a **project-relative path** (`DEV/runs/RUN-005`, or a path to the record file itself), not a bare Run ID: with `--project-root` the checker resolves it to a Run record, compares that record's own `status`/`verdict`/`anchor_pass` with what you declared, and reports the axes separately — `reference_present`, `file_binding`, `run_id_consistency`, `record_structure`, `status_consistency`, `premise_binding` (+`premise_binding_basis`, `premise_verified`), and only then `status_verified`. A bare `RUN-005` therefore reads as `CLOSURE_DECLARED_NOT_VERIFIED`, which is not a licence to rerun. `record_ref` picks a specific file inside the Run directory; `artifact_links_verified: false` means linked artifacts and their hashes were **not** opened. The mapping from there:
 
 | what the checker found | `applicability` | what it means for you |
@@ -55,7 +57,8 @@ Declare what already happened with one optional field per probe, `prior_executio
 | no `premise_id` on the closure | `CLOSURE_PREMISE_UNBOUND` + `CLOSURE_PREMISE_UNBOUND` | state the premise; an unbound closure cannot remove a live probe |
 | the cited Run executed another premise/plan | `NOT_YET_RUN` + `CLOSURE_PREMISE_CONTRADICTED` | this experiment is unanswered; design it, do not cite that Run |
 | bound, consistent, premise agrees (record or plan) | `HISTORICAL_EVIDENCE_ONLY` | cite it as evidence, do not rerun |
-| bound and consistent, but only you name the premise | `HISTORICAL_EVIDENCE_PREMISE_ASSUMED`, `execution_verified: true`, `premise_verified: false` | still recorded evidence and still not a next action — but say the premise link is declared, not recorded |
+| bound and consistent, and the Run executed the frozen plan you named, which states no premise | `HISTORICAL_EVIDENCE_PREMISE_ATTRIBUTED`, `attribution_basis: CALLER_PREMISE_PLAN` | citable evidence, still not a closure — confirm the plan's primary outcome is this experiment before quoting it |
+| bound and consistent, but nothing on disk ties the Run to this experiment | `CLOSURE_ATTRIBUTION_UNCHECKED` + `CLOSURE_ATTRIBUTION_UNCHECKED` | **not** evidence for this probe yet: read the plan the Run executed and say which experiment it answered. Do not cite it, do not rerun it |
 
 `status_verified` means the **closure** is verified, so it is never true while `premise_verified` is false; `execution_verified` is the other half (the Run ran as declared). Two different claims, two different fields — do not report the first as the second.
 
@@ -106,8 +109,43 @@ At a **new Task**, a **significant anomaly**, a **planned large resource investm
 
 **Correctness and cache:** `gate_fingerprint` now includes `decision`, `known_project_stage`, execution/evidence declarations and `index_stale` in addition to Task / hypothesis / protocol / stage / `task_profile` / query / filters / index sha256. Stage × milestone × known project state is cross-validated; on a contradiction or a stale index the tool returns an UNKNOWN advisory (`checkpoint_verified=false`), never `RETRIEVAL_VERIFIED`, and never blocks unrelated legal work. `payload_chars` measures the actual returned payload (including `detail=full`, excluding the private cached copy). The default advisory is compact; general `search_research_memory` lookups use `case_scope=auto` and skip a full case-library retrieval, with `case_scope=force` available on demand.
 
+## The action plan: three tiers, never one running list
+
+A plan mixes two different kinds of statement, and 04 produced both failures by
+writing them as one numbered list: a reserved-VAL grid appeared as *step 1* with
+"needs new authorization" mentioned at step 3, and a holdout evaluation appeared
+as *step 3* of a shortest evidence path. Neither is a schema error. Both are a
+missing output shape.
+
+Deliver the plan in three labelled tiers:
+
+1. **NOW — legal under the current original authorization.** Say which authority
+   the step spends: the frozen DEV subset, data an existing Run already
+   produced, a read-only document. If you cannot name that authority, the step
+   is not tier 1.
+2. **NEEDS_NEW_AUTHORIZATION — a specific grant, named.** Reserved VAL/Holdout/
+   SEALED reads, a second dataset or a download, a paid or external execution, a
+   material primary-Claim or strategy change. State *which* permission is
+   missing and who grants it. "We would need permission" inside a step's prose
+   is not the same statement, and it is the one 04 wrote twice.
+3. **FUTURE_CONDITIONAL — only meaningful if tier 2 arrives or a result moves.**
+   Write the condition, not a promise.
+
+Three rules follow, and only these:
+
+- **A tier-2 item does not weaken tiers 1 and 3.** The legal analysis is still
+  the answer to "what can be done now"; a plan that ends in a gate is not a plan
+  that was rejected.
+- **`prior_execution.requires_new_authorization` is the machine form** of tier 2
+  for a *probe* (it reads `NEEDS_AUTHORIZATION` and leaves the frontier). A plan
+  step that is not a probe and spends protected data has no field: write it in
+  tier 2, in words, and do not fold it into a step that looks runnable.
+- **No packet field is a permit.** `requires_new_authorization`, `approved`, a
+  plan hash and a green `packet-check` are declarations; the original grant is
+  the only authority, and the trusted host is what checks it.
+
 ## Minimal handoff
 
-`RESULT | EVIDENCE_PATHS | TESTS_ACTUALLY_RUN | LIMITS/UNKNOWN | NEXT_LEGAL_ACTION_OR_USER_CHOICE`
+`RESULT | EVIDENCE_PATHS | TESTS_ACTUALLY_RUN | LIMITS/UNKNOWN | PLAN(NOW / NEEDS_NEW_AUTHORIZATION / FUTURE_CONDITIONAL)`
 
 This is an output guide, not a requirement to create a new handoff file or duplicate the PD-RW project's existing reports.
