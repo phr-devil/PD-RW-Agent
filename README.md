@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.9 (a cheap probe is not automatically the decisive one).**
+> **Current release — 0.9.10 (an experiment that already ran is not a next action).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
 > projection from an evidence-linked Run to the next action, and one read-only
@@ -9,7 +9,8 @@
 > it actually checked, `candidate-review` reports which declared relation is
 > unstated or self-contradictory, and `decision` reports when a probe's
 > reference is not a legal baseline, when its unit contradicts a declared
-> independent group check, and when no candidate probe separates any hypothesis.
+> independent group check, when no candidate probe separates any hypothesis, and
+> whether the probe you are about to run has already answered this premise.
 > Theory and simulation paths are representable (`ANALYTIC_DERIVATION`,
 > `INSTANCE`/`REPLICATE`), so a form check cannot eliminate a legal direction.
 > No scientific rule, H-node, permission gate or tool count changed: MCP stays
@@ -21,6 +22,19 @@
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v0.9.10 a closed or ungranted probe is not a next action:** a cheap probe that
+> had already answered the same premise still won the frontier, and an INVALID
+> one still got recommended. `decision` now reads one optional per-probe field,
+> `prior_execution`, and reports `applicability`/`next_action` per probe plus
+> `historical_evidence_ids`, `repair_required_ids`,
+> `revisit_on_new_information_ids`, `awaiting_new_information_ids`,
+> `needs_authorization_ids` and `no_executable_next_probe`. A closure claimed
+> without a Run reference is flagged `EXECUTION_DECLARED_NOT_VERIFIED` instead of
+> being accepted or silently rerun. Verified on three frozen historical decision
+> points (MCS-HEMO-26, RCT-CONTACT-26, PoPu-48): 0.9.6 and 0.9.9 both recommended
+> a probe the record had already closed; 0.9.10 names none and keeps the closed
+> one as evidence. One real DEV loop (PoPu RUN-005) was then executed end to end.
 
 > **v0.9.9 a cheap probe is not automatically the decisive one:** the 0.9.8
 > frontier could still name a LOW-cost probe that separated nothing, and an
