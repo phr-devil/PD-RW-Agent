@@ -1,6 +1,6 @@
 # PD-RW-Agent architecture and change contract
 
-This file describes **where each responsibility lives** in v0.9.8 and what each
+This file describes **where each responsibility lives** in v0.9.9 and what each
 layer is forbidden to do. It is an adapter map, not a scientific rule source:
 PD-RW `WORKFLOW.md` / `AGENTS.md` remain the only owners of scientific meaning.
 
@@ -92,7 +92,7 @@ only in the returned basis (`gate_fingerprint(...)[1]`).
 | `scripts/context.py action-review` | Wraps PD-RW `core.execution_preflight` | Advisory only; grants nothing |
 | `scripts/context.py delivery-review` | Wraps PD-RW `core.delivery_check` | Existence/path-only; no content or SEALED clearance |
 
-## Not implemented (honest scope for v0.9.8)
+## Not implemented (honest scope for v0.9.9)
 
 - No original-user-message authentication, tool interceptor, sandbox or OS ACL.
 - No re-reading of a Run inside `case_gate_check`: it reports declared feedback

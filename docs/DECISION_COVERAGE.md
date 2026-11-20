@@ -297,3 +297,56 @@ INT-SUCCESS-03/04, EXT-N06); labels are the library's documented verdict.
    itself improve a research decision.
 5. Token/wall-clock cost: `NOT_MEASURED`. Character counts: clean packet 2 813 → 2 965,
    three defective packets 7 400 → 8 640.
+
+## SCIENCE-03 — a cheap probe is not automatically decisive (2026-11-20)
+
+Baseline `a94805c` (v0.9.8). One behavioural change in `probe_frontier` (dominance only among
+eligible candidates), two additive fields in `decision.assess_proposal` (`usage`,
+`blocks_decisive_frontier`) and one top-level flag (`no_legal_decisive_probe`). No required field,
+no rule, no H-node, no permission, no MCP tool, no profile count, no `next_actions` shape.
+
+### Measured defects
+
+| # | Defect | Reproduction (before) | Fix | Test |
+| --- | --- | --- | --- | --- |
+| 5 | A LOW-cost probe that separated no hypothesis pair was still named as a frontier candidate, next to the MEDIUM-cost probe that did separate them | `frontier=[CHEAP-BUT-BLIND, MEDIUM-BUT-DECIDES]` | frontier contains only probes with ≥1 declared pair; the blind one becomes `exploratory_probe_ids` | `test_science03_probe_frontier_boundary` (10) |
+| 6 | An oracle-referenced LOW-cost probe **dominated** the legal probe with the same pair set, so the only remaining candidate was the illegal comparison | `frontier=[ORACLE-UPPER-BOUND]`, `dominated=[LEGAL-SPECIMEN-PROBE]` | `REFERENCE_NOT_LEGAL` disqualifies from dominance and from the frontier; the probe stays as `diagnostic_upper_bound_ids` | same file |
+
+`PROBE_UNIT_NOT_INDEPENDENT` deliberately does **not** disqualify: a `WINDOW`/`FRAME` unit adds
+`needs_unit_verification_ids` and `usage: VERIFY_INDEPENDENT_UNITS_FIRST`, and stays a candidate.
+
+### Real-session evidence (not a benchmark)
+
+One real WorkBuddy session, two existing DEV projects, no download, no fitting, no SEALED read.
+MCP `pd-rw-research` was still not mounted (recorded once, not reinstalled); the model used the
+existing `science.cli decision` path. Full trace: `audit/science03/SCIENCE-03-v0.9.9-2026-11-20.md`.
+
+| Case | Original plan (from the record) | Model-revised plan | Checker contribution |
+| --- | --- | --- | --- |
+| MCS-HEMO-26 | request fitting authorisation for a "fair baseline" against CNAP-derived SBP | zero-fit subject-level cross-session ICC + motion control, because the reference layer is same-source | blind doc check moved to `exploratory`; `RECORD` unit flagged against declared group independence |
+| RCT-CONTACT-26 | DEV-only frame-level slope invariance (already closed) + controlled press needing new truth | split: sensor-swap contrast now, external-modulus press only for the material claim; third explanation (pseudo-label circularity) added | the cheap DEV-only probe dominated the decisive press — a limit, reported below |
+
+### Preservation in this round
+
+| Requirement | Status | Evidence |
+| --- | --- | --- |
+| H1–H10, H5-with-H6, H7 in-scope DEV autonomy, SEALED, source tiers, `as_of`, DEV/VAL | unchanged; no new author node, no new stop | full suite **534 passed / 8 skipped**; `case_gate_eval` 17/17 |
+| Existing payloads | V1/V2/V3 unchanged: 15 512 / 12 824 / 15 787 chars | `case_decision_eval` 10/10 |
+| MCP surface | 24 tools, profiles 11/21/24, none added | `PROFILE_TOOLS` |
+| Probe is never deleted, only re-labelled | `exploratory` / `diagnostic_upper_bound` / `unit_verification` keep the candidate visible | `test_a_pilot_is_still_available_but_not_called_decisive` |
+| Research data, Runs, STATE, `CASE_LIBRARY`, frozen protocols | read-only | `git status`; no file written under any project root |
+
+### Unverified in this round
+
+1. **A cheap but already-executed probe can still dominate a decisive expensive one.** Measured on
+   a real packet: the packet has no "already closed" field, so the frontier compares declared pairs
+   and cost only. Fixing it needs a new field; not done under "minimal necessary".
+2. **A same-source reference is not caught.** `REFERENCE_NOT_LEGAL` matches test-time truth/oracle,
+   not "NIBP is the same device's waveform" and not pseudo-label circularity. Both stayed model
+   judgments, as in v0.9.8 risk 4.
+3. **No baseline field.** A strong simple baseline (`PAT_foot` 0.823, depth-only) can only be stated
+   in prose; it is not machine-checked (the CASE-13 layer).
+4. **Single session, not blind.** The model had just written the patch and knew the new fields; no
+   second arm, no independent packet author. "The model designs better experiments" is
+   `NOT_MEASURED`; what is measured is one trace with its artifacts.
+5. Token, real experiment cost, scientific value, MCP integration: `NOT_MEASURED`.

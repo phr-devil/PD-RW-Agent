@@ -42,6 +42,14 @@ _PROBE_QUESTION = {
     "REFERENCE_NOT_LEGAL": "Which reference is legal at prediction time, and does it exist already?",
     "PROBE_UNIT_NOT_INDEPENDENT": "How many independent units (not windows) does this probe compare?",
 }
+# What the probe may still be used for. A test-time-truth reference is a
+# legitimate diagnostic upper bound and an illegitimate decisive comparison;
+# an unresolved unit question asks for a count, not for a ban on the metric.
+_PROBE_USAGE = {
+    "REFERENCE_NOT_LEGAL": "DIAGNOSTIC_UPPER_BOUND_ONLY",
+    "PROBE_UNIT_NOT_INDEPENDENT": "VERIFY_INDEPENDENT_UNITS_FIRST",
+}
+_DISQUALIFYING_FROM_FRONTIER = frozenset({"REFERENCE_NOT_LEGAL"})
 
 
 def _id(value, label: str) -> str:
@@ -226,6 +234,9 @@ def assess_proposal(packet: dict) -> dict:
                 "rules": [_PROBE_RULE[code] for code in findings],
                 "precedent": sorted({c for code in findings for c in _PROBE_PRECEDENT[code]}),
                 "questions": [_PROBE_QUESTION[code] for code in findings],
+                "usage": [_PROBE_USAGE[code] for code in findings],
+                "blocks_decisive_frontier": any(
+                    code in _DISQUALIFYING_FROM_FRONTIER for code in findings),
                 "independently_verified": False,
             })
         summaries.append({
@@ -251,6 +262,8 @@ def assess_proposal(packet: dict) -> dict:
         prechecks["group_independence"]["review"] = "DECLARED_CONFLICT"
         prechecks["group_independence"]["conflict_with_probe_units"] = repeated_unit_probes
     no_decisive = bool(summaries) and all(s["pair_count"] == 0 for s in summaries)
+    efficiency = summarize_declared_probe_frontier(summaries)
+    no_legal = efficiency["no_legal_decisive_probe"]
 
     return {
         "status": "ADVISORY_REVIEW_ONLY",
@@ -261,13 +274,19 @@ def assess_proposal(packet: dict) -> dict:
         "positive_premise_candidates": positive_candidates,
         "prechecks": prechecks,
         "probe_comparisons": summaries,
-        "declared_probe_efficiency": summarize_declared_probe_frontier(summaries),
+        "declared_probe_efficiency": efficiency,
         "probe_findings": probe_findings,
         "no_decisive_probe": no_decisive,
         "no_decisive_probe_question": (
             "Which observable would separate at least one pair of the named hypotheses? "
             "Without one, running any of these probes cannot change the judgment."
             if no_decisive else None),
+        "no_legal_decisive_probe": no_legal,
+        "no_legal_decisive_probe_question": (
+            "Which reference condition is available at prediction time? A probe that "
+            "separates the hypotheses only against test-time truth can bound what is "
+            "achievable, but cannot decide between them."
+            if no_legal and not no_decisive else None),
         "no_claim_of_novelty_or_scientific_validity": True,
         "original_user_authorization": "UNVERIFIED",
         "automatic_stop": False,

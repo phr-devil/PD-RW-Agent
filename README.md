@@ -1,6 +1,6 @@
 # PD-RW-Agent
 
-> **Current release — 0.9.8 (holdout-checked candidate paths and probe contradictions).**
+> **Current release — 0.9.9 (a cheap probe is not automatically the decisive one).**
 > Six explicit layers (PD-RW rules · research project · Skill · Python science
 > checks · service/CLI/MCP · runtime receipts), one **downgrade-only**
 > projection from an evidence-linked Run to the next action, and one read-only
@@ -21,6 +21,19 @@
 > Real research gain, Token and wall-clock savings remain `NOT_MEASURED`.
 
 ## Release notes (newest first; the release above is the current one)
+
+> **v0.9.9 a cheap probe is not automatically the decisive one:** the 0.9.8
+> frontier could still name a LOW-cost probe that separated nothing, and an
+> oracle-referenced probe could **dominate** the one legal probe (same pairs,
+> lower cost) — so the only candidate left was the illegal comparison. Dominance
+> is now computed only between probes that separate at least one declared pair
+> *and* carry no `REFERENCE_NOT_LEGAL`. The others stay visible with their
+> permitted use (`exploratory_probe_ids`, `diagnostic_upper_bound_ids`,
+> `needs_unit_verification_ids`), plus `no_legal_decisive_probe`. Nothing is
+> deleted, nothing stops automatically, and a window/frame metric only asks for
+> an independent-unit count. A real two-case session is recorded in
+> `audit/science03/`: same-reason reference and pseudo-label circularity stay
+> model judgments, not checker output.
 
 > **v0.9.8 holdout and experiment-design checks:** two capabilities were tested
 > on cases that were *not* used to build them (CASE-12/13/17 and
