@@ -129,14 +129,17 @@ They remain usable for regression ("does a change break what used to work") and 
 
 Checked, not assumed:
 
-- The only projects with PD-RW records are 19, 44 and 48, and all three are quoted in the public
-  audit; the case library additionally quotes 19's numbers.
-- The other directories under `D:/workbuddy-work` (10, 15, 21, 22, 42, 46, 47, …) have no
-  `STATE.md` and no PD-RW record; they are not research projects in this sense and cannot supply
-  a key.
-- A new task would have to come from a new project with real records — that is research work,
-  not evaluation work, and inventing one to fill a table would be exactly the "manufacture a Run
-  for a test" this round forbids.
+- Ten project directories under `D:/workbuddy-work` carry a `STATE.md` (17, 18, 19, 31, 32, 35,
+  44, 48, 49, 51). Only 19, 44 and 48 have a completed Run with a decision point — and all three
+  are quoted in the public audit, with 31/32 additionally exposed as CASE_LIBRARY cards.
+- The other five (17, 18, 35, 49, 51) have no `DEV/runs/` and are at data-acquisition or Pilot
+  stage, with grants that are narrow or exhausted: 35's only legal next action is "等待官方 Drive
+  配额恢复后续传剩余 256 项"; 49 records that "所有读取均为逐任务独立有界授权……训练/C0–C3
+  拟合、SEALED、写稿/投稿均未授权". They can supply a *bundle*, but not a key with a determinate
+  answer, because the decision they would test has not been made.
+- A new task therefore has to come from a new project with real records — research work, not
+  evaluation work. Inventing one to fill a table would be exactly the "manufacture a Run for a
+  test" this round forbids.
 
 ### 3.3 No real DEV task is authorized
 
