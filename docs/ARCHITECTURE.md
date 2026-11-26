@@ -1,5 +1,16 @@
 # PD-RW-Agent architecture and change contract
 
+## Post-RC responsibility boundary
+
+Keep the six layers below. PD-RW-Agent is the research-capability adapter for
+a general-purpose host and the reusable, bounded source-check service.
+Do not add a GitHub provider catalog, specialist-project adapters or a
+multi-provider scheduler here: those belong to PD-RW-Orchestrator. The
+latter may consume existing CLI/MCP/source contracts; its output remains
+unverified until independently assessed. Experience distillation belongs
+to PD-RW-Experience; retain original case extraction and source checks here.
+See [CAPABILITY_FOCUS.md](CAPABILITY_FOCUS.md).
+
 This file describes **where each responsibility lives** in v1.0.0-rc.1 and what each
 layer is forbidden to do. It is an adapter map, not a scientific rule source:
 PD-RW `WORKFLOW.md` / `AGENTS.md` remain the only owners of scientific meaning.

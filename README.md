@@ -1,5 +1,12 @@
 # PD-RW-Agent
 
+> **Post-RC development branch — capability focus.** This branch preserves the
+> frozen RC baseline; it is not a new release or a validated improvement.
+> PD-RW-Agent enhances a general-purpose research host (WorkBuddy/Codex).
+> [PD-RW-Orchestrator](https://github.com/phr-devil/PD-RW-Orchestrator) owns
+> external specialist-project selection and integration; PD-RW-Experience
+> owns derivative lesson distillation. See [responsibility and evaluation plan](docs/CAPABILITY_FOCUS.md).
+
 > **What this is.** A research-workflow component that WorkBuddy loads — a Skill
 > (rules and procedure), a CLI (`pdrw-agent`, `science`) and an optional stdio MCP
 > server. It is **not** an LLM and does not compete with WorkBuddy: WorkBuddy

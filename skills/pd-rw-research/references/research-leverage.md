@@ -32,6 +32,27 @@ When authorized, use the least costly *decision-relevant* credible probe and ben
 
 After a valid negative result, first identify which part failed: data/truth, evaluation, information/identifiability, insufficient training, mechanism, or novelty. An initial new-algorithm proposal is **not** a permanent objective: compare a meaningful older-method improvement, new measurement/reliability boundary, mechanism finding or revised task on actual independent paper value, not whether the original algorithm survived. If another distinct legal information lever is supported, pursue a bounded falsifying probe in current H6 scope; otherwise preserve the valid result and propose a scoped branch NARROW/REFRAME/HOLD, with H8 only for a material core-Claim or strategy decision. Do not automatically STOP the whole project or start a new major line. Expensive experiments need a specified expected change to the science decision and a cost ceiling, not additional paperwork.
 
+## Select the next useful action, not another review
+
+For a material bottleneck, reuse existing results and compare the leading
+in-scope route against a genuinely different plausible alternative (or explain
+why none is warranted). State the missing premise, strongest competing
+explanation, cheapest credible discriminating evidence, and how each possible
+outcome changes the next action. If the current evidence already distinguishes
+them, act on that evidence rather than repeating the probe. During authorized
+ordinary DEV, group related fixes, checks and experiments into one bounded
+continuous task; only reopen the affected check after a material change or
+new contradiction. Do not require a new card, extra Agent, fixed review round,
+or author confirmation for ordinary in-scope work. A valid negative may
+support a narrower contribution or a different information lever; an
+unverified result is not a reason to claim success or abandon a project.
+
+When a specialist external research system is genuinely needed, suggest the
+capability and the minimal evidence/constraint handoff to PD-RW-Orchestrator;
+do not reimplement its search or scheduler, invoke an external model by
+default, or treat its output as verified evidence. Existing author choices
+and protected-effect permissions remain authoritative.
+
 ## Fast evidence-to-paper transition (without bypassing writing lock)
 
 At a meaningful positive or negative Run, map supported claims, named nearest work, missing independent evidence and realistic paper type using existing `RESEARCH_RECORD.md` / `PAPER_BLUEPRINT.md`. Separate **scientific result**, **independent contribution**, **journal fit**, and **citation/reuse potential**; do not label any of these CONFIRMED from editorial prose or a hypothetical venue. If evidence is sufficient, stop unnecessary new algorithm development and deliver the shortest remaining verification plan. Real journal/category/fee/scope information must be freshly verified when actually needed; no fabricated rankings.

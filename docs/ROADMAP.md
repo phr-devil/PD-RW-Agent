@@ -1,5 +1,17 @@
 # Implementation roadmap (not a second research workflow)
 
+## Post-RC — capability-first development
+
+Preserve the frozen RC and its public tool contracts. First measure general
+host research capability on existing frozen cases; prioritize concrete
+scientific-judgment errors, decision-relevant experiments, usable contribution
+recovery, and total resource cost. Make only evidence-supported improvements
+to the existing Skill/references and science tools. Avoid mandatory new
+checks, review loops, duplicate schedulers or external provider adapters.
+Keep source/evidence interfaces available to Orchestrator. Existing host
+limitations stay explicit; extend the shared trusted boundary only when a
+real authorized task requires it. See [CAPABILITY_FOCUS.md](CAPABILITY_FOCUS.md).
+
 ## v0.8.1 lean-science restoration (UNMEASURED)
 
 - No new author nodes, second science policy, private database, paid API, autonomous paper drafting, execution permission or OS-privilege claim. Existing PD-RW v1.14 remains the scientific authority.
